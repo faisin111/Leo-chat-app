@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/constants/app_strings.dart';
+import '../core/auth/auth_session_events.dart';
 import '../core/theme/theme.dart';
 import '../core/widgets/common_widgets/scrolling/leo_scroll_behavior.dart';
 import '../features/chat/presentation/pages/chat_shell_page.dart';
@@ -34,6 +35,7 @@ final _router = GoRouter(
         pageBuilder: (context, state) => _page(state, const ChatShellPage())),
   ],
 );
+final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 CustomTransitionPage<void> _page(GoRouterState state, Widget child) =>
     CustomTransitionPage<void>(
@@ -60,14 +62,49 @@ CustomTransitionPage<void> _page(GoRouterState state, Widget child) =>
       },
     );
 
-class LeoChatApp extends StatelessWidget {
+class LeoChatApp extends StatefulWidget {
   const LeoChatApp({super.key});
+
+  @override
+  State<LeoChatApp> createState() => _LeoChatAppState();
+}
+
+class _LeoChatAppState extends State<LeoChatApp> {
+  late int _lastSessionEvent;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastSessionEvent = AuthSessionEvents.sessionExpired.value;
+    AuthSessionEvents.sessionExpired.addListener(_onSessionExpired);
+  }
+
+  void _onSessionExpired() {
+    final event = AuthSessionEvents.sessionExpired.value;
+    if (event == _lastSessionEvent) return;
+    _lastSessionEvent = event;
+    _router.go('/login');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _scaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(
+            content: Text('Your session expired. Please sign in again.')),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    AuthSessionEvents.sessionExpired.removeListener(_onSessionExpired);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => MaterialApp.router(
         title: AppStrings.appName,
         debugShowCheckedModeBanner: false,
         theme: LeoTheme.light,
+        scaffoldMessengerKey: _scaffoldMessengerKey,
         scrollBehavior: const LeoScrollBehavior(),
         routerConfig: _router,
       );

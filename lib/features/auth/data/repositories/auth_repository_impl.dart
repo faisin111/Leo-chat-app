@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/errors/app_failure.dart';
+import '../../../../core/auth/auth_session_manager.dart';
 import '../../../../core/network/result.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/user.dart';
@@ -77,13 +78,12 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<void>> logout() async {
     try {
-      await _secureStorage.delete(key: _keyAccessToken);
-      await _secureStorage.delete(key: _keyRefreshToken);
-      await _secureStorage.delete(key: _keyUserId);
-      await _secureStorage.delete(key: _keyUsername);
-      await _secureStorage.delete(key: _keyEmail);
-      await _secureStorage.delete(key: _keyDisplayName);
-      await _secureStorage.delete(key: _keyRole);
+      try {
+        await _remoteDataSource.logout();
+      } on DioException {
+        // JWT access tokens are stateless; still clear local credentials.
+      }
+      await AuthSessionManager.clearLocalSession(_secureStorage);
       return const Right(null);
     } catch (e) {
       return Left(UnknownFailure(e.toString()));

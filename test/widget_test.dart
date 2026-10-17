@@ -7,9 +7,51 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:leochat/app/app.dart';
 import 'package:leochat/core/di/providers.dart';
 import 'package:leochat/core/network/result.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:leochat/features/auth/domain/entities/auth_session.dart';
 import 'package:leochat/features/auth/domain/entities/user.dart';
 import 'package:leochat/features/auth/domain/repositories/auth_repository.dart';
+import 'package:leochat/features/chat/domain/entities/conversation.dart';
+import 'package:leochat/features/chat/domain/entities/message.dart';
+import 'package:leochat/features/chat/domain/repositories/chat_repository.dart';
+
+class _FakeChatRepository implements ChatRepository {
+  @override
+  Future<Result<List<Conversation>>> getConversations(
+          {int? cursor, int limit = 50, String? query}) async =>
+      const Right([]);
+
+  @override
+  Future<Result<List<Message>>> getMessages(
+          {required String conversationId,
+          int? beforeSeq,
+          int? afterSeq,
+          int limit = 50}) async =>
+      const Right([]);
+
+  @override
+  Future<Result<Message>> sendMessage(
+          {required String conversationId,
+          required String clientMessageId,
+          required String content,
+          String type = 'TEXT',
+          String? replyToId}) async =>
+      Right(
+          Message(id: 'm-1', conversationId: conversationId, content: content));
+
+  @override
+  Future<Result<void>> markConversationRead(
+          {required String conversationId, required int upToSeq}) async =>
+      const Right(null);
+
+  @override
+  Future<Result<int>> getUnreadCount() async => const Right(0);
+
+  @override
+  Future<Result<Conversation>> getConversation(
+          {required String conversationId}) async =>
+      Right(Conversation(id: conversationId, title: 'Chat'));
+}
 
 class _FakeAuthRepository implements AuthRepository {
   @override
@@ -54,7 +96,13 @@ class _FakeAuthRepository implements AuthRepository {
 }
 
 void main() {
-  setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+  setUpAll(() {
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
+  });
 
   testWidgets('LeoChat starts with splash then opens onboarding',
       (tester) async {
@@ -62,7 +110,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('LeoChat'), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
 
     expect(find.text('Stay close to your people.'), findsOneWidget);
@@ -72,10 +120,11 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
+        chatRepositoryProvider.overrideWithValue(_FakeChatRepository()),
       ],
       child: const LeoChatApp(),
     ));
-    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Skip'));

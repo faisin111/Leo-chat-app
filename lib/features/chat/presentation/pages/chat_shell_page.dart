@@ -1,24 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/network/stomp_service.dart';
 import '../../../../core/responsive/breakpoints.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../domain/entities/conversation.dart';
+import '../providers/chat_notifier.dart';
+import '../providers/chat_state.dart';
+import '../widgets/chat_bubble.dart';
+import '../widgets/chat_composer.dart';
+import '../widgets/conversation_skeleton.dart';
+import '../widgets/conversation_tile.dart';
+import '../widgets/filter_bubble_bar.dart';
+import '../widgets/message_skeleton.dart';
+import '../widgets/typing_indicator.dart';
 
-class ChatShellPage extends StatefulWidget {
+class ChatShellPage extends ConsumerStatefulWidget {
   const ChatShellPage({super.key});
 
   @override
-  State<ChatShellPage> createState() => _ChatShellPageState();
+  ConsumerState<ChatShellPage> createState() => _ChatShellPageState();
 }
 
-class _ChatShellPageState extends State<ChatShellPage> {
+class _ChatShellPageState extends ConsumerState<ChatShellPage> {
   int _selectedTab = 0;
-  int _selectedFilter = 0;
 
   @override
   Widget build(BuildContext context) {
+    final chatState = ref.watch(chatNotifierProvider);
     final isMobile =
         layoutForWidth(MediaQuery.sizeOf(context).width) == LeoLayout.mobile;
 
@@ -28,22 +42,27 @@ class _ChatShellPageState extends State<ChatShellPage> {
         body: Row(
           children: [
             Container(
-                width: 72, color: LeoColors.rail, child: const _DesktopRail()),
+              width: 72,
+              color: LeoColors.rail,
+              child: const _DesktopRail(),
+            ),
             SizedBox(
               width: 360,
               child: _ChatsContent(
-                selectedFilter: _selectedFilter,
-                onOpenConversation: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const _ConversationPage(),
-                  ),
-                ),
-                onSelectFilter: (index) =>
-                    setState(() => _selectedFilter = index),
+                chatState: chatState,
+                onOpenConversation: (conversation) {
+                  ref
+                      .read(chatNotifierProvider.notifier)
+                      .selectConversation(conversation);
+                },
               ),
             ),
             const VerticalDivider(width: 1, color: Color(0xFFE7DFD8)),
-            const Expanded(child: _ConversationDetailView()),
+            Expanded(
+              child: _ConversationDetailView(
+                conversation: chatState.selectedConversation,
+              ),
+            ),
           ],
         ),
       );
@@ -53,31 +72,119 @@ class _ChatShellPageState extends State<ChatShellPage> {
       backgroundColor: const Color(0xFFFAF7F4),
       body: SafeArea(
         child: _ChatsContent(
-          selectedFilter: _selectedFilter,
-          onSelectFilter: (index) => setState(() => _selectedFilter = index),
+          chatState: chatState,
+          onOpenConversation: (conversation) {
+            ref
+                .read(chatNotifierProvider.notifier)
+                .selectConversation(conversation);
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _ConversationPage(
+                  conversationId: conversation.id,
+                ),
+              ),
+            );
+          },
         ),
       ),
       bottomNavigationBar: _BottomNav(
         selectedIndex: _selectedTab,
-        onTap: (index) => setState(() => _selectedTab = index),
+        onTap: (index) {
+          if (index == 3) {
+            _showSettings(context);
+            return;
+          }
+          setState(() => _selectedTab = index);
+        },
+      ),
+    );
+  }
+
+  void _showSettings(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: LeoColors.background,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Settings',
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: LeoColors.textPrimary)),
+              const SizedBox(height: 6),
+              const Text('Manage your LeoChat session.',
+                  style: TextStyle(
+                      color: LeoColors.textSecondary,
+                      fontWeight: FontWeight.w500)),
+              const SizedBox(height: 18),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.logout_rounded,
+                    color: LeoColors.destructive),
+                title: const Text('Log out',
+                    style: TextStyle(
+                        color: LeoColors.destructive,
+                        fontWeight: FontWeight.w800)),
+                onTap: () async {
+                  final router = GoRouter.of(context);
+                  Navigator.of(sheetContext).pop();
+                  await ref.read(authNotifierProvider.notifier).logout();
+                  if (mounted) router.go('/login');
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _ChatsContent extends StatelessWidget {
+class _ChatsContent extends ConsumerStatefulWidget {
   const _ChatsContent({
-    required this.selectedFilter,
-    required this.onSelectFilter,
-    this.onOpenConversation,
+    required this.chatState,
+    required this.onOpenConversation,
   });
 
-  final int selectedFilter;
-  final ValueChanged<int> onSelectFilter;
-  final VoidCallback? onOpenConversation;
+  final ChatState chatState;
+  final ValueChanged<Conversation> onOpenConversation;
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
+  ConsumerState<_ChatsContent> createState() => _ChatsContentState();
+}
+
+class _ChatsContentState extends ConsumerState<_ChatsContent> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final chatState = widget.chatState;
+    final conversations = chatState.displayedConversations;
+
+    return RefreshIndicator(
+      color: LeoColors.primary,
+      backgroundColor: Colors.white,
+      displacement: 28,
+      onRefresh: () =>
+          ref.read(chatNotifierProvider.notifier).loadConversations(
+                query: chatState.searchQuery.trim().isEmpty
+                    ? null
+                    : chatState.searchQuery.trim(),
+              ),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,14 +262,21 @@ class _ChatsContent extends StatelessWidget {
                 color: const Color(0xFFF3ECE5),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.search_rounded,
-                      color: Color(0xFF78716C), size: 22),
-                  SizedBox(width: 12),
+                  const Icon(
+                    Icons.search_rounded,
+                    color: Color(0xFF78716C),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: TextField(
-                      decoration: InputDecoration(
+                      controller: _searchController,
+                      onChanged: (val) {
+                        ref.read(chatNotifierProvider.notifier).search(val);
+                      },
+                      decoration: const InputDecoration(
                         hintText: AppStrings.searchPeopleOrMessages,
                         hintStyle: TextStyle(
                           color: Color(0xFF78716C),
@@ -175,98 +289,104 @@ class _ChatsContent extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (_searchController.text.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        ref.read(chatNotifierProvider.notifier).search('');
+                      },
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF78716C),
+                        size: 20,
+                      ),
+                    ),
                 ],
               ),
             ),
             const SizedBox(height: 18),
-            // Filter Pills Row (horizontally scrollable)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _FilterPill(
-                    label: AppStrings.allChats,
-                    active: selectedFilter == 0,
-                    onTap: () => onSelectFilter(0),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: AppStrings.unreadCount,
-                    active: selectedFilter == 1,
-                    hasBadgeNumber: true,
-                    onTap: () => onSelectFilter(1),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: AppStrings.groups,
-                    active: selectedFilter == 2,
-                    onTap: () => onSelectFilter(2),
-                  ),
-                ],
-              ),
+            // Filter Bubble Bar
+            LeoFilterBubbleBar(
+              selectedIndex: chatState.filterIndex,
+              unreadCount: chatState.totalUnreadCount,
+              onSelect: (index) =>
+                  ref.read(chatNotifierProvider.notifier).setFilter(index),
             ),
             const SizedBox(height: 20),
-            // Conversation List matching Image 1
-            _ConversationItem(
-              title: 'Maya Chen',
-              subtitle: 'This message was deleted',
-              time: '9:40',
-              unreadCount: '2',
-              imageUrl: 'assets/avatars/Portrait.png',
-              hasOnlineBadge: true,
-              onTap: onOpenConversation,
-            ),
-            _ConversationItem(
-              title: 'Weekend people',
-              subtitle: 'Noah: This is the one ☼',
-              time: '9:38',
-              unreadCount: '4',
-              isGradientIcon: true,
-              iconData: Icons.wb_sunny_outlined,
-              onTap: onOpenConversation,
-            ),
-            _ConversationItem(
-              title: 'Noah Williams',
-              subtitle: 'typing...',
-              time: '9:36',
-              isTyping: true,
-              imageUrl: 'assets/avatars/Portrait.png',
-              hasOnlineBadge: true,
-              onTap: onOpenConversation,
-            ),
-            _ConversationItem(
-              title: 'Sofia Rivera',
-              subtitle: 'You: Sending you the photos now!',
-              time: '9:28',
-              imageUrl: 'assets/avatars/Portrait.png',
-              onTap: onOpenConversation,
-            ),
-            _ConversationItem(
-              title: 'Ellie Park',
-              subtitle: 'Voice message · 0:18',
-              time: 'Yesterday',
-              imageUrl: 'assets/avatars/Portrait.png',
-              hasMutedSpeaker: true,
-              onTap: onOpenConversation,
-            ),
-            const _ConversationItem(
-              title: 'Studio catch-up',
-              subtitle: 'Maya: See you all on Monday ✨',
-              time: 'Yesterday',
-              isGradientIcon: true,
-              iconData: Icons.coffee_rounded,
-              hasMutedSpeaker: true,
-            ),
+            // Loading Skeleton View vs Populated Conversations List
+            if (chatState.isLoadingConversations)
+              const LeoConversationSkeletonList(itemCount: 6)
+            else if (conversations.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 48,
+                        color: Color(0xFFA8A19B),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        chatState.searchQuery.isNotEmpty
+                            ? 'No chats matching "${chatState.searchQuery}"'
+                            : 'No conversations yet',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF78716C),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.02, 0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Column(
+                  key: ValueKey(
+                      'filter_${chatState.filterIndex}_query_${chatState.searchQuery}'),
+                  children: conversations
+                      .map(
+                        (conv) => LeoConversationTile(
+                          conversation: conv,
+                          isSelected:
+                              conv.id == chatState.selectedConversationId,
+                          onTap: () => widget.onOpenConversation(conv),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
             const SizedBox(height: 24),
-            // Footer text
+            // Footer branding
             const Center(
               child: Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 alignment: WrapAlignment.center,
                 spacing: 8,
                 children: [
-                  Icon(Icons.favorite_border_rounded,
-                      size: 15, color: Color(0xFFA8A19B)),
+                  Icon(
+                    Icons.favorite_border_rounded,
+                    size: 15,
+                    color: Color(0xFFA8A19B),
+                  ),
                   Text(
                     AppStrings.madeForConnection,
                     style: TextStyle(
@@ -280,202 +400,436 @@ class _ChatsContent extends StatelessWidget {
             ),
           ],
         ),
-      );
+      ),
+    );
+  }
 }
 
-class _FilterPill extends StatelessWidget {
-  const _FilterPill({
-    required this.label,
-    required this.active,
-    required this.onTap,
-    this.hasBadgeNumber = false,
-  });
+class _ConversationPage extends ConsumerWidget {
+  const _ConversationPage({required this.conversationId});
 
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  final bool hasBadgeNumber;
+  final String conversationId;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-          decoration: BoxDecoration(
-            color: active ? LeoColors.primary : const Color(0xFFF3ECE5),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: hasBadgeNumber && !active
-              ? RichText(
-                  text: const TextSpan(
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF78716C),
-                    ),
-                    children: [
-                      TextSpan(text: 'Unread '),
-                      TextSpan(
-                        text: '6',
-                        style: TextStyle(color: LeoColors.primary),
-                      ),
-                    ],
-                  ),
-                )
-              : Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: active ? Colors.white : const Color(0xFF78716C),
-                  ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chatState = ref.watch(chatNotifierProvider);
+    return Scaffold(
+      backgroundColor: LeoColors.background,
+      body: SafeArea(
+        child: _ConversationDetailView(
+          conversation: chatState.selectedConversation,
+          showBackButton: true,
+        ),
+      ),
+    );
+  }
+}
+
+class _ConversationDetailView extends ConsumerStatefulWidget {
+  const _ConversationDetailView({
+    required this.conversation,
+    this.showBackButton = false,
+  });
+
+  final Conversation? conversation;
+  final bool showBackButton;
+
+  @override
+  ConsumerState<_ConversationDetailView> createState() =>
+      _ConversationDetailViewState();
+}
+
+class _ConversationDetailViewState
+    extends ConsumerState<_ConversationDetailView> {
+  final ScrollController _scrollController = ScrollController();
+  bool _showScrollToBottomButton = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom(animated: false);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _ConversationDetailView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.conversation?.id != oldWidget.conversation?.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom(animated: false);
+      });
+    }
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    final isFarFromBottom = (maxScroll - currentScroll) > 180;
+    if (isFarFromBottom != _showScrollToBottomButton) {
+      setState(() => _showScrollToBottomButton = isFarFromBottom);
+    }
+  }
+
+  void _scrollToBottom({bool animated = true}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      if (animated) {
+        _scrollController.animateTo(
+          maxScroll,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        _scrollController.jumpTo(maxScroll);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final chatState = ref.watch(chatNotifierProvider);
+    final notifier = ref.read(chatNotifierProvider.notifier);
+    final conv = widget.conversation;
+
+    // Auto-scroll on every new message received or sent, or when typing indicator appears
+    ref.listen<ChatState>(chatNotifierProvider, (previous, next) {
+      final prevCount = previous?.messages.length ?? 0;
+      final nextCount = next.messages.length;
+      final prevTyping = previous?.typingStatusText;
+      final nextTyping = next.typingStatusText;
+      final wasLoading = previous?.isLoadingMessages ?? false;
+      final isNowLoaded = !next.isLoadingMessages;
+
+      if (wasLoading && isNowLoaded) {
+        _scrollToBottom(animated: false);
+      } else if (nextCount > prevCount) {
+        _scrollToBottom(animated: true);
+      } else if (prevTyping == null && nextTyping != null) {
+        _scrollToBottom(animated: true);
+      } else if (nextCount == prevCount && nextCount > 0) {
+        final prevLast = previous?.messages.isNotEmpty == true
+            ? previous!.messages.last
+            : null;
+        final nextLast = next.messages.last;
+        if (prevLast?.id != nextLast.id ||
+            prevLast?.sendStatus != nextLast.sendStatus) {
+          _scrollToBottom(animated: true);
+        }
+      }
+    });
+
+    if (conv == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF3ECE5),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(
+                  Icons.forum_outlined,
+                  size: 32,
+                  color: Color(0xFFA8A19B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No conversation selected',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1C1917),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Choose a chat from the left to start messaging.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF78716C),
+                ),
+              ),
+            ],
+          ),
         ),
       );
-}
+    }
 
-class _ConversationItem extends StatelessWidget {
-  const _ConversationItem({
-    required this.title,
-    required this.subtitle,
-    required this.time,
-    this.unreadCount,
-    this.imageUrl,
-    this.hasOnlineBadge = false,
-    this.isGradientIcon = false,
-    this.iconData,
-    this.isTyping = false,
-    this.hasMutedSpeaker = false,
-    this.onTap,
-  });
+    final isConnecting =
+        chatState.realtimeStatus == RealtimeConnectionStatus.connecting ||
+            chatState.realtimeStatus == RealtimeConnectionStatus.reconnecting;
 
-  final String title;
-  final String subtitle;
-  final String time;
-  final String? unreadCount;
-  final String? imageUrl;
-  final bool hasOnlineBadge;
-  final bool isGradientIcon;
-  final IconData? iconData;
-  final bool isTyping;
-  final bool hasMutedSpeaker;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  if (isGradientIcon && iconData != null)
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFFF7A1A), Color(0xFFE53926)],
-                        ),
-                      ),
-                      child: Icon(iconData, color: Colors.white, size: 24),
-                    )
-                  else
-                    LeoAvatar(
-                      radius: 26,
-                      imageUrl: imageUrl,
-                      hasOnlineBadge: hasOnlineBadge,
-                    ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1C1917),
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                                isTyping ? FontWeight.w700 : FontWeight.w500,
-                            color: isTyping
-                                ? LeoColors.primary
-                                : const Color(0xFF78716C),
-                          ),
-                        ),
-                      ],
+    return Column(
+      children: [
+        _ConversationHeader(
+          conversation: conv,
+          showBackButton: widget.showBackButton,
+        ),
+        if (isConnecting)
+          Container(
+            width: double.infinity,
+            color: const Color(0xFFFFEEE3),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.wifi_off_rounded,
+                  color: LeoColors.primary,
+                  size: 20,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Reconnecting... Your messages are safe.',
+                    style: TextStyle(
+                      color: LeoColors.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        time,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: unreadCount != null
-                              ? FontWeight.w700
-                              : FontWeight.w600,
-                          color: unreadCount != null
-                              ? LeoColors.primary
-                              : const Color(0xFF78716C),
+                ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: chatState.isLoadingMessages
+              ? const LeoMessageSkeletonList()
+              : chatState.messages.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 56,
+                              height: 56,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF3ECE5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.chat_bubble_outline_rounded,
+                                size: 26,
+                                color: Color(0xFFA8A19B),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No messages yet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1C1917),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Send a message to say hello!',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF78716C),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      if (unreadCount != null)
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: const BoxDecoration(
-                            color: LeoColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              unreadCount!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
+                    )
+                  : Stack(
+                      children: [
+                        ListView(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(28, 20, 28, 16),
+                          children: [
+                            const Center(
+                              child: Text(
+                                'TODAY',
+                                style: TextStyle(
+                                  color: Color(0xFF8D827B),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: .4,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            ...chatState.messages.map(
+                              (msg) => LeoChatBubble(
+                                key: ValueKey(msg.id.isNotEmpty
+                                    ? msg.id
+                                    : msg.clientMessageId),
+                                message: msg,
+                                onRetry: () =>
+                                    notifier.sendMessage(msg.content ?? ''),
+                              ),
+                            ),
+                            if (chatState.typingStatusText != null) ...[
+                              const SizedBox(height: 10),
+                              LeoTypingIndicator(
+                                text: chatState.typingStatusText,
+                                avatarUrl: conv.preferredAvatarUrl,
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (_showScrollToBottomButton)
+                          Positioned(
+                            bottom: 12,
+                            right: 24,
+                            child: AnimatedOpacity(
+                              opacity: _showScrollToBottomButton ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: InkWell(
+                                onTap: () => _scrollToBottom(animated: true),
+                                borderRadius: BorderRadius.circular(24),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(
+                                        color: const Color(0xFFE7DFD8)),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x1F000000),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.arrow_downward_rounded,
+                                        size: 16,
+                                        color: LeoColors.primary,
+                                      ),
+                                      SizedBox(width: 5),
+                                      Text(
+                                        'Latest',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: LeoColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        )
-                      else if (hasMutedSpeaker)
-                        const Icon(
-                          Icons.volume_off_rounded,
-                          color: Color(0xFFA8A19B),
-                          size: 16,
-                        )
-                      else
-                        const SizedBox(height: 20),
-                    ],
+                      ],
+                    ),
+        ),
+        LeoChatComposer(
+          onSend: (text) => notifier.sendMessage(text),
+          onVoiceRecorded: notifier.sendVoice,
+          onTyping: (isTyping) => notifier.sendTyping(isTyping),
+        ),
+      ],
+    );
+  }
+}
+
+class _ConversationHeader extends StatelessWidget {
+  const _ConversationHeader({
+    required this.conversation,
+    this.showBackButton = false,
+  });
+
+  final Conversation conversation;
+  final bool showBackButton;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = conversation.effectiveTitle;
+    final subtitle = conversation.isGroup
+        ? 'Group conversation'
+        : (conversation.isOnline ? 'Online' : 'Offline');
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE7DFD8))),
+      ),
+      child: Row(
+        children: [
+          if (showBackButton)
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+          LeoAvatar(
+            radius: 26,
+            imageUrl: conversation.preferredAvatarUrl,
+            assetPath: 'assets/avatars/Portrait.png',
+            hasOnlineBadge: conversation.isOnline,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: LeoColors.textPrimary,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: LeoColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      );
+          const Icon(
+            Icons.phone_outlined,
+            color: LeoColors.textPrimary,
+            size: 22,
+          ),
+          const SizedBox(width: 18),
+          const Icon(
+            Icons.videocam_outlined,
+            color: LeoColors.textPrimary,
+            size: 24,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _BottomNav extends StatelessWidget {
@@ -592,331 +946,5 @@ class _DesktopRail extends StatelessWidget {
           Icon(Icons.tune_rounded, color: Color(0xFF78716C), size: 24),
           SizedBox(height: 24),
         ],
-      );
-}
-
-class _ConversationPage extends StatelessWidget {
-  const _ConversationPage();
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: LeoColors.background,
-        body: SafeArea(
-          child: _ConversationDetailView(showBackButton: true),
-        ),
-      );
-}
-
-class _ConversationDetailView extends StatelessWidget {
-  const _ConversationDetailView({this.showBackButton = false});
-
-  final bool showBackButton;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        children: [
-          _ConversationHeader(showBackButton: showBackButton),
-          Container(
-            width: double.infinity,
-            color: const Color(0xFFFFEEE3),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
-            child: const Row(
-              children: [
-                Icon(Icons.wifi_off_rounded,
-                    color: LeoColors.primary, size: 21),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Reconnecting... Your messages are safe.',
-                    style: TextStyle(
-                      color: LeoColors.primary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(28, 22, 28, 18),
-              children: const [
-                Center(
-                  child: Text(
-                    'TODAY · OCT 17',
-                    style: TextStyle(
-                      color: Color(0xFF8D827B),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: .4,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 24),
-                _IncomingMessage(
-                  sender: 'Noah Williams',
-                  message:
-                      'Saturday plan: coast, coffee, absolutely no emails. Who’s in?',
-                  time: '9:32',
-                ),
-                SizedBox(height: 18),
-                _IncomingMessage(
-                  sender: 'Sofia Rivera',
-                  message: 'I’m in! Adding my vote for the 10 am train.',
-                  time: '9:34',
-                  replyPreview: 'Maya Chen\nThis message was deleted',
-                ),
-                SizedBox(height: 18),
-                _IncomingMessage(
-                  sender: 'Maya Chen',
-                  message: 'Voice message · 0:18',
-                  time: '9:35',
-                  isVoice: true,
-                ),
-                SizedBox(height: 18),
-                _OutgoingMessage(
-                  message: 'I’ll book the train for all six of us.',
-                  time: '9:37',
-                  failed: true,
-                ),
-                SizedBox(height: 12),
-                _OutgoingMessage(
-                  message: 'Window seats for everyone 😊',
-                  time: 'Waiting for connection',
-                  muted: true,
-                ),
-                SizedBox(height: 18),
-                Text(
-                  'Noah and Maya are typing...',
-                  style: TextStyle(
-                    color: Color(0xFF8D827B),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const _MessageComposer(),
-        ],
-      );
-}
-
-class _ConversationHeader extends StatelessWidget {
-  const _ConversationHeader({this.showBackButton = false});
-
-  final bool showBackButton;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFE7DFD8))),
-        ),
-        child: Row(
-          children: [
-            if (showBackButton)
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-            const LeoAvatar(
-                radius: 28, assetPath: 'assets/avatars/Portrait.png'),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Weekend people',
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: LeoColors.textPrimary)),
-                  SizedBox(height: 3),
-                  Text('6 members · 3 online',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: LeoColors.textSecondary)),
-                ],
-              ),
-            ),
-            Icon(Icons.phone_outlined, color: LeoColors.textPrimary, size: 24),
-            SizedBox(width: 20),
-            Icon(Icons.videocam_outlined,
-                color: LeoColors.textPrimary, size: 25),
-          ],
-        ),
-      );
-}
-
-class _IncomingMessage extends StatelessWidget {
-  const _IncomingMessage(
-      {required this.sender,
-      required this.message,
-      required this.time,
-      this.replyPreview,
-      this.isVoice = false});
-  final String sender;
-  final String message;
-  final String time;
-  final String? replyPreview;
-  final bool isVoice;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(sender,
-              style: const TextStyle(
-                  color: LeoColors.primary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 7),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 15, 16, 12),
-            decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.all(Radius.circular(22))),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (replyPreview != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                        color: Color(0xFFFFEEE3),
-                        borderRadius: BorderRadius.all(Radius.circular(13))),
-                    child: Text(replyPreview!,
-                        style: const TextStyle(
-                            color: LeoColors.textSecondary,
-                            fontSize: 13,
-                            height: 1.35,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                if (isVoice)
-                  const Row(children: [
-                    Icon(Icons.play_circle_outline,
-                        color: LeoColors.primary, size: 34),
-                    SizedBox(width: 12),
-                    Expanded(
-                        child: Text('▮▮▮▮▮▮▮▮▮▮  0:18',
-                            style: TextStyle(
-                                color: LeoColors.primary,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800)))
-                  ]),
-                if (!isVoice)
-                  Text(message,
-                      style: const TextStyle(
-                          color: LeoColors.textPrimary,
-                          fontSize: 17,
-                          height: 1.35,
-                          fontWeight: FontWeight.w500)),
-                const SizedBox(height: 6),
-                Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(time,
-                        style: const TextStyle(
-                            color: LeoColors.textMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600))),
-              ],
-            ),
-          ),
-        ],
-      );
-}
-
-class _OutgoingMessage extends StatelessWidget {
-  const _OutgoingMessage(
-      {required this.message,
-      required this.time,
-      this.failed = false,
-      this.muted = false});
-  final String message;
-  final String time;
-  final bool failed;
-  final bool muted;
-
-  @override
-  Widget build(BuildContext context) => Align(
-        alignment: Alignment.centerRight,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              constraints: const BoxConstraints(maxWidth: 520),
-              padding: const EdgeInsets.fromLTRB(18, 15, 18, 12),
-              decoration: BoxDecoration(
-                  color: muted ? const Color(0xFFFFEEE3) : LeoColors.primary,
-                  borderRadius: const BorderRadius.all(Radius.circular(22))),
-              child:
-                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(message,
-                    style: TextStyle(
-                        color: muted ? LeoColors.textPrimary : Colors.white,
-                        fontSize: 17,
-                        height: 1.3,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 6),
-                Text(time,
-                    style: TextStyle(
-                        color: muted ? LeoColors.textMuted : Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600))
-              ]),
-            ),
-            if (failed)
-              const Padding(
-                  padding: EdgeInsets.only(top: 7),
-                  child: Text('ⓘ  Not sent · Tap to retry',
-                      style: TextStyle(
-                          color: Color(0xFFEF4444),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600))),
-          ],
-        ),
-      );
-}
-
-class _MessageComposer extends StatelessWidget {
-  const _MessageComposer();
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-        decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(top: BorderSide(color: Color(0xFFE7DFD8)))),
-        child: Row(children: [
-          const Icon(Icons.add, color: LeoColors.primary, size: 28),
-          const SizedBox(width: 14),
-          const Expanded(
-              child: TextField(
-            decoration: InputDecoration(
-                hintText: 'Message...',
-                filled: true,
-                fillColor: Color(0xFFF3ECE5),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(30)),
-                    borderSide: BorderSide.none),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 18, vertical: 14)),
-          )),
-          const SizedBox(width: 14),
-          Container(
-              width: 52,
-              height: 52,
-              decoration: const BoxDecoration(
-                  color: LeoColors.primary, shape: BoxShape.circle),
-              child: const Icon(Icons.mic_none_rounded,
-                  color: Colors.white, size: 27)),
-        ]),
       );
 }

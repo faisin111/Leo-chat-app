@@ -1,28 +1,37 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/di/providers.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
 
-class SplashPage extends StatefulWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage> {
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 900), () {
-      if (mounted) context.go('/onboarding');
-    });
+    _timer = Timer(const Duration(seconds: 3), _finishSplash);
+  }
+
+  Future<void> _finishSplash() async {
+    final token = await ref
+        .read(secureStorageProvider)
+        .read(key: 'accessToken')
+        .timeout(const Duration(milliseconds: 500), onTimeout: () => null);
+    if (!mounted) return;
+    context.go(token != null && token.isNotEmpty ? '/app' : '/onboarding');
   }
 
   @override

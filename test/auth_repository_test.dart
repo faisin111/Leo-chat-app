@@ -10,6 +10,8 @@ import 'package:leochat/features/auth/data/models/user_dto.dart';
 import 'package:leochat/features/auth/data/repositories/auth_repository_impl.dart';
 
 class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
+  @override
+  Future<void> logout() async {}
   bool shouldThrowDioError = false;
 
   @override

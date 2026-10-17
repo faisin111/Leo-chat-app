@@ -9,6 +9,7 @@ abstract interface class AuthRemoteDataSource {
   Future<AuthResponseDto> login(LoginRequestDto request);
   Future<AuthResponseDto> register(RegisterRequestDto request);
   Future<UserDto> getMe();
+  Future<void> logout();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -41,5 +42,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final response = await _dio.get<Map<String, dynamic>>('/users/me');
     final data = response.data ?? <String, dynamic>{};
     return UserDto.fromJson(data);
+  }
+
+  @override
+  Future<void> logout() async {
+    await _dio.post<void>('/auth/logout');
   }
 }

@@ -86,6 +86,7 @@ lib/
 - Use `LeoColors` and `LeoTheme`; do not add one-off brand colors.
 - Use local bundled assets for LeoChat branding and icons (`assets/icons/LeoChatIcon.png`); do not use network images for app identity or core UI.
 - Use the shared `LeoScrollBehavior` for smooth, glow-free scrolling across all pages. Use the shared route transition helper in `app/app.dart` for consistent fade and slide navigation.
+- Splash is the only startup screen shown on every launch and stays visible for three seconds. It reads the secure auth token afterward: authenticated users go directly to `/app`; unauthenticated users go to onboarding.
 - Keep theme tokens organized in `lib/core/theme`: `colors.dart` owns colors, `typography.dart` owns the Poppins text scale, and `fields.dart` owns shared input decoration and field geometry.
 - Preserve the current LeoChat visual values when organizing theme code. Feature widgets compose shared tokens instead of duplicating field, text, or color literals.
 - Use the web design system only for visual language. Build app-native structure: app bars, bottom navigation, touch targets, sheets, drawers, stacked flows, and conversation-first screens.

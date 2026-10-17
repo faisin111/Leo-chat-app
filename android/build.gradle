@@ -13,6 +13,15 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Older record versions predate the Android namespace requirement.
+subprojects { project ->
+    project.plugins.withId("com.android.library") {
+        if (project.name == "record") {
+            project.android.namespace = "com.llfbandit.record"
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

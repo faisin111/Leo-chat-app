@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../config/app_config.dart';
+import '../auth/auth_session_events.dart';
+import '../auth/auth_session_manager.dart';
 
 class DioClient {
   DioClient({required AppConfig config, required FlutterSecureStorage storage})
@@ -29,5 +31,19 @@ class _AuthInterceptor extends Interceptor {
       options.headers['Authorization'] = 'Bearer $token';
     }
     handler.next(options);
+  }
+
+  @override
+  Future<void> onError(
+      DioException err, ErrorInterceptorHandler handler) async {
+    final path = err.requestOptions.path;
+    if (err.response?.statusCode == 401 &&
+        path != '/auth/login' &&
+        path != '/auth/register' &&
+        path != '/auth/logout') {
+      await AuthSessionManager.clearLocalSession(_storage);
+      AuthSessionEvents.notifyExpired();
+    }
+    handler.next(err);
   }
 }

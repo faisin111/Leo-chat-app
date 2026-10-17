@@ -63,6 +63,8 @@ Use bundled assets for LeoChat branding and core icons. Keep the app identity lo
 
 All scrollable pages use the shared smooth scroll behavior and all app routes use the shared animated transition. New scroll views and routes must follow these defaults instead of adding one-off physics or transitions.
 
+Keep startup routing auth-aware: always show the three-second splash, then skip onboarding and login when a secure access token exists.
+
 Reusable widgets are mandatory. Before adding a widget, check `lib/core/widgets/common_widgets`. Shared buttons, branding, inputs, cards, loaders, and feedback components belong there and must be reused across modules. Feature-specific widgets remain inside their feature module. Do not duplicate equivalent widgets with different names.
 
 Keep assets organized under `assets/images`, `assets/icons`, `assets/illustrations`, `assets/avatars`, and `assets/fonts`. Register each folder in `pubspec.yaml` and reuse assets through shared constants or helpers.

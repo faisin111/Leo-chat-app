@@ -8,6 +8,7 @@ class LeoAvatar extends StatelessWidget {
     required this.radius,
     this.imageUrl,
     this.assetPath,
+    this.fallbackText,
     this.fallbackIcon = Icons.person,
     this.backgroundColor = const Color(0xFFFFD8C3),
     this.iconColor = LeoColors.primary,
@@ -17,10 +18,28 @@ class LeoAvatar extends StatelessWidget {
   final double radius;
   final String? imageUrl;
   final String? assetPath;
+  final String? fallbackText;
   final IconData fallbackIcon;
   final Color backgroundColor;
   final Color iconColor;
   final bool hasOnlineBadge;
+
+  Widget _fallback() {
+    final text = fallbackText?.trim();
+    if (text != null && text.isNotEmpty) {
+      return Center(
+        child: Text(
+          text,
+          style: TextStyle(
+            color: iconColor,
+            fontSize: radius * 0.62,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+    return Icon(fallbackIcon, size: radius * 1.1, color: iconColor);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,47 +47,31 @@ class LeoAvatar extends StatelessWidget {
       radius: radius,
       backgroundColor: backgroundColor,
       child: ClipOval(
-        child: assetPath != null && assetPath!.isNotEmpty
-            ? Image.asset(
-                assetPath!,
-                width: radius * 2,
-                height: radius * 2,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Icon(
-                  fallbackIcon,
-                  size: radius * 1.1,
-                  color: iconColor,
-                ),
-              )
-            : imageUrl != null && imageUrl!.isNotEmpty
-                ? (imageUrl!.startsWith('assets/')
-                    ? Image.asset(
-                        imageUrl!,
-                        width: radius * 2,
-                        height: radius * 2,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          fallbackIcon,
-                          size: radius * 1.1,
-                          color: iconColor,
-                        ),
-                      )
-                    : Image.network(
-                        imageUrl!,
-                        width: radius * 2,
-                        height: radius * 2,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          fallbackIcon,
-                          size: radius * 1.1,
-                          color: iconColor,
-                        ),
-                      ))
-                : Icon(
-                    fallbackIcon,
-                    size: radius * 1.1,
-                    color: iconColor,
-                  ),
+        child: imageUrl != null && imageUrl!.trim().isNotEmpty
+            ? (imageUrl!.startsWith('assets/')
+                ? Image.asset(
+                    imageUrl!,
+                    width: radius * 2,
+                    height: radius * 2,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => _fallback(),
+                  )
+                : Image.network(
+                    imageUrl!,
+                    width: radius * 2,
+                    height: radius * 2,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => _fallback(),
+                  ))
+            : assetPath != null && assetPath!.isNotEmpty
+                ? Image.asset(
+                    assetPath!,
+                    width: radius * 2,
+                    height: radius * 2,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => _fallback(),
+                  )
+                : _fallback(),
       ),
     );
 
