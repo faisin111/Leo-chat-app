@@ -71,6 +71,7 @@ class ChatState {
     String? errorMessage,
     bool clearSelectedConversation = false,
     bool clearTypingStatusText = false,
+    bool clearErrorMessage = false,
   }) {
     return ChatState(
       isLoadingConversations:
@@ -92,7 +93,8 @@ class ChatState {
           ? null
           : (typingStatusText ?? this.typingStatusText),
       realtimeStatus: realtimeStatus ?? this.realtimeStatus,
-      errorMessage: errorMessage,
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
     );
   }
 }

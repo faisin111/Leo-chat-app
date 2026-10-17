@@ -678,8 +678,15 @@ class _ConversationDetailViewState
                                     ? msg.id
                                     : msg.clientMessageId),
                                 message: msg,
-                                onRetry: () =>
-                                    notifier.sendMessage(msg.content ?? ''),
+                                onRetry: () {
+                                  if (msg.type == 'VOICE' ||
+                                      msg.type == 'AUDIO') {
+                                    notifier.sendVoice(msg.content ?? '');
+                                  } else {
+                                    notifier.sendMessage(msg.content ?? '',
+                                        type: msg.type);
+                                  }
+                                },
                               ),
                             ),
                             if (chatState.typingStatusText != null) ...[

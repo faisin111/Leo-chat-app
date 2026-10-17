@@ -192,14 +192,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     final result = await _chatRepository.getConversations(query: query);
 
-    result.fold(
-      (failure) {
+    await result.fold(
+      (failure) async {
         state = state.copyWith(
           isLoadingConversations: false,
           errorMessage: failure.message,
         );
       },
-      (items) {
+      (items) async {
         state = state.copyWith(
           conversations: items,
           isLoadingConversations: false,
@@ -207,7 +207,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
         // Auto-select first conversation if none selected yet
         if (state.selectedConversation == null && items.isNotEmpty) {
-          selectConversation(items.first);
+          await selectConversation(items.first);
         }
       },
     );
@@ -297,7 +297,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     state = state.copyWith(messages: updated);
 
     // 2. Try sending via WebSocket first
-    final sentWs = _stompService.sendMessage(
+    _stompService.sendMessage(
       conversationId: conv.id,
       clientMessageId: clientMessageId,
       content: text.trim(),
@@ -305,40 +305,39 @@ class ChatNotifier extends StateNotifier<ChatState> {
       replyToId: replyToId,
     );
 
-    // 3. Always dispatch via REST repository if WS failed or as backup
-    if (!sentWs) {
-      final result = await _chatRepository.sendMessage(
-        conversationId: conv.id,
-        clientMessageId: clientMessageId,
-        content: text.trim(),
-        type: type,
-        replyToId: replyToId,
-      );
+    // REST is the reliable persistence path. The same clientMessageId makes
+    // this safe when the WebSocket send was accepted before reconnecting.
+    final result = await _chatRepository.sendMessage(
+      conversationId: conv.id,
+      clientMessageId: clientMessageId,
+      content: text.trim(),
+      type: type,
+      replyToId: replyToId,
+    );
 
-      result.fold(
-        (failure) {
-          final list = state.messages.map((m) {
-            if (m.clientMessageId == clientMessageId) {
-              return m.copyWith(sendStatus: MessageSendStatus.failed);
-            }
-            return m;
-          }).toList();
-          state = state.copyWith(messages: list);
-        },
-        (persistedMsg) {
-          final list = state.messages.map((m) {
-            if (m.clientMessageId == clientMessageId) {
-              return persistedMsg.copyWith(
-                sendStatus: MessageSendStatus.sent,
-                isOwn: true,
-              );
-            }
-            return m;
-          }).toList();
-          state = state.copyWith(messages: list);
-        },
-      );
-    }
+    result.fold(
+      (failure) {
+        final list = state.messages.map((m) {
+          if (m.clientMessageId == clientMessageId) {
+            return m.copyWith(sendStatus: MessageSendStatus.failed);
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(messages: list, errorMessage: failure.message);
+      },
+      (persistedMsg) {
+        final list = state.messages.map((m) {
+          if (m.clientMessageId == clientMessageId) {
+            return persistedMsg.copyWith(
+              sendStatus: MessageSendStatus.sent,
+              isOwn: true,
+            );
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(messages: list, errorMessage: null);
+      },
+    );
   }
 
   Future<void> sendVoice(String filePath) async {
@@ -364,7 +363,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     );
 
     final updated = List<Message>.from(state.messages)..add(optimisticMsg);
-    state = state.copyWith(messages: updated, errorMessage: null);
+    state = state.copyWith(messages: updated, clearErrorMessage: true);
 
     // 2. Upload file
     final upload = await _mediaRepository.uploadVoice(filePath: filePath);
@@ -380,42 +379,46 @@ class ChatNotifier extends StateNotifier<ChatState> {
       },
       (url) async {
         // 3. Send over WS or REST
-        final sentWs = _stompService.sendMessage(
+        _stompService.sendMessage(
           conversationId: conv.id,
           clientMessageId: clientMessageId,
           content: url,
           type: 'VOICE',
         );
 
-        if (!sentWs) {
-          final result = await _chatRepository.sendMessage(
-            conversationId: conv.id,
-            clientMessageId: clientMessageId,
-            content: url,
-            type: 'VOICE',
-          );
+        final result = await _chatRepository.sendMessage(
+          conversationId: conv.id,
+          clientMessageId: clientMessageId,
+          content: url,
+          type: 'VOICE',
+        );
 
-          result.fold(
-            (failure) {
-              final list = state.messages.map((m) {
-                if (m.clientMessageId == clientMessageId) {
-                  return m.copyWith(sendStatus: MessageSendStatus.failed);
-                }
-                return m;
-              }).toList();
-              state = state.copyWith(messages: list);
-            },
-            (persisted) {
-              final list = state.messages.map((m) {
-                if (m.clientMessageId == clientMessageId) {
-                  return persisted.copyWith(isOwn: true);
-                }
-                return m;
-              }).toList();
-              state = state.copyWith(messages: list);
-            },
-          );
-        }
+        result.fold(
+          (failure) {
+            final list = state.messages.map((m) {
+              if (m.clientMessageId == clientMessageId) {
+                return m.copyWith(sendStatus: MessageSendStatus.failed);
+              }
+              return m;
+            }).toList();
+            state = state.copyWith(
+              messages: list,
+              errorMessage: failure.message,
+            );
+          },
+          (persisted) {
+            final list = state.messages.map((m) {
+              if (m.clientMessageId == clientMessageId) {
+                return persisted.copyWith(
+                  isOwn: true,
+                  sendStatus: MessageSendStatus.sent,
+                );
+              }
+              return m;
+            }).toList();
+            state = state.copyWith(messages: list, errorMessage: null);
+          },
+        );
       },
     );
   }
