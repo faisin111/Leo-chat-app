@@ -33,6 +33,11 @@ class _ChatShellPageState extends State<ChatShellPage> {
               width: 360,
               child: _ChatsContent(
                 selectedFilter: _selectedFilter,
+                onOpenConversation: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const _ConversationPage(),
+                  ),
+                ),
                 onSelectFilter: (index) =>
                     setState(() => _selectedFilter = index),
               ),
@@ -64,10 +69,12 @@ class _ChatsContent extends StatelessWidget {
   const _ChatsContent({
     required this.selectedFilter,
     required this.onSelectFilter,
+    this.onOpenConversation,
   });
 
   final int selectedFilter;
   final ValueChanged<int> onSelectFilter;
+  final VoidCallback? onOpenConversation;
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
@@ -200,42 +207,47 @@ class _ChatsContent extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             // Conversation List matching Image 1
-            const _ConversationItem(
+            _ConversationItem(
               title: 'Maya Chen',
               subtitle: 'This message was deleted',
               time: '9:40',
               unreadCount: '2',
               imageUrl: 'assets/avatars/Portrait.png',
               hasOnlineBadge: true,
+              onTap: onOpenConversation,
             ),
-            const _ConversationItem(
+            _ConversationItem(
               title: 'Weekend people',
               subtitle: 'Noah: This is the one ☼',
               time: '9:38',
               unreadCount: '4',
               isGradientIcon: true,
               iconData: Icons.wb_sunny_outlined,
+              onTap: onOpenConversation,
             ),
-            const _ConversationItem(
+            _ConversationItem(
               title: 'Noah Williams',
               subtitle: 'typing...',
               time: '9:36',
               isTyping: true,
               imageUrl: 'assets/avatars/Portrait.png',
               hasOnlineBadge: true,
+              onTap: onOpenConversation,
             ),
-            const _ConversationItem(
+            _ConversationItem(
               title: 'Sofia Rivera',
               subtitle: 'You: Sending you the photos now!',
               time: '9:28',
               imageUrl: 'assets/avatars/Portrait.png',
+              onTap: onOpenConversation,
             ),
-            const _ConversationItem(
+            _ConversationItem(
               title: 'Ellie Park',
               subtitle: 'Voice message · 0:18',
               time: 'Yesterday',
               imageUrl: 'assets/avatars/Portrait.png',
               hasMutedSpeaker: true,
+              onTap: onOpenConversation,
             ),
             const _ConversationItem(
               title: 'Studio catch-up',
@@ -335,6 +347,7 @@ class _ConversationItem extends StatelessWidget {
     this.iconData,
     this.isTyping = false,
     this.hasMutedSpeaker = false,
+    this.onTap,
   });
 
   final String title;
@@ -347,107 +360,120 @@ class _ConversationItem extends StatelessWidget {
   final IconData? iconData;
   final bool isTyping;
   final bool hasMutedSpeaker;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            if (isGradientIcon && iconData != null)
-              Container(
-                width: 52,
-                height: 52,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFFF7A1A), Color(0xFFE53926)],
-                  ),
-                ),
-                child: Icon(iconData, color: Colors.white, size: 24),
-              )
-            else
-              LeoAvatar(
-                radius: 26,
-                imageUrl: imageUrl,
-                hasOnlineBadge: hasOnlineBadge,
-              ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1C1917),
+                  if (isGradientIcon && iconData != null)
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFFF7A1A), Color(0xFFE53926)],
+                        ),
+                      ),
+                      child: Icon(iconData, color: Colors.white, size: 24),
+                    )
+                  else
+                    LeoAvatar(
+                      radius: 26,
+                      imageUrl: imageUrl,
+                      hasOnlineBadge: hasOnlineBadge,
+                    ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1C1917),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight:
+                                isTyping ? FontWeight.w700 : FontWeight.w500,
+                            color: isTyping
+                                ? LeoColors.primary
+                                : const Color(0xFF78716C),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isTyping ? FontWeight.w700 : FontWeight.w500,
-                      color: isTyping
-                          ? LeoColors.primary
-                          : const Color(0xFF78716C),
-                    ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        time,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: unreadCount != null
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: unreadCount != null
+                              ? LeoColors.primary
+                              : const Color(0xFF78716C),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      if (unreadCount != null)
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: const BoxDecoration(
+                            color: LeoColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              unreadCount!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (hasMutedSpeaker)
+                        const Icon(
+                          Icons.volume_off_rounded,
+                          color: Color(0xFFA8A19B),
+                          size: 16,
+                        )
+                      else
+                        const SizedBox(height: 20),
+                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight:
-                        unreadCount != null ? FontWeight.w700 : FontWeight.w600,
-                    color: unreadCount != null
-                        ? LeoColors.primary
-                        : const Color(0xFF78716C),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (unreadCount != null)
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: const BoxDecoration(
-                      color: LeoColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        unreadCount!,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  )
-                else if (hasMutedSpeaker)
-                  const Icon(
-                    Icons.volume_off_rounded,
-                    color: Color(0xFFA8A19B),
-                    size: 16,
-                  )
-                else
-                  const SizedBox(height: 20),
-              ],
-            ),
-          ],
+          ),
         ),
       );
 }
@@ -569,13 +595,27 @@ class _DesktopRail extends StatelessWidget {
       );
 }
 
+class _ConversationPage extends StatelessWidget {
+  const _ConversationPage();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: LeoColors.background,
+        body: SafeArea(
+          child: _ConversationDetailView(showBackButton: true),
+        ),
+      );
+}
+
 class _ConversationDetailView extends StatelessWidget {
-  const _ConversationDetailView();
+  const _ConversationDetailView({this.showBackButton = false});
+
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) => Column(
         children: [
-          const _ConversationHeader(),
+          _ConversationHeader(showBackButton: showBackButton),
           Container(
             width: double.infinity,
             color: const Color(0xFFFFEEE3),
@@ -664,7 +704,9 @@ class _ConversationDetailView extends StatelessWidget {
 }
 
 class _ConversationHeader extends StatelessWidget {
-  const _ConversationHeader();
+  const _ConversationHeader({this.showBackButton = false});
+
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -673,11 +715,17 @@ class _ConversationHeader extends StatelessWidget {
           color: Colors.white,
           border: Border(bottom: BorderSide(color: Color(0xFFE7DFD8))),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            LeoAvatar(radius: 28, assetPath: 'assets/avatars/Portrait.png'),
-            SizedBox(width: 14),
-            Expanded(
+            if (showBackButton)
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+            const LeoAvatar(
+                radius: 28, assetPath: 'assets/avatars/Portrait.png'),
+            const SizedBox(width: 14),
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
