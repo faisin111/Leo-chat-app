@@ -34,9 +34,9 @@ class LeoLogo extends StatelessWidget {
           const SizedBox(width: 10),
           Text('LeoChat',
               style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.6,
                   color: foreground)),
         ],
       ],
