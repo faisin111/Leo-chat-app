@@ -16,6 +16,7 @@ Every implementation change must ship with tests. Add unit tests for models, par
 - `fpdart` for typed `Either<AppFailure, T>` results.
 - `go_router` for navigation.
 - `flutter_secure_storage` for access and refresh tokens.
+- `google_fonts` with Inter for the global LeoChat type system.
 
 Dependency injection is mandatory. Register Dio, secure storage, WebSocket services, repositories, and feature controllers through Riverpod providers in `lib/core/di`. Widgets and repositories must consume injected dependencies; they must not construct infrastructure objects directly.
 
@@ -33,6 +34,11 @@ lib/
     network/
     responsive/
     theme/
+    widgets/
+      common_widgets/
+        buttons/
+        branding/
+        feedback/
   features/
     auth/
     chat/
@@ -49,6 +55,8 @@ Caching is part of the app architecture. Use a local cache for conversation list
 
 Keep shared strings in `lib/core/constants`. Use `AppStrings` or localization keys for repeated labels, messages, errors, and route names. Do not hardcode repeated user-facing strings inside feature widgets.
 
+Reusable widgets are mandatory. Before adding a widget, check `lib/core/widgets/common_widgets`. Shared buttons, branding, inputs, cards, loaders, and feedback components belong there and must be reused across modules. Feature-specific widgets remain inside their feature module. Do not duplicate equivalent widgets with different names.
+
 ## Responsive rules
 
 - `< 600dp`: mobile list and full-screen conversation routes.
@@ -58,6 +66,8 @@ Keep shared strings in `lib/core/constants`. Use `AppStrings` or localization ke
 ## LeoChat visual contract
 
 Use coral `#F35A26`, slate neutrals, Inter-like typography, white surfaces, rounded 12–16px controls, 24px sheets, and the message bubble geometry defined in `LEO_CHAT_FRONTEND_GUIDE.md`.
+
+The visual system comes from the web reference, but the product structure must feel like a polished native app. Use app bars, bottom navigation, stacked mobile flows, modal sheets, drawers, large touch targets, and conversation-first navigation. Avoid treating the Flutter client as a website or copying web-only hover and marketing patterns.
 
 ## Realtime contract
 

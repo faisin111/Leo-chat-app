@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/responsive/breakpoints.dart';
 import '../../../../core/theme/colors.dart';
-import '../widgets/leo_logo.dart';
+import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
+import '../../../../core/widgets/common_widgets/buttons/leo_outline_button.dart';
+import '../../../../core/widgets/common_widgets/buttons/leo_primary_button.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -43,21 +45,22 @@ class _LandingNav extends StatelessWidget {
           children: [
             const LeoLogo(),
             const Spacer(),
-            if (!isMobile) ...[
-              TextButton(onPressed: () {}, child: const Text('About')),
-              const SizedBox(width: 8),
-              TextButton(onPressed: () {}, child: const Text('Features')),
-              const SizedBox(width: 18),
-            ],
-            OutlinedButton(
-              onPressed: () => context.go('/app'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: LeoColors.textPrimary,
-                side: const BorderSide(color: LeoColors.border),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+            if (!isMobile)
+              const Padding(
+                padding: EdgeInsets.only(right: 18),
+                child: Row(
+                  children: [
+                    Icon(Icons.circle, size: 8, color: LeoColors.success),
+                    SizedBox(width: 7),
+                    Text('All systems ready',
+                        style: TextStyle(
+                            fontSize: 12, color: LeoColors.textSecondary)),
+                  ],
+                ),
               ),
-              child: const Text('Sign in'),
+            LeoOutlineButton(
+              label: 'Sign in',
+              onPressed: () => context.go('/app'),
             ),
           ],
         ),
@@ -122,13 +125,13 @@ class _HeroCopy extends StatelessWidget {
                   fontSize: 16, height: 1.6, color: LeoColors.textSecondary)),
           const SizedBox(height: 30),
           Wrap(spacing: 12, runSpacing: 12, children: [
-            FilledButton.icon(
-                onPressed: () => context.go('/app'),
-                icon: const Icon(Icons.arrow_forward_rounded),
-                label: const Text(AppStrings.getStarted)),
-            OutlinedButton(
-                onPressed: () => context.go('/app'),
-                child: const Text(AppStrings.seeHowItWorks)),
+            LeoPrimaryButton(
+                label: AppStrings.getStarted,
+                icon: Icons.arrow_forward_rounded,
+                onPressed: () => context.go('/app')),
+            LeoOutlineButton(
+                label: AppStrings.seeHowItWorks,
+                onPressed: () => context.go('/app')),
           ]),
         ],
       );

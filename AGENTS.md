@@ -20,6 +20,11 @@ lib/
     responsive/                # Mobile, tablet, desktop breakpoints
     theme/                     # LeoChat colors and ThemeData
     utils/                     # Shared pure helpers
+    widgets/                   # Reusable common widgets, grouped by purpose
+      common_widgets/
+        buttons/
+        branding/
+        feedback/
   features/
     auth/
       data/                    # Auth DTOs, data sources, repository
@@ -48,6 +53,10 @@ lib/
 - Features receive dependencies through provider overrides or `ref.watch`; avoid service locators and global mutable singletons.
 - Keep shared user-facing strings, labels, errors, and route names organized under `lib/core/constants`.
 - Do not scatter repeated literal strings through widgets; use typed constants or localization keys.
+- Build repeated UI as reusable widgets. Check `core/widgets/common_widgets` before creating a new button, logo, input, card, loader, or feedback widget.
+- Group common widgets by purpose, such as `buttons`, `branding`, `feedback`, and `inputs`.
+- Feature-only widgets stay in that feature's `presentation/widgets`; do not place feature behavior in common widgets.
+- Every screen section and repeated item should be its own focused widget when it improves readability or reuse.
 
 ## Networking
 
@@ -68,7 +77,11 @@ lib/
 ## UI and responsive behavior
 
 - Follow `LEO_CHAT_FRONTEND_GUIDE.md` for colors, spacing, typography, and surfaces.
+- Use Google Fonts `Inter` globally through `LeoTheme`; do not define unrelated font families inside feature widgets.
 - Use `LeoColors` and `LeoTheme`; do not add one-off brand colors.
+- Use the web design system only for visual language. Build app-native structure: app bars, bottom navigation, touch targets, sheets, drawers, stacked flows, and conversation-first screens.
+- Do not copy web marketing layouts, desktop-only navigation, hover interactions, or dense website sections into mobile app flows.
+- Design mobile first, then expand to tablet and desktop while preserving app semantics and touch-friendly controls.
 - Support mobile, tablet, and desktop layouts through `core/responsive`.
 - Mobile uses stacked navigation and full-screen conversations.
 - Tablet and desktop use the navigation rail, conversation list, and detail view.

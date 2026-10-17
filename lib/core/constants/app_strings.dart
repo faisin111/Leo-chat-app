@@ -22,4 +22,16 @@ abstract final class AppStrings {
   static const madeForPeople = 'Made for people';
   static const madeForPeopleDescription =
       'Thoughtful details make every conversation feel easy and natural.';
+  static const onboardingTitleOne = 'Stay close to your people.';
+  static const onboardingBodyOne =
+      'Bring every conversation into one calm, simple space built for real connection.';
+  static const onboardingTitleTwo = 'Everything in sync.';
+  static const onboardingBodyTwo =
+      'Send messages, share moments, and pick up right where you left off.';
+  static const onboardingTitleThree = 'Chat your way.';
+  static const onboardingBodyThree =
+      'React, reply, share files, and make every message feel like you.';
+  static const skip = 'Skip';
+  static const next = 'Next';
+  static const startChatting = 'Start chatting';
 }

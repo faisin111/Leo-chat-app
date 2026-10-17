@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/colors.dart';
+import '../../../theme/colors.dart';
 
 class LeoLogo extends StatelessWidget {
   const LeoLogo({super.key, this.compact = false, this.onDark = false});
@@ -24,7 +24,7 @@ class LeoLogo extends StatelessWidget {
               BoxShadow(
                   color: Color(0x26F35A26),
                   blurRadius: 18,
-                  offset: Offset(0, 7)),
+                  offset: Offset(0, 7))
             ],
           ),
           child: Icon(Icons.forum_rounded,
@@ -32,14 +32,12 @@ class LeoLogo extends StatelessWidget {
         ),
         if (!compact) ...[
           const SizedBox(width: 10),
-          Text(
-            'LeoChat',
-            style: TextStyle(
-                fontSize: 21,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-                color: foreground),
-          ),
+          Text('LeoChat',
+              style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: foreground)),
         ],
       ],
     );
