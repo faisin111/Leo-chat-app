@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../core/constants/app_strings.dart';
 import '../core/theme/theme.dart';
 import '../features/chat/presentation/pages/chat_shell_page.dart';
+import '../features/landing/presentation/pages/landing_page.dart';
 
 final _router = GoRouter(
   initialLocation: '/app',
   routes: [
+    GoRoute(path: '/', builder: (context, state) => const LandingPage()),
     GoRoute(path: '/app', builder: (context, state) => const ChatShellPage()),
   ],
 );
