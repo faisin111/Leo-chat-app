@@ -34,4 +34,17 @@ abstract final class AppStrings {
   static const skip = 'Skip';
   static const next = 'Next';
   static const startChatting = 'Start chatting';
+  static const login = 'Sign in';
+  static const username = 'Username';
+  static const usernameHint = 'alex.morgan';
+  static const password = 'Password';
+  static const passwordHint = 'Enter your password';
+  static const forgotPassword = 'Forgot password?';
+  static const newToLeoChat = 'New to LeoChat?';
+  static const createAccount = 'Create an account';
+  static const loginTitle = 'Your people.\nA little closer.';
+  static const loginSubtitle =
+      'A space for the big news and the everyday hellos.';
+  static const loginGreeting = 'You made it! Hey, you 👋';
+  static const loginTagline = 'Good people. Great chats.';
 }

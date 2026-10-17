@@ -60,7 +60,7 @@ class _LandingNav extends StatelessWidget {
               ),
             LeoOutlineButton(
               label: 'Sign in',
-              onPressed: () => context.go('/app'),
+              onPressed: () => context.go('/login'),
             ),
           ],
         ),
@@ -128,10 +128,10 @@ class _HeroCopy extends StatelessWidget {
             LeoPrimaryButton(
                 label: AppStrings.getStarted,
                 icon: Icons.arrow_forward_rounded,
-                onPressed: () => context.go('/app')),
+                onPressed: () => context.go('/login')),
             LeoOutlineButton(
                 label: AppStrings.seeHowItWorks,
-                onPressed: () => context.go('/app')),
+                onPressed: () => context.go('/login')),
           ]),
         ],
       );

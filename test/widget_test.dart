@@ -18,7 +18,7 @@ void main() {
     expect(find.text('Stay close to your people.'), findsOneWidget);
   });
 
-  testWidgets('landing CTA opens chat shell', (tester) async {
+  testWidgets('onboarding skip opens login then chat shell', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: LeoChatApp()));
     await tester.pump(const Duration(milliseconds: 1000));
     await tester.pumpAndSettle();
@@ -26,8 +26,9 @@ void main() {
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Get started'));
-    await tester.tap(find.text('Get started'));
+    expect(find.text('Username'), findsOneWidget);
+    await tester.ensureVisible(find.text('Sign in'));
+    await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
 
     expect(find.text('Messages'), findsOneWidget);

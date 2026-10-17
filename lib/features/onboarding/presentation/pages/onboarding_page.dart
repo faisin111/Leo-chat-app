@@ -42,7 +42,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
-  void _finish() => context.go('/');
+  void _finish() => context.go('/login');
 
   @override
   Widget build(BuildContext context) {
