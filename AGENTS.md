@@ -27,9 +27,9 @@ lib/
         feedback/
   features/
     auth/
-      data/                    # Auth DTOs, data sources, repository
-      domain/                  # Auth entities and repository contracts
-      presentation/            # Auth providers, pages, widgets
+      data/                    # Auth DTOs, data sources, repository implementations
+      domain/                  # Auth entities, repository contracts, use cases
+      presentation/            # Auth controllers, Riverpod providers, states, pages, widgets
     chat/                      # Conversations, messages, typing, reactions
     media/                     # Presign, upload, confirm flow
     settings/                  # Profile and security screens
@@ -48,6 +48,8 @@ lib/
 - Widgets must not call Dio or parse JSON.
 - Repositories expose domain models and `Either<AppFailure, T>` results.
 - Keep DTOs in `data/models`, entities in `domain/entities`, and API sources in `data/datasources`.
+- Every feature follows the same layers: `domain/usecases`, `domain/repositories`, `data/repositories`, `data/models`, `data/datasources`, and `presentation/controllers`, `presentation/providers`, `presentation/states`.
+- Controllers coordinate use cases and emit immutable feature state. Providers construct data sources, repository implementations, use cases, and controllers through Riverpod dependency injection.
 - Use Riverpod providers for dependency injection and state management.
 - Manage every external dependency through Riverpod providers in `lib/core/di`; do not instantiate Dio, storage, repositories, or services inside widgets.
 - Features receive dependencies through provider overrides or `ref.watch`; avoid service locators and global mutable singletons.

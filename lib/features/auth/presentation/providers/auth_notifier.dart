@@ -3,20 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di/providers.dart';
 import '../../../../core/network/result.dart';
 import '../../domain/entities/auth_session.dart';
-import '../../domain/repositories/auth_repository.dart';
+import '../../domain/usecases/auth_use_cases.dart';
 import 'auth_state.dart';
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(this._repository) : super(const AuthInitial());
+  AuthNotifier({
+    required LoginUseCase login,
+    required RegisterUseCase register,
+    required LogoutUseCase logout,
+  })  : _login = login,
+        _register = register,
+        _logout = logout,
+        super(const AuthInitial());
 
-  final AuthRepository _repository;
+  final LoginUseCase _login;
+  final RegisterUseCase _register;
+  final LogoutUseCase _logout;
 
   Future<Result<AuthSession>> login({
     required String username,
     required String password,
   }) async {
     state = const AuthLoading();
-    final result = await _repository.login(
+    final result = await _login(
       username: username,
       password: password,
     );
@@ -34,7 +43,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String displayName,
   }) async {
     state = const AuthLoading();
-    final result = await _repository.register(
+    final result = await _register(
       username: username,
       email: email,
       password: password,
@@ -49,12 +58,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     state = const AuthLoading();
-    await _repository.logout();
+    await _logout();
     state = const AuthUnauthenticated();
   }
 }
 
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.watch(authRepositoryProvider));
+  final repository = ref.watch(authRepositoryProvider);
+  return AuthNotifier(
+    login: LoginUseCase(repository),
+    register: RegisterUseCase(repository),
+    logout: LogoutUseCase(repository),
+  );
 });

@@ -49,7 +49,7 @@ lib/
     admin/
 ```
 
-Each feature may contain `data`, `domain`, and `presentation`. Presentation reads state from Riverpod providers. Data sources own Dio calls. Repositories translate DTOs into domain entities.
+Each feature may contain `data`, `domain`, and `presentation`. Use `domain/usecases` for application actions, `domain/repositories` for contracts, `data/repositories` for implementations, `data/models` for DTOs, `data/datasources` for transport, and `presentation/controllers`, `presentation/providers`, and `presentation/states` for Riverpod-driven UI state. Presentation reads state from providers. Data sources own Dio calls. Repositories translate DTOs into domain entities.
 
 Architecture boundaries are strict: `main.dart` only boots the app; `app/` owns routing and composition; `core/` owns reusable infrastructure; `features/` own business behavior. Data sources handle transport, repositories handle translation and orchestration, domain contains framework-free contracts and entities, and presentation contains Riverpod controllers, pages, and widgets.
 

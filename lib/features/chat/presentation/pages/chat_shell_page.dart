@@ -38,7 +38,7 @@ class _ChatShellPageState extends State<ChatShellPage> {
               ),
             ),
             const VerticalDivider(width: 1, color: Color(0xFFE7DFD8)),
-            const Expanded(child: _EmptyDetailView()),
+            const Expanded(child: _ConversationDetailView()),
           ],
         ),
       );
@@ -569,25 +569,306 @@ class _DesktopRail extends StatelessWidget {
       );
 }
 
-class _EmptyDetailView extends StatelessWidget {
-  const _EmptyDetailView();
+class _ConversationDetailView extends StatelessWidget {
+  const _ConversationDetailView();
 
   @override
-  Widget build(BuildContext context) => const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) => Column(
+        children: [
+          const _ConversationHeader(),
+          Container(
+            width: double.infinity,
+            color: const Color(0xFFFFEEE3),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+            child: const Row(
+              children: [
+                Icon(Icons.wifi_off_rounded,
+                    color: LeoColors.primary, size: 21),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Reconnecting... Your messages are safe.',
+                    style: TextStyle(
+                      color: LeoColors.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(28, 22, 28, 18),
+              children: const [
+                Center(
+                  child: Text(
+                    'TODAY · OCT 17',
+                    style: TextStyle(
+                      color: Color(0xFF8D827B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: .4,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 24),
+                _IncomingMessage(
+                  sender: 'Noah Williams',
+                  message:
+                      'Saturday plan: coast, coffee, absolutely no emails. Who’s in?',
+                  time: '9:32',
+                ),
+                SizedBox(height: 18),
+                _IncomingMessage(
+                  sender: 'Sofia Rivera',
+                  message: 'I’m in! Adding my vote for the 10 am train.',
+                  time: '9:34',
+                  replyPreview: 'Maya Chen\nThis message was deleted',
+                ),
+                SizedBox(height: 18),
+                _IncomingMessage(
+                  sender: 'Maya Chen',
+                  message: 'Voice message · 0:18',
+                  time: '9:35',
+                  isVoice: true,
+                ),
+                SizedBox(height: 18),
+                _OutgoingMessage(
+                  message: 'I’ll book the train for all six of us.',
+                  time: '9:37',
+                  failed: true,
+                ),
+                SizedBox(height: 12),
+                _OutgoingMessage(
+                  message: 'Window seats for everyone 😊',
+                  time: 'Waiting for connection',
+                  muted: true,
+                ),
+                SizedBox(height: 18),
+                Text(
+                  'Noah and Maya are typing...',
+                  style: TextStyle(
+                    color: Color(0xFF8D827B),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const _MessageComposer(),
+        ],
+      );
+}
+
+class _ConversationHeader extends StatelessWidget {
+  const _ConversationHeader();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFE7DFD8))),
+        ),
+        child: const Row(
           children: [
-            Icon(Icons.forum_outlined, size: 48, color: Color(0xFFA8A19B)),
-            SizedBox(height: 16),
-            Text(
-              AppStrings.selectConversation,
-              style: TextStyle(
-                fontSize: 15,
-                color: Color(0xFF78716C),
-                fontWeight: FontWeight.w600,
+            LeoAvatar(radius: 28, assetPath: 'assets/avatars/Portrait.png'),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Weekend people',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: LeoColors.textPrimary)),
+                  SizedBox(height: 3),
+                  Text('6 members · 3 online',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: LeoColors.textSecondary)),
+                ],
               ),
             ),
+            Icon(Icons.phone_outlined, color: LeoColors.textPrimary, size: 24),
+            SizedBox(width: 20),
+            Icon(Icons.videocam_outlined,
+                color: LeoColors.textPrimary, size: 25),
           ],
         ),
+      );
+}
+
+class _IncomingMessage extends StatelessWidget {
+  const _IncomingMessage(
+      {required this.sender,
+      required this.message,
+      required this.time,
+      this.replyPreview,
+      this.isVoice = false});
+  final String sender;
+  final String message;
+  final String time;
+  final String? replyPreview;
+  final bool isVoice;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(sender,
+              style: const TextStyle(
+                  color: LeoColors.primary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(height: 7),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 15, 16, 12),
+            decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(22))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (replyPreview != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                        color: Color(0xFFFFEEE3),
+                        borderRadius: BorderRadius.all(Radius.circular(13))),
+                    child: Text(replyPreview!,
+                        style: const TextStyle(
+                            color: LeoColors.textSecondary,
+                            fontSize: 13,
+                            height: 1.35,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (isVoice)
+                  const Row(children: [
+                    Icon(Icons.play_circle_outline,
+                        color: LeoColors.primary, size: 34),
+                    SizedBox(width: 12),
+                    Expanded(
+                        child: Text('▮▮▮▮▮▮▮▮▮▮  0:18',
+                            style: TextStyle(
+                                color: LeoColors.primary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800)))
+                  ]),
+                if (!isVoice)
+                  Text(message,
+                      style: const TextStyle(
+                          color: LeoColors.textPrimary,
+                          fontSize: 17,
+                          height: 1.35,
+                          fontWeight: FontWeight.w500)),
+                const SizedBox(height: 6),
+                Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(time,
+                        style: const TextStyle(
+                            color: LeoColors.textMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600))),
+              ],
+            ),
+          ),
+        ],
+      );
+}
+
+class _OutgoingMessage extends StatelessWidget {
+  const _OutgoingMessage(
+      {required this.message,
+      required this.time,
+      this.failed = false,
+      this.muted = false});
+  final String message;
+  final String time;
+  final bool failed;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) => Align(
+        alignment: Alignment.centerRight,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              constraints: const BoxConstraints(maxWidth: 520),
+              padding: const EdgeInsets.fromLTRB(18, 15, 18, 12),
+              decoration: BoxDecoration(
+                  color: muted ? const Color(0xFFFFEEE3) : LeoColors.primary,
+                  borderRadius: const BorderRadius.all(Radius.circular(22))),
+              child:
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(message,
+                    style: TextStyle(
+                        color: muted ? LeoColors.textPrimary : Colors.white,
+                        fontSize: 17,
+                        height: 1.3,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 6),
+                Text(time,
+                    style: TextStyle(
+                        color: muted ? LeoColors.textMuted : Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600))
+              ]),
+            ),
+            if (failed)
+              const Padding(
+                  padding: EdgeInsets.only(top: 7),
+                  child: Text('ⓘ  Not sent · Tap to retry',
+                      style: TextStyle(
+                          color: Color(0xFFEF4444),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600))),
+          ],
+        ),
+      );
+}
+
+class _MessageComposer extends StatelessWidget {
+  const _MessageComposer();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+        decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Color(0xFFE7DFD8)))),
+        child: Row(children: [
+          const Icon(Icons.add, color: LeoColors.primary, size: 28),
+          const SizedBox(width: 14),
+          const Expanded(
+              child: TextField(
+            decoration: InputDecoration(
+                hintText: 'Message...',
+                filled: true,
+                fillColor: Color(0xFFF3ECE5),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(30)),
+                    borderSide: BorderSide.none),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 18, vertical: 14)),
+          )),
+          const SizedBox(width: 14),
+          Container(
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
+                  color: LeoColors.primary, shape: BoxShape.circle),
+              child: const Icon(Icons.mic_none_rounded,
+                  color: Colors.white, size: 27)),
+        ]),
       );
 }
