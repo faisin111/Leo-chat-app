@@ -5,6 +5,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_primary_button.dart';
+import '../../../../core/widgets/common_widgets/inputs/leo_auth_field.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -55,14 +56,14 @@ class _LoginPageState extends State<LoginPage> {
                             height: 1.45,
                             color: Color(0xFF8D827B))),
                     const SizedBox(height: 30),
-                    _LoginField(
+                    LeoAuthField(
                       label: AppStrings.username,
                       hint: AppStrings.usernameHint,
                       icon: Icons.person_outline_rounded,
                       controller: _usernameController,
                     ),
                     const SizedBox(height: 18),
-                    _LoginField(
+                    LeoAuthField(
                       label: AppStrings.password,
                       hint: AppStrings.passwordHint,
                       icon: Icons.lock_outline_rounded,
@@ -106,7 +107,7 @@ class _LoginPageState extends State<LoginPage> {
                             style: TextStyle(
                                 color: Color(0xFF8D827B), fontSize: 15)),
                         TextButton(
-                            onPressed: () {},
+                            onPressed: () => context.go('/register'),
                             child: const Text(AppStrings.createAccount,
                                 style: TextStyle(
                                     color: LeoColors.primary,
@@ -200,54 +201,4 @@ class _Arc extends StatelessWidget {
       decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white24, width: 1.5)));
-}
-
-class _LoginField extends StatelessWidget {
-  const _LoginField(
-      {required this.label,
-      required this.hint,
-      required this.icon,
-      required this.controller,
-      this.obscureText = false,
-      this.suffix});
-  final String label;
-  final String hint;
-  final IconData icon;
-  final TextEditingController controller;
-  final bool obscureText;
-  final Widget? suffix;
-
-  @override
-  Widget build(BuildContext context) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF8D827B))),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          style: const TextStyle(fontSize: 16, color: Color(0xFF211D1B)),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFFB4AAA3)),
-            prefixIcon: Icon(icon, color: const Color(0xFF8D827B)),
-            suffixIcon: suffix,
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide:
-                    const BorderSide(color: Color(0xFFE9E1DB), width: 1.5)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide:
-                    const BorderSide(color: LeoColors.primary, width: 1.5)),
-          ),
-        ),
-      ]);
 }

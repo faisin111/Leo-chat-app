@@ -47,4 +47,15 @@ abstract final class AppStrings {
       'A space for the big news and the everyday hellos.';
   static const loginGreeting = 'You made it! Hey, you 👋';
   static const loginTagline = 'Good people. Great chats.';
+  static const registerTitle = 'Make yourself\nat home.';
+  static const registerSubtitle = 'Your next great conversation starts here.';
+  static const displayName = 'Display name';
+  static const displayNameHint = 'Alex Morgan';
+  static const emailAddress = 'Email address';
+  static const emailHint = 'alex.morgan@email.com';
+  static const createPassword = 'Create password';
+  static const strongPassword = 'Strong password · at least 8 characters';
+  static const termsAgreement =
+      'I agree to the Terms of Service and Privacy Policy. Let’s keep this a kind place.';
+  static const alreadyConversation = 'Already part of the conversation?';
 }
