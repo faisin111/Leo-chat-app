@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/colors.dart';
-
 class LeoPrimaryButton extends StatelessWidget {
   const LeoPrimaryButton(
       {super.key, required this.label, this.onPressed, this.icon});

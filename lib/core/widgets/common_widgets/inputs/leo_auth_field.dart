@@ -7,7 +7,7 @@ class LeoAuthField extends StatelessWidget {
     super.key,
     required this.label,
     required this.hint,
-    required this.icon,
+    this.icon,
     required this.controller,
     this.obscureText = false,
     this.suffix,
@@ -15,7 +15,7 @@ class LeoAuthField extends StatelessWidget {
 
   final String label;
   final String hint;
-  final IconData icon;
+  final IconData? icon;
   final TextEditingController controller;
   final bool obscureText;
   final Widget? suffix;
@@ -24,34 +24,48 @@ class LeoAuthField extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF8D827B))),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF78716C),
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
             obscureText: obscureText,
-            style: const TextStyle(fontSize: 16, color: Color(0xFF211D1B)),
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF1C1917),
+            ),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(color: Color(0xFFB4AAA3)),
-              prefixIcon: Icon(icon, color: const Color(0xFF8D827B)),
-              suffixIcon: suffix,
+              hintStyle: const TextStyle(
+                color: Color(0xFFA8A19B),
+                fontWeight: FontWeight.w400,
+                fontSize: 15,
+              ),
+              suffixIcon: suffix ??
+                  (icon != null
+                      ? Icon(icon, color: const Color(0xFF78716C), size: 22)
+                      : null),
               filled: true,
               fillColor: Colors.white,
               contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 borderSide:
-                    const BorderSide(color: Color(0xFFE9E1DB), width: 1.5),
+                    const BorderSide(color: Color(0xFFE7DFD8), width: 1.2),
               ),
               focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide:
-                      const BorderSide(color: LeoColors.primary, width: 1.5)),
+                borderRadius: BorderRadius.circular(16),
+                borderSide:
+                    const BorderSide(color: LeoColors.primary, width: 1.5),
+              ),
             ),
           ),
         ],

@@ -26,11 +26,11 @@ void main() {
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Username'), findsOneWidget);
+    expect(find.text('Email address'), findsOneWidget);
     await tester.ensureVisible(find.text('Sign in'));
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Messages'), findsOneWidget);
+    expect(find.text('Your chats'), findsOneWidget);
   });
 }

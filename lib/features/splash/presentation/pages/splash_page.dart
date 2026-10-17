@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
 
@@ -32,23 +33,57 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: LeoColors.rail,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const LeoLogo(onDark: true),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: 52,
-                child: LinearProgressIndicator(
-                  minHeight: 3,
-                  backgroundColor: LeoColors.textSecondary.withOpacity(.35),
-                  color: LeoColors.primary,
-                  borderRadius: BorderRadius.circular(99),
-                ),
+        backgroundColor: const Color(0xFFFAF7F4),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Spacer(),
+                  const LeoLogo(),
+                  const SizedBox(height: 14),
+                  const Text(
+                    AppStrings.yourChatsSubtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF78716C),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: 56,
+                    child: LinearProgressIndicator(
+                      minHeight: 3,
+                      backgroundColor: const Color(0xFFE7DFD8),
+                      color: LeoColors.primary,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.shield_outlined,
+                          size: 13, color: Color(0xFFA8A19B)),
+                      SizedBox(width: 6),
+                      Text(
+                        'Fast · Private · Everyday connection',
+                        style: TextStyle(
+                          color: Color(0xFF78716C),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       );
