@@ -8,6 +8,8 @@ Build a modern, smooth realtime chat client. Favor predictable state transitions
 
 Every implementation change must ship with tests. Add unit tests for models, parsers, repositories, failure mapping, and Riverpod state. Add widget tests for every changed screen or reusable widget, including user interaction and responsive layouts. Cover success, loading, empty, error, and permission states when they apply. Run `flutter test` before committing.
 
+Use meaningful commit messages. Each message must clearly state the complete change in imperative form, such as `Add username login screen`, `Add registration flow`, or `Fix Android Java 21 build compatibility`. Avoid vague messages like `changes`, `update`, or `fix stuff`.
+
 ## Required stack
 
 - Flutter Material 3.

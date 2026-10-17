@@ -95,3 +95,10 @@ lib/
 - Test success, loading, empty, error, responsive, and permission states where applicable.
 - Run unit and widget tests with `flutter test` before committing.
 - Run `dart format`, `flutter analyze`, and relevant tests before committing.
+
+## Commits
+
+- Write clear, complete, imperative commit messages.
+- State the actual product or engineering change, not a vague category.
+- Use the format `<verb> <specific change>`, for example `Add username login screen` or `Fix Android Java 21 build compatibility`.
+- Keep one logical change per commit when practical.
