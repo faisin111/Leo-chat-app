@@ -82,8 +82,7 @@ class _ChatsContent extends StatelessWidget {
                 Spacer(),
                 LeoAvatar(
                   radius: 20,
-                  imageUrl:
-                      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+                  assetPath: 'assets/avatars/Portrait.png',
                 ),
               ],
             ),
@@ -102,7 +101,7 @@ class _ChatsContent extends StatelessWidget {
                           fontSize: 34,
                           height: 1.1,
                           letterSpacing: -1.2,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w900,
                           color: Color(0xFF1C1917),
                         ),
                       ),
@@ -111,6 +110,7 @@ class _ChatsContent extends StatelessWidget {
                         AppStrings.yourChatsSubtitle,
                         style: TextStyle(
                           fontSize: 14,
+                          fontWeight: FontWeight.w600,
                           color: Color(0xFF78716C),
                         ),
                       ),
@@ -160,7 +160,7 @@ class _ChatsContent extends StatelessWidget {
                         hintStyle: TextStyle(
                           color: Color(0xFF78716C),
                           fontSize: 15,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: FontWeight.w500,
                         ),
                         border: InputBorder.none,
                         isDense: true,
@@ -205,8 +205,7 @@ class _ChatsContent extends StatelessWidget {
               subtitle: 'This message was deleted',
               time: '9:40',
               unreadCount: '2',
-              imageUrl:
-                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+              imageUrl: 'assets/avatars/Portrait.png',
               hasOnlineBadge: true,
             ),
             const _ConversationItem(
@@ -222,23 +221,20 @@ class _ChatsContent extends StatelessWidget {
               subtitle: 'typing...',
               time: '9:36',
               isTyping: true,
-              imageUrl:
-                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+              imageUrl: 'assets/avatars/Portrait.png',
               hasOnlineBadge: true,
             ),
             const _ConversationItem(
               title: 'Sofia Rivera',
               subtitle: 'You: Sending you the photos now!',
               time: '9:28',
-              imageUrl:
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+              imageUrl: 'assets/avatars/Portrait.png',
             ),
             const _ConversationItem(
               title: 'Ellie Park',
               subtitle: 'Voice message · 0:18',
               time: 'Yesterday',
-              imageUrl:
-                  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+              imageUrl: 'assets/avatars/Portrait.png',
               hasMutedSpeaker: true,
             ),
             const _ConversationItem(
@@ -264,7 +260,7 @@ class _ChatsContent extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: Color(0xFF78716C),
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -303,7 +299,7 @@ class _FilterPill extends StatelessWidget {
                   text: const TextSpan(
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: Color(0xFF78716C),
                     ),
                     children: [
@@ -319,7 +315,7 @@ class _FilterPill extends StatelessWidget {
                   label,
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: active ? Colors.white : const Color(0xFF78716C),
                   ),
                 ),
@@ -386,7 +382,7 @@ class _ConversationItem extends StatelessWidget {
                     title,
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: Color(0xFF1C1917),
                     ),
                   ),
@@ -397,7 +393,7 @@ class _ConversationItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: isTyping ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: isTyping ? FontWeight.w700 : FontWeight.w500,
                       color: isTyping
                           ? LeoColors.primary
                           : const Color(0xFF78716C),
@@ -415,7 +411,7 @@ class _ConversationItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight:
-                        unreadCount != null ? FontWeight.w600 : FontWeight.w500,
+                        unreadCount != null ? FontWeight.w700 : FontWeight.w600,
                     color: unreadCount != null
                         ? LeoColors.primary
                         : const Color(0xFF78716C),
@@ -436,7 +432,7 @@ class _ConversationItem extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -541,7 +537,7 @@ class _NavItem extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                   color: active ? LeoColors.primary : const Color(0xFF78716C),
                 ),
               ),
@@ -588,7 +584,7 @@ class _EmptyDetailView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 color: Color(0xFF78716C),
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],

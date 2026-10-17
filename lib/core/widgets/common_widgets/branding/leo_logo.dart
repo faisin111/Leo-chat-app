@@ -5,6 +5,8 @@ import '../../../theme/colors.dart';
 class LeoLogo extends StatelessWidget {
   const LeoLogo({super.key, this.compact = false, this.onDark = false});
 
+  static const assetPath = 'assets/icons/LeoChatIcon.png';
+
   final bool compact;
   final bool onDark;
 
@@ -18,7 +20,6 @@ class LeoLogo extends StatelessWidget {
           width: compact ? 36 : 42,
           height: compact ? 36 : 42,
           decoration: BoxDecoration(
-            color: LeoColors.primary,
             borderRadius: BorderRadius.circular(compact ? 11 : 13),
             boxShadow: const [
               BoxShadow(
@@ -27,8 +28,15 @@ class LeoLogo extends StatelessWidget {
                   offset: Offset(0, 7))
             ],
           ),
-          child: Icon(Icons.forum_rounded,
-              color: Colors.white, size: compact ? 20 : 24),
+          clipBehavior: Clip.antiAlias,
+          child: Image.asset(
+            assetPath,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => const ColoredBox(
+              color: LeoColors.primary,
+              child: Icon(Icons.forum_rounded, color: Colors.white),
+            ),
+          ),
         ),
         if (!compact) ...[
           const SizedBox(width: 10),

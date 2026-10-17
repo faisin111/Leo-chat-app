@@ -14,6 +14,7 @@ class LeoOutlineButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: LeoColors.textPrimary,
           side: const BorderSide(color: LeoColors.border),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

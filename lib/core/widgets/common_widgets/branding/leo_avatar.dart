@@ -7,6 +7,7 @@ class LeoAvatar extends StatelessWidget {
     super.key,
     required this.radius,
     this.imageUrl,
+    this.assetPath,
     this.fallbackIcon = Icons.person,
     this.backgroundColor = const Color(0xFFFFD8C3),
     this.iconColor = LeoColors.primary,
@@ -15,6 +16,7 @@ class LeoAvatar extends StatelessWidget {
 
   final double radius;
   final String? imageUrl;
+  final String? assetPath;
   final IconData fallbackIcon;
   final Color backgroundColor;
   final Color iconColor;
@@ -26,9 +28,9 @@ class LeoAvatar extends StatelessWidget {
       radius: radius,
       backgroundColor: backgroundColor,
       child: ClipOval(
-        child: imageUrl != null && imageUrl!.isNotEmpty
-            ? Image.network(
-                imageUrl!,
+        child: assetPath != null && assetPath!.isNotEmpty
+            ? Image.asset(
+                assetPath!,
                 width: radius * 2,
                 height: radius * 2,
                 fit: BoxFit.cover,
@@ -38,11 +40,35 @@ class LeoAvatar extends StatelessWidget {
                   color: iconColor,
                 ),
               )
-            : Icon(
-                fallbackIcon,
-                size: radius * 1.1,
-                color: iconColor,
-              ),
+            : imageUrl != null && imageUrl!.isNotEmpty
+                ? (imageUrl!.startsWith('assets/')
+                    ? Image.asset(
+                        imageUrl!,
+                        width: radius * 2,
+                        height: radius * 2,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          fallbackIcon,
+                          size: radius * 1.1,
+                          color: iconColor,
+                        ),
+                      )
+                    : Image.network(
+                        imageUrl!,
+                        width: radius * 2,
+                        height: radius * 2,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          fallbackIcon,
+                          size: radius * 1.1,
+                          color: iconColor,
+                        ),
+                      ))
+                : Icon(
+                    fallbackIcon,
+                    size: radius * 1.1,
+                    color: iconColor,
+                  ),
       ),
     );
 

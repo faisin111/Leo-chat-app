@@ -80,8 +80,12 @@ lib/
 ## UI and responsive behavior
 
 - Follow `LEO_CHAT_FRONTEND_GUIDE.md` for colors, spacing, typography, and surfaces.
-- Use Google Fonts `Inter` globally through `LeoTheme`; do not define unrelated font families inside feature widgets.
+- Use Google Fonts `Poppins` globally through `LeoTheme`; do not define unrelated font families inside feature widgets.
 - Use `LeoColors` and `LeoTheme`; do not add one-off brand colors.
+- Use local bundled assets for LeoChat branding and icons (`assets/icons/LeoChatIcon.png`); do not use network images for app identity or core UI.
+- Use the shared `LeoScrollBehavior` for smooth, glow-free scrolling across all pages. Use the shared route transition helper in `app/app.dart` for consistent fade and slide navigation.
+- Keep theme tokens organized in `lib/core/theme`: `colors.dart` owns colors, `typography.dart` owns the Poppins text scale, and `fields.dart` owns shared input decoration and field geometry.
+- Preserve the current LeoChat visual values when organizing theme code. Feature widgets compose shared tokens instead of duplicating field, text, or color literals.
 - Use the web design system only for visual language. Build app-native structure: app bars, bottom navigation, touch targets, sheets, drawers, stacked flows, and conversation-first screens.
 - Do not copy web marketing layouts, desktop-only navigation, hover interactions, or dense website sections into mobile app flows.
 - Design mobile first, then expand to tablet and desktop while preserving app semantics and touch-friendly controls.

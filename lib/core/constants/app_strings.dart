@@ -73,6 +73,14 @@ abstract final class AppStrings {
       'I agree to the Terms of Service and Privacy Policy. Let’s keep this a kind place.';
   static const alreadyConversation = 'Already part of the conversation?';
 
+  static const loginSuccess = 'Welcome back! You’re signed in.';
+  static const registerSuccess =
+      'Account created successfully! Welcome to LeoChat.';
+  static const fillRequiredFields = 'Please fill in all required fields.';
+  static const passwordTooShort = 'Password must be at least 8 characters.';
+  static const invalidEmail = 'Please enter a valid email address.';
+  static const acceptTermsRequired = 'Please accept the terms and conditions.';
+
   // Extra info & badge strings
   static const splashTagline = 'Conversations that feel closer.';
   static const splashSubtitle = 'Fast · Private · Everyday connection';

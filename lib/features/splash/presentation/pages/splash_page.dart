@@ -50,7 +50,7 @@ class _SplashPageState extends State<SplashPage> {
                     style: TextStyle(
                       fontSize: 15,
                       color: Color(0xFF78716C),
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const Spacer(),
@@ -75,7 +75,7 @@ class _SplashPageState extends State<SplashPage> {
                         style: TextStyle(
                           color: Color(0xFF78716C),
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

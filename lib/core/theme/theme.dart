@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'colors.dart';
+import 'fields.dart';
+import 'typography.dart';
 
 abstract final class LeoTheme {
   static ThemeData get light {
     GoogleFonts.config.allowRuntimeFetching = false;
     return ThemeData(
       useMaterial3: true,
-      fontFamily: GoogleFonts.inter().fontFamily,
-      textTheme: GoogleFonts.interTextTheme(),
+      fontFamily: 'Poppins',
+      textTheme: LeoTypography.textTheme,
       scaffoldBackgroundColor: LeoColors.background,
       colorScheme: const ColorScheme.light(
         primary: LeoColors.primary,
@@ -24,14 +26,7 @@ abstract final class LeoTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      inputDecorationTheme: const InputDecorationTheme(
-        filled: true,
-        fillColor: LeoColors.input,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
-          borderSide: BorderSide.none,
-        ),
-      ),
+      inputDecorationTheme: LeoFields.inputDecoration,
     );
   }
 }

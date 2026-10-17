@@ -127,7 +127,7 @@ class _HeroCopy extends StatelessWidget {
                       style: TextStyle(
                           color: LeoColors.primary,
                           fontSize: 12,
-                          fontWeight: FontWeight.w700)),
+                          fontWeight: FontWeight.w800)),
                 ]),
           ),
           const SizedBox(height: 20),
@@ -136,12 +136,15 @@ class _HeroCopy extends StatelessWidget {
                   fontSize: 44,
                   height: 1.08,
                   letterSpacing: -1.6,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                   color: LeoColors.textPrimary)),
           const SizedBox(height: 16),
           const Text(AppStrings.landingSubtitle,
               style: TextStyle(
-                  fontSize: 15, height: 1.55, color: LeoColors.textSecondary)),
+                  fontSize: 15,
+                  height: 1.55,
+                  fontWeight: FontWeight.w600,
+                  color: LeoColors.textSecondary)),
           const SizedBox(height: 28),
           Wrap(spacing: 12, runSpacing: 12, children: [
             LeoPrimaryButton(
@@ -163,7 +166,7 @@ class _HeroCopy extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: LeoColors.textMuted,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -417,13 +420,15 @@ class _MetricCard extends StatelessWidget {
             Text(value,
                 style: const TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                     color: LeoColors.textPrimary)),
             const SizedBox(height: 3),
             Text(label,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    fontSize: 11, color: LeoColors.textSecondary)),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: LeoColors.textSecondary)),
           ],
         ),
       );
@@ -441,14 +446,17 @@ class _FeaturesSection extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 30,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: -1,
                   color: LeoColors.textPrimary)),
           SizedBox(height: 8),
           Text(
               'A complete modern messaging stack designed for speed, privacy, and delight.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: LeoColors.textSecondary)),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: LeoColors.textSecondary)),
           SizedBox(height: 36),
           Wrap(
               alignment: WrapAlignment.center,
@@ -525,7 +533,7 @@ class _FeatureCard extends StatelessWidget {
               child: Text(badge,
                   style: const TextStyle(
                       fontSize: 10,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: LeoColors.textSecondary)),
             ),
           ],
@@ -534,12 +542,15 @@ class _FeatureCard extends StatelessWidget {
         Text(title,
             style: const TextStyle(
                 fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
                 color: LeoColors.textPrimary)),
         const SizedBox(height: 6),
         Text(description,
             style: const TextStyle(
-                fontSize: 12, height: 1.45, color: LeoColors.textSecondary)),
+                fontSize: 12,
+                height: 1.45,
+                fontWeight: FontWeight.w500,
+                color: LeoColors.textSecondary)),
       ]));
 }
 
@@ -573,7 +584,7 @@ class _CtaBanner extends StatelessWidget {
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
                 letterSpacing: -0.6,
               ),
             ),
@@ -584,6 +595,7 @@ class _CtaBanner extends StatelessWidget {
               style: TextStyle(
                 color: LeoColors.textMuted,
                 fontSize: 13,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 20),

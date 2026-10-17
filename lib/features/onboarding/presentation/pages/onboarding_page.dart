@@ -105,7 +105,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 style: TextStyle(
                   fontSize: 11,
                   color: LeoColors.textMuted,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -144,7 +144,7 @@ class _OnboardingSlide extends StatelessWidget {
                     color: LeoColors.primary,
                     fontSize: 11,
                     letterSpacing: 0.6,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -155,7 +155,7 @@ class _OnboardingSlide extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 28,
                   height: 1.15,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: -0.8,
                   color: LeoColors.textPrimary,
                 ),
@@ -169,6 +169,7 @@ class _OnboardingSlide extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     height: 1.5,
+                    fontWeight: FontWeight.w600,
                     color: LeoColors.textSecondary,
                   ),
                 ),
@@ -194,7 +195,7 @@ class _OnboardingSlide extends StatelessWidget {
                   data.$4,
                   style: const TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: LeoColors.textPrimary,
                   ),
                 ),
