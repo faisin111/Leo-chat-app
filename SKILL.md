@@ -59,6 +59,8 @@ Keep shared strings in `lib/core/constants`. Use `AppStrings` or localization ke
 
 Reusable widgets are mandatory. Before adding a widget, check `lib/core/widgets/common_widgets`. Shared buttons, branding, inputs, cards, loaders, and feedback components belong there and must be reused across modules. Feature-specific widgets remain inside their feature module. Do not duplicate equivalent widgets with different names.
 
+Keep assets organized under `assets/images`, `assets/icons`, `assets/illustrations`, `assets/avatars`, and `assets/fonts`. Register each folder in `pubspec.yaml` and reuse assets through shared constants or helpers.
+
 ## Responsive rules
 
 - `< 600dp`: mobile list and full-screen conversation routes.

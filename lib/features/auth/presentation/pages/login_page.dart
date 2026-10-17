@@ -64,9 +64,9 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 26),
                     LeoAuthField(
-                      label: AppStrings.emailAddress,
-                      hint: AppStrings.emailHint,
-                      icon: Icons.mail_outline_rounded,
+                      label: AppStrings.username,
+                      hint: AppStrings.usernameHint,
+                      icon: Icons.person_outline_rounded,
                       controller: _emailController,
                     ),
                     const SizedBox(height: 18),

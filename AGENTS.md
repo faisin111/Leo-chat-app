@@ -53,6 +53,9 @@ lib/
 - Features receive dependencies through provider overrides or `ref.watch`; avoid service locators and global mutable singletons.
 - Keep shared user-facing strings, labels, errors, and route names organized under `lib/core/constants`.
 - Do not scatter repeated literal strings through widgets; use typed constants or localization keys.
+- Store project assets under `assets/`, grouped into `images`, `icons`, `illustrations`, `avatars`, and `fonts`.
+- Register asset directories in `pubspec.yaml`; reference assets through constants or feature asset helpers.
+- Do not place images in `lib/` or duplicate the same asset in multiple feature folders.
 - Build repeated UI as reusable widgets. Check `core/widgets/common_widgets` before creating a new button, logo, input, card, loader, or feedback widget.
 - Group common widgets by purpose, such as `buttons`, `branding`, `feedback`, and `inputs`.
 - Feature-only widgets stay in that feature's `presentation/widgets`; do not place feature behavior in common widgets.
