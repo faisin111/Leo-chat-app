@@ -49,7 +49,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
   StreamSubscription<Map<String, dynamic>>? _typingSub;
   Timer? _typingTimer;
 
+  String? _currentUserId;
+  String? _currentUsername;
+  String? _currentDisplayName;
+  bool _isLocalUserTyping = false;
+  DateTime? _lastLocalTypingAt;
+
   Future<void> _init() async {
+    try {
+      _currentUserId = await _secureStorage.read(key: 'auth_user_id');
+      _currentUsername = await _secureStorage.read(key: 'auth_username');
+      _currentDisplayName = await _secureStorage.read(key: 'auth_display_name');
+    } catch (_) {}
+
     // 1. Connect real-time WebSocket if token is present
     try {
       final token = await _secureStorage.read(key: 'accessToken');
@@ -148,10 +160,54 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
-  void _onRealtimeTypingReceived(Map<String, dynamic> data) {
+  void _onRealtimeTypingReceived(Map<String, dynamic> data) async {
     final conversationId = data['conversationId']?.toString();
-    final displayName = data['displayName']?.toString() ??
-        data['username']?.toString() ??
+    final typingUserId = data['userId']?.toString() ??
+        data['senderId']?.toString() ??
+        data['fromId']?.toString();
+    final typingUsername = data['username']?.toString() ??
+        data['senderUsername']?.toString() ??
+        data['from']?.toString() ??
+        data['user']?.toString();
+    final rawDisplayName = data['displayName']?.toString();
+
+    final myId =
+        _currentUserId ?? await _secureStorage.read(key: 'auth_user_id');
+    final myUsername =
+        _currentUsername ?? await _secureStorage.read(key: 'auth_username');
+    final myDisplayName = _currentDisplayName ??
+        await _secureStorage.read(key: 'auth_display_name');
+
+    // Never show typing indicator for "me" — only show friend or others
+    final isMe = (myId != null && myId.isNotEmpty && typingUserId == myId) ||
+        (myUsername != null &&
+            myUsername.isNotEmpty &&
+            typingUsername != null &&
+            typingUsername.toLowerCase() == myUsername.toLowerCase()) ||
+        (myDisplayName != null &&
+            myDisplayName.isNotEmpty &&
+            rawDisplayName != null &&
+            rawDisplayName.toLowerCase() == myDisplayName.toLowerCase()) ||
+        (rawDisplayName != null && rawDisplayName.toLowerCase() == 'you');
+
+    // If payload has no sender info, but the local user is currently typing, ignore the echo
+    final hasSenderIdentity =
+        (typingUserId != null && typingUserId.isNotEmpty) ||
+            (typingUsername != null && typingUsername.isNotEmpty) ||
+            (rawDisplayName != null && rawDisplayName.isNotEmpty);
+
+    final isEchoOfLocalTyping = !hasSenderIdentity &&
+        _isLocalUserTyping &&
+        _lastLocalTypingAt != null &&
+        DateTime.now().difference(_lastLocalTypingAt!).inSeconds < 3;
+
+    if (isMe || isEchoOfLocalTyping) {
+      return;
+    }
+
+    final displayName = rawDisplayName ??
+        typingUsername ??
+        state.selectedConversation?.effectiveTitle ??
         'Someone';
     final isTyping = data['isTyping'] == true;
 
@@ -529,6 +585,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   void sendTyping(bool isTyping) {
+    _isLocalUserTyping = isTyping;
+    if (isTyping) {
+      _lastLocalTypingAt = DateTime.now();
+    }
     if (state.selectedConversationId != null) {
       _stompService.sendTyping(
         conversationId: state.selectedConversationId!,
