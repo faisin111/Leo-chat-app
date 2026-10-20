@@ -51,6 +51,25 @@ class _FakeChatRepository implements ChatRepository {
   Future<Result<Conversation>> getConversation(
           {required String conversationId}) async =>
       Right(Conversation(id: conversationId, title: 'Chat'));
+
+  @override
+  Future<List<Conversation>> getCachedConversations() async => [];
+
+  @override
+  Future<void> saveCachedConversations(
+      List<Conversation> conversations) async {}
+
+  @override
+  Future<List<Message>> getCachedMessages(String conversationId) async => [];
+
+  @override
+  Future<void> saveCachedMessages(
+    String conversationId,
+    List<Message> messages,
+  ) async {}
+
+  @override
+  Future<void> clearCache({String? userId}) async {}
 }
 
 class _FakeAuthRepository implements AuthRepository {

@@ -5,6 +5,7 @@ abstract interface class CacheStore {
   Future<Map<String, dynamic>?> readJson(String key);
   Future<void> delete(String key);
   Future<void> clearUserScope(String userId);
+  Future<void> clearAll();
 }
 
 String encodeCache(Object value) => jsonEncode(value);

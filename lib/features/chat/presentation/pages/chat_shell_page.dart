@@ -135,6 +135,7 @@ class _ChatShellPageState extends ConsumerState<ChatShellPage> {
                   final router = GoRouter.of(context);
                   Navigator.of(sheetContext).pop();
                   await ref.read(authNotifierProvider.notifier).logout();
+                  ref.read(chatNotifierProvider.notifier).reset();
                   if (mounted) router.go('/login');
                 },
               ),
@@ -314,66 +315,75 @@ class _ChatsContentState extends ConsumerState<_ChatsContent> {
             ),
             const SizedBox(height: 20),
             // Loading Skeleton View vs Populated Conversations List
-            if (chatState.isLoadingConversations)
-              const LeoConversationSkeletonList(itemCount: 6)
-            else if (conversations.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        size: 48,
-                        color: Color(0xFFA8A19B),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        chatState.searchQuery.isNotEmpty
-                            ? 'No chats matching "${chatState.searchQuery}"'
-                            : 'No conversations yet',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF78716C),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: chatState.isLoadingConversations
+                  ? const LeoConversationSkeletonList(
+                      key: ValueKey('conversations_loading'),
+                      itemCount: 6,
+                    )
+                  : conversations.isEmpty
+                      ? Padding(
+                          key: const ValueKey('conversations_empty'),
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 48,
+                                  color: Color(0xFFA8A19B),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  chatState.searchQuery.isNotEmpty
+                                      ? 'No chats matching "${chatState.searchQuery}"'
+                                      : 'No conversations yet',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF78716C),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : AnimatedSwitcher(
+                          key: ValueKey(
+                              'conversations_switcher_${chatState.filterIndex}'),
+                          duration: const Duration(milliseconds: 280),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.02, 0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Column(
+                            key: ValueKey(
+                                'filter_${chatState.filterIndex}_query_${chatState.searchQuery}'),
+                            children: conversations
+                                .map(
+                                  (conv) => LeoConversationTile(
+                                    conversation: conv,
+                                    isSelected: conv.id ==
+                                        chatState.selectedConversationId,
+                                    onTap: () =>
+                                        widget.onOpenConversation(conv),
+                                  ),
+                                )
+                                .toList(),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 280),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.02, 0),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
-                    ),
-                  );
-                },
-                child: Column(
-                  key: ValueKey(
-                      'filter_${chatState.filterIndex}_query_${chatState.searchQuery}'),
-                  children: conversations
-                      .map(
-                        (conv) => LeoConversationTile(
-                          conversation: conv,
-                          isSelected:
-                              conv.id == chatState.selectedConversationId,
-                          onTap: () => widget.onOpenConversation(conv),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
+            ),
             const SizedBox(height: 24),
             // Footer branding
             const Center(
@@ -611,144 +621,151 @@ class _ConversationDetailViewState
             ),
           ),
         Expanded(
-          child: chatState.isLoadingMessages
-              ? const LeoMessageSkeletonList()
-              : chatState.messages.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 40),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF3ECE5),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.chat_bubble_outline_rounded,
-                                size: 26,
-                                color: Color(0xFFA8A19B),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'No messages yet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1C1917),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Send a message to say hello!',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF78716C),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : Stack(
-                      children: [
-                        ListView(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(28, 20, 28, 16),
-                          children: [
-                            const Center(
-                              child: Text(
-                                'TODAY',
-                                style: TextStyle(
-                                  color: Color(0xFF8D827B),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: .4,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: chatState.isLoadingMessages
+                ? const LeoMessageSkeletonList(
+                    key: ValueKey('messages_loading'),
+                  )
+                : chatState.messages.isEmpty
+                    ? Center(
+                        key: const ValueKey('messages_empty'),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFF3ECE5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 26,
+                                  color: Color(0xFFA8A19B),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 20),
-                            ...chatState.messages.map(
-                              (msg) => LeoChatBubble(
-                                key: ValueKey(msg.id.isNotEmpty
-                                    ? msg.id
-                                    : msg.clientMessageId),
-                                message: msg,
-                                onRetry: () {
-                                  if (msg.type == 'VOICE' ||
-                                      msg.type == 'AUDIO') {
-                                    notifier.sendVoice(msg.content ?? '');
-                                  } else {
-                                    notifier.sendMessage(msg.content ?? '',
-                                        type: msg.type);
-                                  }
-                                },
+                              const SizedBox(height: 12),
+                              const Text(
+                                'No messages yet',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1C1917),
+                                ),
                               ),
-                            ),
-                            if (chatState.typingStatusText != null) ...[
-                              const SizedBox(height: 10),
-                              LeoTypingIndicator(
-                                text: chatState.typingStatusText,
-                                avatarUrl: conv.preferredAvatarUrl,
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Send a message to say hello!',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF78716C),
+                                ),
                               ),
                             ],
-                          ],
+                          ),
                         ),
-                        if (_showScrollToBottomButton)
-                          Positioned(
-                            bottom: 12,
-                            right: 24,
-                            child: AnimatedOpacity(
-                              opacity: _showScrollToBottomButton ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 200),
-                              child: InkWell(
-                                onTap: () => _scrollToBottom(animated: true),
-                                borderRadius: BorderRadius.circular(24),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(
-                                        color: const Color(0xFFE7DFD8)),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x1F000000),
-                                        blurRadius: 10,
-                                        offset: Offset(0, 4),
-                                      ),
-                                    ],
+                      )
+                    : Stack(
+                        key: ValueKey('messages_content_${conv.id}'),
+                        children: [
+                          ListView(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(28, 20, 28, 16),
+                            children: [
+                              const Center(
+                                child: Text(
+                                  'TODAY',
+                                  style: TextStyle(
+                                    color: Color(0xFF8D827B),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: .4,
                                   ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.arrow_downward_rounded,
-                                        size: 16,
-                                        color: LeoColors.primary,
-                                      ),
-                                      SizedBox(width: 5),
-                                      Text(
-                                        'Latest',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              ...chatState.messages.map(
+                                (msg) => LeoChatBubble(
+                                  key: ValueKey(msg.id.isNotEmpty
+                                      ? msg.id
+                                      : msg.clientMessageId),
+                                  message: msg,
+                                  onRetry: () {
+                                    if (msg.type == 'VOICE' ||
+                                        msg.type == 'AUDIO') {
+                                      notifier.sendVoice(msg.content ?? '');
+                                    } else {
+                                      notifier.sendMessage(msg.content ?? '',
+                                          type: msg.type);
+                                    }
+                                  },
+                                ),
+                              ),
+                              if (chatState.typingStatusText != null) ...[
+                                const SizedBox(height: 10),
+                                LeoTypingIndicator(
+                                  text: chatState.typingStatusText,
+                                  avatarUrl: conv.preferredAvatarUrl,
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (_showScrollToBottomButton)
+                            Positioned(
+                              bottom: 12,
+                              right: 24,
+                              child: AnimatedOpacity(
+                                opacity: _showScrollToBottomButton ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 200),
+                                child: InkWell(
+                                  onTap: () => _scrollToBottom(animated: true),
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                          color: const Color(0xFFE7DFD8)),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x1F000000),
+                                          blurRadius: 10,
+                                          offset: Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.arrow_downward_rounded,
+                                          size: 16,
                                           color: LeoColors.primary,
                                         ),
-                                      ),
-                                    ],
+                                        SizedBox(width: 5),
+                                        Text(
+                                          'Latest',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: LeoColors.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
+                        ],
+                      ),
+          ),
         ),
         LeoChatComposer(
           onSend: (text) => notifier.sendMessage(text),

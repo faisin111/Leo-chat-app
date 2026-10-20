@@ -79,6 +79,25 @@ class _FakeChatRepository implements ChatRepository {
         type: 'DIRECT',
         lastSeq: 10,
       ));
+
+  @override
+  Future<List<Conversation>> getCachedConversations() async => [];
+
+  @override
+  Future<void> saveCachedConversations(
+      List<Conversation> conversations) async {}
+
+  @override
+  Future<List<Message>> getCachedMessages(String conversationId) async => [];
+
+  @override
+  Future<void> saveCachedMessages(
+    String conversationId,
+    List<Message> messages,
+  ) async {}
+
+  @override
+  Future<void> clearCache({String? userId}) async {}
 }
 
 class _FakeMediaRepository implements MediaRepository {
@@ -102,7 +121,8 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({});
   });
 
-  test('sendVoice performs optimistic insert, uploads file, and dispatches voice message',
+  test(
+      'sendVoice performs optimistic insert, uploads file, and dispatches voice message',
       () async {
     final chatRepo = _FakeChatRepository();
     final mediaRepo = _FakeMediaRepository();

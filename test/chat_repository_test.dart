@@ -117,6 +117,11 @@ class _MemoryCacheStore implements CacheStore {
   Future<void> clearUserScope(String userId) async {
     _storage.clear();
   }
+
+  @override
+  Future<void> clearAll() async {
+    _storage.clear();
+  }
 }
 
 void main() {

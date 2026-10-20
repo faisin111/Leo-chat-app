@@ -125,6 +125,25 @@ class _FakeChatRepository implements ChatRepository {
     required String conversationId,
   }) async =>
       Right(testConversations.first);
+
+  @override
+  Future<List<Conversation>> getCachedConversations() async => [];
+
+  @override
+  Future<void> saveCachedConversations(
+      List<Conversation> conversations) async {}
+
+  @override
+  Future<List<Message>> getCachedMessages(String conversationId) async => [];
+
+  @override
+  Future<void> saveCachedMessages(
+    String conversationId,
+    List<Message> messages,
+  ) async {}
+
+  @override
+  Future<void> clearCache({String? userId}) async {}
 }
 
 void main() {

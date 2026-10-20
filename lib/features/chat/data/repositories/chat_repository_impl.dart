@@ -245,4 +245,80 @@ class ChatRepositoryImpl implements ChatRepository {
       return Left(UnknownFailure(e.toString()));
     }
   }
+
+  @override
+  Future<List<Conversation>> getCachedConversations() async {
+    if (_cacheStore == null) return [];
+    try {
+      final userId = await _getUserId();
+      final cacheKey = CacheKeys.conversations(userId);
+      final cachedData = await _cacheStore.readJson(cacheKey);
+      if (cachedData != null) {
+        final cachedPage = ConversationPageDto.fromJson(cachedData);
+        return cachedPage.items.map((dto) => dto.toDomain()).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  @override
+  Future<void> saveCachedConversations(List<Conversation> conversations) async {
+    if (_cacheStore == null) return;
+    try {
+      final userId = await _getUserId();
+      final cacheKey = CacheKeys.conversations(userId);
+      final itemsJson = conversations
+          .map((c) => ConversationDto.fromDomain(c).toJson())
+          .toList();
+      await _cacheStore.writeJson(cacheKey, {'items': itemsJson});
+    } catch (_) {}
+  }
+
+  @override
+  Future<List<Message>> getCachedMessages(String conversationId) async {
+    if (_cacheStore == null) return [];
+    try {
+      final userId = await _getUserId();
+      final currentUsername = await _getUsername();
+      final cacheKey = CacheKeys.messages(userId, conversationId);
+      final cachedData = await _cacheStore.readJson(cacheKey);
+      if (cachedData != null) {
+        final cachedPage = MessagePageDto.fromJson(cachedData);
+        final list = cachedPage.items
+            .map((dto) => dto.toDomain(
+                  currentUserId: userId,
+                  currentUsername: currentUsername,
+                ))
+            .toList();
+        list.sort((a, b) => a.seq.compareTo(b.seq));
+        return list;
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  @override
+  Future<void> saveCachedMessages(
+    String conversationId,
+    List<Message> messages,
+  ) async {
+    if (_cacheStore == null) return;
+    try {
+      final userId = await _getUserId();
+      final cacheKey = CacheKeys.messages(userId, conversationId);
+      final itemsJson =
+          messages.map((m) => MessageDto.fromDomain(m).toJson()).toList();
+      await _cacheStore.writeJson(cacheKey, {'items': itemsJson});
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> clearCache({String? userId}) async {
+    if (_cacheStore == null) return;
+    try {
+      final targetUserId = userId ?? await _getUserId();
+      await _cacheStore.clearUserScope(targetUserId);
+      await _cacheStore.clearAll();
+    } catch (_) {}
+  }
 }

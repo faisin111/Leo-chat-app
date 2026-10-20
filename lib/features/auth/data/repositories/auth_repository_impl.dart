@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../../../../core/cache/cache_store.dart';
 import '../../../../core/errors/app_failure.dart';
 import '../../../../core/auth/auth_session_manager.dart';
 import '../../../../core/network/result.dart';
@@ -16,11 +17,14 @@ class AuthRepositoryImpl implements AuthRepository {
   const AuthRepositoryImpl({
     required AuthRemoteDataSource remoteDataSource,
     required FlutterSecureStorage secureStorage,
+    CacheStore? cacheStore,
   })  : _remoteDataSource = remoteDataSource,
-        _secureStorage = secureStorage;
+        _secureStorage = secureStorage,
+        _cacheStore = cacheStore;
 
   final AuthRemoteDataSource _remoteDataSource;
   final FlutterSecureStorage _secureStorage;
+  final CacheStore? _cacheStore;
 
   static const _keyAccessToken = 'accessToken';
   static const _keyRefreshToken = 'refreshToken';
@@ -83,6 +87,11 @@ class AuthRepositoryImpl implements AuthRepository {
       } on DioException {
         // JWT access tokens are stateless; still clear local credentials.
       }
+      final userId = await _secureStorage.read(key: _keyUserId);
+      if (userId != null && _cacheStore != null) {
+        await _cacheStore.clearUserScope(userId);
+      }
+      await _cacheStore?.clearAll();
       await AuthSessionManager.clearLocalSession(_secureStorage);
       return const Right(null);
     } catch (e) {

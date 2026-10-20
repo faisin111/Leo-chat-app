@@ -113,6 +113,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
       updatedList.sort((a, b) => a.seq.compareTo(b.seq));
       state = state.copyWith(messages: updatedList);
 
+      // Persist to local message cache
+      _chatRepository.saveCachedMessages(
+        incomingMsg.conversationId,
+        updatedList,
+      );
+
       // Mark message read
       markRead(incomingMsg.conversationId, incomingMsg.seq);
     }
@@ -183,20 +189,58 @@ class ChatNotifier extends StateNotifier<ChatState> {
       return c;
     }).toList();
     state = state.copyWith(conversations: updatedConversations);
+    _chatRepository.saveCachedConversations(updatedConversations);
   }
 
-  Future<void> loadConversations({String? query}) async {
-    if (state.conversations.isEmpty) {
+  Future<void>? _loadConversationsFuture;
+
+  Future<void> loadConversations({String? query}) {
+    if (query == null && _loadConversationsFuture != null) {
+      return _loadConversationsFuture!;
+    }
+    final future = _loadConversationsInternal(query: query);
+    if (query == null) {
+      _loadConversationsFuture = future;
+      future.whenComplete(() {
+        _loadConversationsFuture = null;
+      });
+    }
+    return future;
+  }
+
+  Future<void> _loadConversationsInternal({String? query}) async {
+    final isSearch = query != null && query.trim().isNotEmpty;
+
+    // 1. Cache-first rendering: show cached conversations instantly
+    if (!isSearch) {
+      final cached = await _chatRepository.getCachedConversations();
+      if (cached.isNotEmpty && mounted) {
+        state = state.copyWith(
+          conversations: cached,
+          isLoadingConversations: false,
+        );
+
+        // Auto-select first conversation if none selected yet
+        if (state.selectedConversation == null) {
+          await selectConversation(cached.first);
+        }
+      } else if (state.conversations.isEmpty) {
+        state = state.copyWith(isLoadingConversations: true);
+      }
+    } else if (state.conversations.isEmpty) {
       state = state.copyWith(isLoadingConversations: true);
     }
 
+    // 2. Fetch fresh conversations from API in background/continuation
     final result = await _chatRepository.getConversations(query: query);
+
+    if (!mounted) return;
 
     await result.fold(
       (failure) async {
         state = state.copyWith(
           isLoadingConversations: false,
-          errorMessage: failure.message,
+          errorMessage: state.conversations.isEmpty ? failure.message : null,
         );
       },
       (items) async {
@@ -205,9 +249,21 @@ class ChatNotifier extends StateNotifier<ChatState> {
           isLoadingConversations: false,
         );
 
-        // Auto-select first conversation if none selected yet
+        // Update conversation cache when not searching
+        if (!isSearch) {
+          await _chatRepository.saveCachedConversations(items);
+        }
+
+        // Auto-select first conversation if none selected yet, or update selected conversation reference
         if (state.selectedConversation == null && items.isNotEmpty) {
           await selectConversation(items.first);
+        } else if (state.selectedConversation != null) {
+          final updated = items
+              .where((c) => c.id == state.selectedConversation!.id)
+              .firstOrNull;
+          if (updated != null) {
+            state = state.copyWith(selectedConversation: updated);
+          }
         }
       },
     );
@@ -227,44 +283,71 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   Future<void> selectConversation(Conversation conversation) async {
+    // If this conversation is already active and contains messages, avoid resetting state
+    if (state.selectedConversationId == conversation.id &&
+        state.messages.isNotEmpty) {
+      return;
+    }
+
     // Unsubscribe from old conversation if different
     if (state.selectedConversationId != null &&
         state.selectedConversationId != conversation.id) {
       _stompService.unsubscribeFromConversation(state.selectedConversationId!);
     }
 
+    // Check cached messages for instant rendering
+    final cached = await _chatRepository.getCachedMessages(conversation.id);
+    final hasCache = cached.isNotEmpty;
+
     state = state.copyWith(
       selectedConversationId: conversation.id,
       selectedConversation: conversation,
-      isLoadingMessages: true,
-      messages: [],
+      isLoadingMessages: !hasCache,
+      messages: cached,
       clearTypingStatusText: true,
     );
 
     // Subscribe to new conversation
     _stompService.subscribeToConversation(conversation.id);
 
-    // Load messages
-    await loadMessages(conversation.id);
+    // Load messages from remote API
+    await loadMessages(conversation.id, preserveCurrentOnError: hasCache);
   }
 
-  Future<void> loadMessages(String conversationId) async {
+  Future<void> loadMessages(
+    String conversationId, {
+    bool preserveCurrentOnError = false,
+  }) async {
     final result =
         await _chatRepository.getMessages(conversationId: conversationId);
+
+    if (!mounted) return;
 
     result.fold(
       (failure) {
         state = state.copyWith(
-          messages: [],
+          messages: preserveCurrentOnError ? state.messages : [],
           isLoadingMessages: false,
           errorMessage: failure.message,
         );
       },
       (messages) {
+        // Retain any pending or active optimistic messages in flight
+        final pending = state.messages.where((m) =>
+            m.conversationId == conversationId &&
+            (m.sendStatus == MessageSendStatus.sending ||
+                m.sendStatus == MessageSendStatus.failed ||
+                (m.clientMessageId.isNotEmpty &&
+                    !messages.any(
+                        (rm) => rm.clientMessageId == m.clientMessageId))));
+        final merged = List<Message>.from(messages)..addAll(pending);
+        merged.sort((a, b) => a.seq.compareTo(b.seq));
+
         state = state.copyWith(
-          messages: messages,
+          messages: merged,
           isLoadingMessages: false,
         );
+        _chatRepository.saveCachedMessages(conversationId, merged);
       },
     );
   }
@@ -336,6 +419,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
           return m;
         }).toList();
         state = state.copyWith(messages: list, errorMessage: null);
+        _chatRepository.saveCachedMessages(conv.id, list);
       },
     );
   }
@@ -417,10 +501,20 @@ class ChatNotifier extends StateNotifier<ChatState> {
               return m;
             }).toList();
             state = state.copyWith(messages: list, errorMessage: null);
+            _chatRepository.saveCachedMessages(conv.id, list);
           },
         );
       },
     );
+  }
+
+  void reset() {
+    _typingTimer?.cancel();
+    if (state.selectedConversationId != null) {
+      _stompService.unsubscribeFromConversation(state.selectedConversationId!);
+    }
+    _stompService.disconnect();
+    state = const ChatState();
   }
 
   Future<void> markRead(String conversationId, int upToSeq) async {

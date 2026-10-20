@@ -202,6 +202,48 @@ class MessageDto {
         'deleted': deleted,
       };
 
+  factory MessageDto.fromDomain(Message m) {
+    return MessageDto(
+      id: m.id,
+      conversationId: m.conversationId,
+      senderId: m.senderId,
+      senderUsername: m.senderUsername,
+      senderDisplayName: m.senderDisplayName,
+      seq: m.seq,
+      clientMessageId: m.clientMessageId,
+      type: m.type,
+      content: m.content,
+      replyToId: m.replyToId,
+      replyTo: m.replyTo != null
+          ? MessageReplyDto(
+              id: m.replyTo!.id,
+              senderId: m.replyTo!.senderId,
+              senderUsername: m.replyTo!.senderUsername,
+              senderDisplayName: m.replyTo!.senderDisplayName,
+              content: m.replyTo!.content,
+              deleted: m.replyTo!.deleted,
+            )
+          : null,
+      reactions: m.reactions
+          .map((r) => MessageReactionDto(
+                emoji: r.emoji,
+                count: r.count,
+                users: r.users
+                    .map((u) => ReactionUserDto(
+                          id: u.id,
+                          username: u.username,
+                          displayName: u.displayName,
+                        ))
+                    .toList(),
+              ))
+          .toList(),
+      createdAt: m.createdAt,
+      editedAt: m.editedAt,
+      deletedAt: m.deletedAt,
+      deleted: m.deleted,
+    );
+  }
+
   Message toDomain({String currentUserId = '', String currentUsername = ''}) {
     final isOwn = (currentUserId.isNotEmpty && senderId == currentUserId) ||
         (currentUsername.isNotEmpty && senderUsername == currentUsername);

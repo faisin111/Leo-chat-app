@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../cache/shared_preferences_cache_store.dart';
 import '../cache/cache_store.dart';
@@ -23,9 +22,8 @@ final secureStorageProvider = Provider<FlutterSecureStorage>(
   (_) => const FlutterSecureStorage(),
 );
 
-final cacheStoreProvider = FutureProvider<CacheStore>((ref) async {
-  final preferences = await SharedPreferences.getInstance();
-  return SharedPreferencesCacheStore(preferences);
+final cacheStoreProvider = Provider<CacheStore>((ref) {
+  return SharedPreferencesCacheStore();
 });
 
 final dioClientProvider = Provider<DioClient>((ref) {
@@ -51,6 +49,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     remoteDataSource: ref.watch(authRemoteDataSourceProvider),
     secureStorage: ref.watch(secureStorageProvider),
+    cacheStore: ref.watch(cacheStoreProvider),
   );
 });
 
@@ -63,7 +62,7 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   return ChatRepositoryImpl(
     remoteDataSource: ref.watch(chatRemoteDataSourceProvider),
     secureStorage: ref.watch(secureStorageProvider),
-    cacheStore: ref.watch(cacheStoreProvider).valueOrNull,
+    cacheStore: ref.watch(cacheStoreProvider),
   );
 });
 

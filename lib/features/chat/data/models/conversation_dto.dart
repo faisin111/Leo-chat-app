@@ -16,6 +16,7 @@ class ConversationDto {
     this.targetDisplayName,
     this.targetAvatarUrl,
     this.unreadCount = 0,
+    this.lastMessageSnippet,
   });
 
   factory ConversationDto.fromJson(Map<String, dynamic> json) {
@@ -90,6 +91,11 @@ class ConversationDto {
         target?['photoUrl'],
       ]),
       unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
+      lastMessageSnippet: value([
+        json['lastMessageSnippet'],
+        json['snippet'],
+        json['lastMessage'] is Map ? json['lastMessage']['content'] : null,
+      ]),
     );
   }
 
@@ -122,6 +128,7 @@ class ConversationDto {
   final String? targetDisplayName;
   final String? targetAvatarUrl;
   final int unreadCount;
+  final String? lastMessageSnippet;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -138,7 +145,28 @@ class ConversationDto {
         'targetDisplayName': targetDisplayName,
         'targetAvatarUrl': targetAvatarUrl,
         'unreadCount': unreadCount,
+        'lastMessageSnippet': lastMessageSnippet,
       };
+
+  factory ConversationDto.fromDomain(Conversation c) {
+    return ConversationDto(
+      id: c.id,
+      title: c.title,
+      type: c.type,
+      avatarUrl: c.avatarUrl,
+      directKey: c.directKey,
+      createdBy: c.createdBy,
+      lastSeq: c.lastSeq,
+      lastMessageAt: c.lastMessageAt,
+      createdAt: c.createdAt,
+      status: c.status,
+      targetUsername: c.targetUsername,
+      targetDisplayName: c.targetDisplayName,
+      targetAvatarUrl: c.targetAvatarUrl,
+      unreadCount: c.unreadCount,
+      lastMessageSnippet: c.lastMessageSnippet,
+    );
+  }
 
   Conversation toDomain() {
     return Conversation(
@@ -156,6 +184,7 @@ class ConversationDto {
       targetDisplayName: targetDisplayName,
       targetAvatarUrl: targetAvatarUrl,
       unreadCount: unreadCount,
+      lastMessageSnippet: lastMessageSnippet,
     );
   }
 }

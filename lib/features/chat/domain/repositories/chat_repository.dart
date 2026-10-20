@@ -34,4 +34,17 @@ abstract interface class ChatRepository {
   Future<Result<Conversation>> getConversation({
     required String conversationId,
   });
+
+  Future<List<Conversation>> getCachedConversations();
+
+  Future<void> saveCachedConversations(List<Conversation> conversations);
+
+  Future<List<Message>> getCachedMessages(String conversationId);
+
+  Future<void> saveCachedMessages(
+    String conversationId,
+    List<Message> messages,
+  );
+
+  Future<void> clearCache({String? userId});
 }
