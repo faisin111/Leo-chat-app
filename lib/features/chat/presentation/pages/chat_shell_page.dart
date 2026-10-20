@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/stomp_service.dart';
@@ -9,7 +8,7 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
-import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../settings/presentation/pages/settings_page.dart';
 import '../../domain/entities/conversation.dart';
 import '../providers/chat_notifier.dart';
 import '../providers/chat_state.dart';
@@ -20,6 +19,9 @@ import '../widgets/conversation_tile.dart';
 import '../widgets/filter_bubble_bar.dart';
 import '../widgets/message_skeleton.dart';
 import '../widgets/typing_indicator.dart';
+import 'group_details_page.dart';
+import 'new_conversation_page.dart';
+import 'shared_media_page.dart';
 
 class ChatShellPage extends ConsumerStatefulWidget {
   const ChatShellPage({super.key});
@@ -72,77 +74,29 @@ class _ChatShellPageState extends ConsumerState<ChatShellPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
       body: SafeArea(
-        child: _ChatsContent(
-          chatState: chatState,
-          onOpenConversation: (conversation) {
-            ref
-                .read(chatNotifierProvider.notifier)
-                .selectConversation(conversation);
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => _ConversationPage(
-                  conversationId: conversation.id,
-                ),
+        child: _selectedTab == 3
+            ? const SettingsPage()
+            : _ChatsContent(
+                chatState: chatState,
+                onOpenConversation: (conversation) {
+                  ref
+                      .read(chatNotifierProvider.notifier)
+                      .selectConversation(conversation);
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => _ConversationPage(
+                        conversationId: conversation.id,
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
       bottomNavigationBar: _BottomNav(
         selectedIndex: _selectedTab,
         onTap: (index) {
-          if (index == 3) {
-            _showSettings(context);
-            return;
-          }
           setState(() => _selectedTab = index);
         },
-      ),
-    );
-  }
-
-  void _showSettings(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      backgroundColor: LeoColors.background,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Settings',
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: LeoColors.textPrimary)),
-              const SizedBox(height: 6),
-              const Text('Manage your LeoChat session.',
-                  style: TextStyle(
-                      color: LeoColors.textSecondary,
-                      fontWeight: FontWeight.w500)),
-              const SizedBox(height: 18),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.logout_rounded,
-                    color: LeoColors.destructive),
-                title: const Text('Log out',
-                    style: TextStyle(
-                        color: LeoColors.destructive,
-                        fontWeight: FontWeight.w800)),
-                onTap: () async {
-                  final router = GoRouter.of(context);
-                  Navigator.of(sheetContext).pop();
-                  await ref.read(authNotifierProvider.notifier).logout();
-                  ref.read(chatNotifierProvider.notifier).reset();
-                  if (mounted) router.go('/login');
-                },
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -233,24 +187,33 @@ class _ChatsContentState extends ConsumerState<_ChatsContent> {
                     ],
                   ),
                 ),
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: LeoColors.primary,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x33E64A19),
-                        blurRadius: 14,
-                        offset: Offset(0, 6),
+                LeoPressable(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const NewConversationPage(),
                       ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.edit_square,
-                    color: Colors.white,
-                    size: 22,
+                    );
+                  },
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: LeoColors.primary,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x33E64A19),
+                          blurRadius: 14,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.edit_square,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
                 ),
               ],
@@ -812,49 +775,87 @@ class _ConversationHeader extends StatelessWidget {
                 icon: const Icon(Icons.arrow_back_rounded),
               ),
             ),
-          LeoAvatar(
-            radius: 26,
-            imageUrl: conversation.preferredAvatarUrl,
-            assetPath: 'assets/avatars/Portrait.png',
-            hasOnlineBadge: conversation.isOnline,
-          ),
-          const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: LeoColors.textPrimary,
-                  ),
+            child: InkWell(
+              onTap: () {
+                if (conversation.isGroup) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => GroupDetailsPage(
+                        groupName: title,
+                      ),
+                    ),
+                  );
+                } else {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => SharedMediaPage(
+                        conversationTitle: 'Shared with $title',
+                      ),
+                    ),
+                  );
+                }
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    LeoAvatar(
+                      radius: 26,
+                      imageUrl: conversation.preferredAvatarUrl,
+                      assetPath: 'assets/avatars/Portrait.png',
+                      hasOnlineBadge: conversation.isOnline,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: LeoColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            subtitle,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: LeoColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: LeoColors.textSecondary,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          const Icon(
-            Icons.phone_outlined,
-            color: LeoColors.textPrimary,
-            size: 22,
+          const SizedBox(width: 8),
+          LeoPressable(
+            onPressed: () {},
+            child: const Icon(
+              Icons.phone_outlined,
+              color: LeoColors.textPrimary,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 18),
-          const Icon(
-            Icons.videocam_outlined,
-            color: LeoColors.textPrimary,
-            size: 24,
+          LeoPressable(
+            onPressed: () {},
+            child: const Icon(
+              Icons.videocam_outlined,
+              color: LeoColors.textPrimary,
+              size: 24,
+            ),
           ),
         ],
       ),

@@ -6,10 +6,15 @@ import '../core/auth/auth_session_events.dart';
 import '../core/theme/theme.dart';
 import '../core/widgets/common_widgets/scrolling/leo_scroll_behavior.dart';
 import '../features/chat/presentation/pages/chat_shell_page.dart';
+import '../features/chat/presentation/pages/group_details_page.dart';
+import '../features/chat/presentation/pages/new_conversation_page.dart';
+import '../features/chat/presentation/pages/shared_media_page.dart';
 import '../features/landing/presentation/pages/landing_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/register_page.dart';
 import '../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../features/settings/presentation/pages/edit_profile_page.dart';
+import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/splash/presentation/pages/splash_page.dart';
 
 final _router = GoRouter(
@@ -33,6 +38,23 @@ final _router = GoRouter(
     GoRoute(
         path: '/app',
         pageBuilder: (context, state) => _page(state, const ChatShellPage())),
+    GoRoute(
+        path: '/settings',
+        pageBuilder: (context, state) => _page(state, const SettingsPage())),
+    GoRoute(
+        path: '/edit-profile',
+        pageBuilder: (context, state) => _page(state, const EditProfilePage())),
+    GoRoute(
+        path: '/new-conversation',
+        pageBuilder: (context, state) =>
+            _page(state, const NewConversationPage())),
+    GoRoute(
+        path: '/group-details',
+        pageBuilder: (context, state) =>
+            _page(state, const GroupDetailsPage())),
+    GoRoute(
+        path: '/shared-media',
+        pageBuilder: (context, state) => _page(state, const SharedMediaPage())),
   ],
 );
 final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
