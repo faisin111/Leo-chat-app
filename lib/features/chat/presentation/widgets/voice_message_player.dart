@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/colors.dart';
+import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
 
 /// Beautiful interactive voice message player with tactile play/pause controls,
 /// dynamic animated soundwave visualization, seekable scrubber, timer, and speed multiplier.
@@ -185,33 +186,35 @@ class _LeoVoiceMessagePlayerState extends State<LeoVoiceMessagePlayer>
           Row(
             children: [
               // 1. Play / Pause Circular Button
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _togglePlayPause,
-                  borderRadius: BorderRadius.circular(22),
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: isOwn ? Colors.white : LeoColors.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: isOwn
-                              ? const Color(0x24000000)
-                              : const Color(0x33E64A19),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      _isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      color: isOwn ? LeoColors.primary : Colors.white,
-                      size: 26,
+              LeoPressable(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _togglePlayPause,
+                    borderRadius: BorderRadius.circular(22),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: isOwn ? Colors.white : LeoColors.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: isOwn
+                                ? const Color(0x24000000)
+                                : const Color(0x33E64A19),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: isOwn ? LeoColors.primary : Colors.white,
+                        size: 26,
+                      ),
                     ),
                   ),
                 ),
@@ -288,24 +291,26 @@ class _LeoVoiceMessagePlayerState extends State<LeoVoiceMessagePlayer>
                         : const Color(0xFF78716C),
                   ),
                 ),
-                InkWell(
-                  onTap: _cycleSpeed,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isOwn
-                          ? Colors.white.withOpacity(0.2)
-                          : const Color(0xFFF3ECE5),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${_speed == 1.0 ? "1" : _speed.toString()}x',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: isOwn ? Colors.white : LeoColors.primary,
+                LeoPressable(
+                  child: InkWell(
+                    onTap: _cycleSpeed,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isOwn
+                            ? Colors.white.withOpacity(0.2)
+                            : const Color(0xFFF3ECE5),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_speed == 1.0 ? "1" : _speed.toString()}x',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: isOwn ? Colors.white : LeoColors.primary,
+                        ),
                       ),
                     ),
                   ),

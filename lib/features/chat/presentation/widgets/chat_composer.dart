@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 
 import '../../../../core/theme/colors.dart';
+import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
 
 class LeoChatComposer extends StatefulWidget {
   const LeoChatComposer({
@@ -184,18 +185,20 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
         child: Row(
           children: [
             if (!_isRecording) ...[
-              InkWell(
-                onTap: widget.onAttachmentTap,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF3ECE5),
-                    shape: BoxShape.circle,
+              LeoPressable(
+                child: InkWell(
+                  onTap: widget.onAttachmentTap,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF3ECE5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.add,
+                        color: LeoColors.primary, size: 24),
                   ),
-                  child:
-                      const Icon(Icons.add, color: LeoColors.primary, size: 24),
                 ),
               ),
               const SizedBox(width: 12),
@@ -212,20 +215,22 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                       ),
                       child: Row(
                         children: [
-                          InkWell(
-                            onTap: _cancelRecording,
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFFD7C2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.delete_outline_rounded,
-                                color: Color(0xFFDC2626),
-                                size: 18,
+                          LeoPressable(
+                            child: InkWell(
+                              onTap: _cancelRecording,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFFD7C2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Color(0xFFDC2626),
+                                  size: 18,
+                                ),
                               ),
                             ),
                           ),
@@ -295,33 +300,35 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                     ),
             ),
             const SizedBox(width: 12),
-            InkWell(
-              onTap: _hasText
-                  ? _handleSend
-                  : (_isRecording ? _stopAndSendRecording : _startRecording),
-              borderRadius: BorderRadius.circular(26),
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: const BoxDecoration(
-                  color: LeoColors.primary,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x33E64A19),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  _hasText
-                      ? Icons.send_rounded
-                      : (_isRecording
-                          ? Icons.arrow_upward_rounded
-                          : Icons.mic_none_rounded),
-                  color: Colors.white,
-                  size: 22,
+            LeoPressable(
+              child: InkWell(
+                onTap: _hasText
+                    ? _handleSend
+                    : (_isRecording ? _stopAndSendRecording : _startRecording),
+                borderRadius: BorderRadius.circular(26),
+                child: Container(
+                  width: 46,
+                  height: 46,
+                  decoration: const BoxDecoration(
+                    color: LeoColors.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x33E64A19),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    _hasText
+                        ? Icons.send_rounded
+                        : (_isRecording
+                            ? Icons.arrow_upward_rounded
+                            : Icons.mic_none_rounded),
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
               ),
             ),

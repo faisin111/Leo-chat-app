@@ -21,11 +21,18 @@ class StompService {
   final String _wsUrl;
   StompClient? _client;
   String? _currentToken;
+  bool _disposed = false;
 
   final _connectionStatusNotifier = ValueNotifier<RealtimeConnectionStatus>(
       RealtimeConnectionStatus.disconnected);
   ValueListenable<RealtimeConnectionStatus> get connectionStatus =>
       _connectionStatusNotifier;
+
+  void _updateConnectionStatus(RealtimeConnectionStatus status) {
+    if (!_disposed) {
+      _connectionStatusNotifier.value = status;
+    }
+  }
 
   final _messageController = StreamController<MessageDto>.broadcast();
   Stream<MessageDto> get messageStream => _messageController.stream;
@@ -48,7 +55,7 @@ class StompService {
       return;
     }
     _currentToken = token;
-    _connectionStatusNotifier.value = RealtimeConnectionStatus.connecting;
+    _updateConnectionStatus(RealtimeConnectionStatus.connecting);
 
     _client?.deactivate();
 
@@ -67,16 +74,13 @@ class StompService {
         },
         onConnect: _onStompConnect,
         onDisconnect: (frame) {
-          _connectionStatusNotifier.value =
-              RealtimeConnectionStatus.disconnected;
+          _updateConnectionStatus(RealtimeConnectionStatus.disconnected);
         },
         onWebSocketDone: () {
-          _connectionStatusNotifier.value =
-              RealtimeConnectionStatus.reconnecting;
+          _updateConnectionStatus(RealtimeConnectionStatus.reconnecting);
         },
         onWebSocketError: (error) {
-          _connectionStatusNotifier.value =
-              RealtimeConnectionStatus.reconnecting;
+          _updateConnectionStatus(RealtimeConnectionStatus.reconnecting);
         },
         onStompError: (frame) {
           try {
@@ -93,7 +97,7 @@ class StompService {
   }
 
   void _onStompConnect(StompFrame frame) {
-    _connectionStatusNotifier.value = RealtimeConnectionStatus.connected;
+    _updateConnectionStatus(RealtimeConnectionStatus.connected);
 
     // Clear previous subscription tokens (they are dead after socket reconnect)
     _unsubscribers.clear();
@@ -248,10 +252,11 @@ class StompService {
     _client?.deactivate();
     _client = null;
     _currentToken = null;
-    _connectionStatusNotifier.value = RealtimeConnectionStatus.disconnected;
+    _updateConnectionStatus(RealtimeConnectionStatus.disconnected);
   }
 
   void dispose() {
+    _disposed = true;
     disconnect();
     _messageController.close();
     _typingController.close();

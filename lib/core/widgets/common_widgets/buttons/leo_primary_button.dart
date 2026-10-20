@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'leo_pressable.dart';
+
 class LeoPrimaryButton extends StatelessWidget {
   const LeoPrimaryButton({
     super.key,
@@ -18,8 +20,9 @@ class LeoPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveOnPressed = isLoading ? null : onPressed;
 
+    final Widget button;
     if (isLoading) {
-      return FilledButton(
+      button = FilledButton(
         style: FilledButton.styleFrom(
           textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
         ),
@@ -33,25 +36,28 @@ class LeoPrimaryButton extends StatelessWidget {
           ),
         ),
       );
+    } else if (icon == null) {
+      button = FilledButton(
+        style: FilledButton.styleFrom(
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        onPressed: effectiveOnPressed,
+        child: Text(label),
+      );
+    } else {
+      button = FilledButton.icon(
+        style: FilledButton.styleFrom(
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
+        onPressed: effectiveOnPressed,
+        icon: Icon(icon),
+        label: Text(label),
+      );
     }
 
-    return icon == null
-        ? FilledButton(
-            style: FilledButton.styleFrom(
-              textStyle:
-                  const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-            ),
-            onPressed: effectiveOnPressed,
-            child: Text(label),
-          )
-        : FilledButton.icon(
-            style: FilledButton.styleFrom(
-              textStyle:
-                  const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-            ),
-            onPressed: effectiveOnPressed,
-            icon: Icon(icon),
-            label: Text(label),
-          );
+    return LeoPressable(
+      enabled: effectiveOnPressed != null,
+      child: button,
+    );
   }
 }

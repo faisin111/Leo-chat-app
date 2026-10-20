@@ -8,6 +8,7 @@ import '../../../../core/responsive/breakpoints.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
+import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../domain/entities/conversation.dart';
 import '../providers/chat_notifier.dart';
@@ -721,43 +722,46 @@ class _ConversationDetailViewState
                               child: AnimatedOpacity(
                                 opacity: _showScrollToBottomButton ? 1.0 : 0.0,
                                 duration: const Duration(milliseconds: 200),
-                                child: InkWell(
-                                  onTap: () => _scrollToBottom(animated: true),
-                                  borderRadius: BorderRadius.circular(24),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(
-                                          color: const Color(0xFFE7DFD8)),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Color(0x1F000000),
-                                          blurRadius: 10,
-                                          offset: Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.arrow_downward_rounded,
-                                          size: 16,
-                                          color: LeoColors.primary,
-                                        ),
-                                        SizedBox(width: 5),
-                                        Text(
-                                          'Latest',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w800,
+                                child: LeoPressable(
+                                  child: InkWell(
+                                    onTap: () =>
+                                        _scrollToBottom(animated: true),
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(24),
+                                        border: Border.all(
+                                            color: const Color(0xFFE7DFD8)),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Color(0x1F000000),
+                                            blurRadius: 10,
+                                            offset: Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.arrow_downward_rounded,
+                                            size: 16,
                                             color: LeoColors.primary,
                                           ),
-                                        ),
-                                      ],
+                                          SizedBox(width: 5),
+                                          Text(
+                                            'Latest',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                              color: LeoColors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -802,9 +806,11 @@ class _ConversationHeader extends StatelessWidget {
       child: Row(
         children: [
           if (showBackButton)
-            IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back_rounded),
+            LeoPressable(
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
             ),
           LeoAvatar(
             radius: 26,
@@ -923,29 +929,31 @@ class _NavItem extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                active ? activeIcon : icon,
-                color: active ? LeoColors.primary : const Color(0xFF78716C),
-                size: 24,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+  Widget build(BuildContext context) => LeoPressable(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  active ? activeIcon : icon,
                   color: active ? LeoColors.primary : const Color(0xFF78716C),
+                  size: 24,
                 ),
-              ),
-            ],
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                    color: active ? LeoColors.primary : const Color(0xFF78716C),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
