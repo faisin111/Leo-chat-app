@@ -123,4 +123,56 @@ abstract final class AppStrings {
   static const benefitThree = 'Rich reactions, reply quotes, and file sharing';
   static const passwordRuleLength = 'At least 8 characters';
   static const passwordRuleSecure = 'Encrypted and salted on server';
+
+  // Auth extensions
+  static const forgotPasswordTitle = 'Forgot your password?';
+  static const forgotPasswordSubtitle =
+      'Enter your email address and we will send you instructions to reset your password.';
+  static const sendResetLink = 'Send reset instructions';
+  static const resetPasswordTitle = 'Reset password';
+  static const resetPasswordSubtitle =
+      'Choose a secure new password for your account.';
+  static const resetToken = 'Reset code / token';
+  static const newPassword = 'New password';
+  static const confirmPassword = 'Confirm new password';
+  static const passwordsDoNotMatch = 'Passwords do not match.';
+  static const updatePassword = 'Update password';
+  static const backToLogin = 'Back to sign in';
+  static const resetInstructionsSent =
+      'If an account exists for this email, reset instructions have been sent.';
+
+  // AI Assistant
+  static const aiAssistant = 'Leo AI';
+  static const aiSubtitle = 'Flagship reasoning & multi-modal intelligence';
+  static const askAiAnything = 'Ask Leo AI anything...';
+  static const thinkingProcess = 'Thinking process';
+  static const newAiChat = 'New AI chat';
+
+  // Calls
+  static const voiceCall = 'Voice call';
+  static const videoCall = 'Video call';
+  static const incomingCall = 'Incoming call';
+  static const callConnecting = 'Connecting...';
+  static const callConnected = 'Connected';
+  static const callEnded = 'Call ended';
+  static const acceptCall = 'Accept';
+  static const declineCall = 'Decline';
+  static const muteMic = 'Mute';
+  static const speaker = 'Speaker';
+  static const switchCamera = 'Flip';
+
+  // Settings & Sessions
+  static const sessionsAndDevices = 'Sessions & devices';
+  static const activeDevices = 'Active devices';
+  static const signOutOtherSessions = 'Sign out all other sessions';
+  static const security = 'Security';
+  static const appearance = 'Appearance';
+  static const currentPassword = 'Current password';
+
+  // Admin
+  static const adminConsole = 'Admin console';
+  static const adminDashboard = 'Dashboard';
+  static const userManagement = 'User management';
+  static const reportModeration = 'Report moderation';
+  static const auditLogs = 'Audit logs';
 }

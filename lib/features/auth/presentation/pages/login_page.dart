@@ -167,7 +167,7 @@ class _LoginContentState extends ConsumerState<_LoginContent> {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      onPressed: () {},
+                      onPressed: () => _safeNavigate('/forgot-password'),
                       child: const Text(
                         AppStrings.forgotPassword,
                         style: TextStyle(

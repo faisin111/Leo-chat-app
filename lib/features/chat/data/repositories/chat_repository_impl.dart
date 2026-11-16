@@ -7,6 +7,7 @@ import '../../../../core/cache/cache_store.dart';
 import '../../../../core/errors/app_failure.dart';
 import '../../../../core/network/result.dart';
 import '../../domain/entities/conversation.dart';
+import '../../domain/entities/conversation_member.dart';
 import '../../domain/entities/message.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../datasources/chat_remote_data_source.dart';
@@ -27,16 +28,11 @@ class ChatRepositoryImpl implements ChatRepository {
   final FlutterSecureStorage _secureStorage;
   final CacheStore? _cacheStore;
 
-  static const _keyUserId = 'auth_user_id';
-  static const _keyUsername = 'auth_username';
+  Future<String> _getUserId() async =>
+      (await _secureStorage.read(key: 'auth_user_id')) ?? '';
 
-  Future<String> _getUserId() async {
-    return await _secureStorage.read(key: _keyUserId) ?? 'anonymous';
-  }
-
-  Future<String> _getUsername() async {
-    return await _secureStorage.read(key: _keyUsername) ?? '';
-  }
+  Future<String> _getUsername() async =>
+      (await _secureStorage.read(key: 'auth_username')) ?? '';
 
   @override
   Future<Result<List<Conversation>>> getConversations({
@@ -47,32 +43,16 @@ class ChatRepositoryImpl implements ChatRepository {
     final userId = await _getUserId();
     final cacheKey = CacheKeys.conversations(userId);
 
-    // If searching, directly query remote data source
-    if (query != null && query.trim().isNotEmpty) {
-      try {
-        final pageDto = await _remoteDataSource.getConversations(
-          cursor: cursor,
-          limit: limit,
-          query: query,
-        );
-        final list = pageDto.items.map((dto) => dto.toDomain()).toList();
-        return Right(list);
-      } on DioException catch (e) {
-        return Left(failureFromDio(e));
-      } catch (e) {
-        return Left(UnknownFailure(e.toString()));
-      }
-    }
-
     try {
       final pageDto = await _remoteDataSource.getConversations(
         cursor: cursor,
         limit: limit,
+        query: query,
       );
+
       final list = pageDto.items.map((dto) => dto.toDomain()).toList();
 
-      // Cache the first page
-      if (cursor == null && _cacheStore != null) {
+      if (_cacheStore != null && cursor == null && query == null) {
         final cacheMap = {
           'items': pageDto.items.map((e) => e.toJson()).toList(),
         };
@@ -81,7 +61,6 @@ class ChatRepositoryImpl implements ChatRepository {
 
       return Right(list);
     } on DioException catch (e) {
-      // Try to read from cache when offline / error
       if (_cacheStore != null) {
         final cachedData = await _cacheStore.readJson(cacheKey);
         if (cachedData != null) {
@@ -125,7 +104,6 @@ class ChatRepositoryImpl implements ChatRepository {
               ))
           .toList();
 
-      // Sort by sequence ascending
       list.sort((a, b) => a.seq.compareTo(b.seq));
 
       if (_cacheStore != null && beforeSeq == null && afterSeq == null) {
@@ -166,6 +144,10 @@ class ChatRepositoryImpl implements ChatRepository {
     required String content,
     String type = 'TEXT',
     String? replyToId,
+    String? storageKey,
+    String? fileName,
+    String? mimeType,
+    int? sizeBytes,
   }) async {
     final userId = await _getUserId();
     final currentUsername = await _getUsername();
@@ -178,6 +160,10 @@ class ChatRepositoryImpl implements ChatRepository {
           content: content,
           type: type,
           replyToId: replyToId,
+          storageKey: storageKey,
+          fileName: fileName,
+          mimeType: mimeType,
+          sizeBytes: sizeBytes,
         ),
       );
       final message = dto.toDomain(
@@ -185,7 +171,6 @@ class ChatRepositoryImpl implements ChatRepository {
         currentUsername: currentUsername,
       );
 
-      // Invalidate or update message cache
       if (_cacheStore != null) {
         final cacheKey = CacheKeys.messages(userId, conversationId);
         final cached = await _cacheStore.readJson(cacheKey);
@@ -239,6 +224,255 @@ class ChatRepositoryImpl implements ChatRepository {
     try {
       final dto = await _remoteDataSource.getConversation(conversationId);
       return Right(dto.toDomain());
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Conversation>> startDirectMessage({
+    required String targetUserId,
+  }) async {
+    try {
+      final dto = await _remoteDataSource.startDirectMessage(targetUserId);
+      return Right(dto.toDomain());
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Conversation>> createGroup({
+    required String title,
+    required List<String> memberIds,
+  }) async {
+    try {
+      final dto = await _remoteDataSource.createGroup(
+        title: title,
+        memberIds: memberIds,
+      );
+      return Right(dto.toDomain());
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Conversation>> updateConversation({
+    required String conversationId,
+    String? title,
+    String? avatarUrl,
+  }) async {
+    try {
+      final dto = await _remoteDataSource.updateConversation(
+        conversationId,
+        title: title,
+        avatarUrl: avatarUrl,
+      );
+      return Right(dto.toDomain());
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<List<ConversationMember>>> getMembers(
+      String conversationId) async {
+    try {
+      final dtos = await _remoteDataSource.getMembers(conversationId);
+      return Right(dtos.map((d) => d.toDomain()).toList());
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> addGroupMembers({
+    required String conversationId,
+    required List<String> memberIds,
+  }) async {
+    try {
+      await _remoteDataSource.addGroupMembers(conversationId, memberIds);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> removeMember({
+    required String conversationId,
+    required String userId,
+  }) async {
+    try {
+      await _remoteDataSource.removeMember(conversationId, userId);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> updateMemberRole({
+    required String conversationId,
+    required String userId,
+    required String role,
+  }) async {
+    try {
+      await _remoteDataSource.updateMemberRole(conversationId, userId, role);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> muteConversation({
+    required String conversationId,
+    required String mutedUntil,
+  }) async {
+    try {
+      await _remoteDataSource.muteConversation(conversationId, mutedUntil);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> unmuteConversation(String conversationId) async {
+    try {
+      await _remoteDataSource.unmuteConversation(conversationId);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> pinConversation(String conversationId) async {
+    try {
+      await _remoteDataSource.pinConversation(conversationId);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> unpinConversation(String conversationId) async {
+    try {
+      await _remoteDataSource.unpinConversation(conversationId);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> archiveConversation(String conversationId) async {
+    try {
+      await _remoteDataSource.archiveConversation(conversationId);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> unarchiveConversation(String conversationId) async {
+    try {
+      await _remoteDataSource.unarchiveConversation(conversationId);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<Message>> editMessage({
+    required String messageId,
+    required String content,
+  }) async {
+    final userId = await _getUserId();
+    final currentUsername = await _getUsername();
+
+    try {
+      final dto = await _remoteDataSource.editMessage(messageId, content);
+      return Right(dto.toDomain(
+        currentUserId: userId,
+        currentUsername: currentUsername,
+      ));
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteMessage(String messageId) async {
+    try {
+      await _remoteDataSource.deleteMessage(messageId);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> addReaction({
+    required String messageId,
+    required String emoji,
+  }) async {
+    try {
+      await _remoteDataSource.addReaction(messageId, emoji);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> removeReaction({
+    required String messageId,
+    required String emoji,
+  }) async {
+    try {
+      await _remoteDataSource.removeReaction(messageId, emoji);
+      return const Right(null);
     } on DioException catch (e) {
       return Left(failureFromDio(e));
     } catch (e) {

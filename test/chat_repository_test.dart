@@ -93,6 +93,9 @@ class _FakeChatRemoteDataSource implements ChatRemoteDataSource {
 
   @override
   Future<int> getUnreadCount() async => 3;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _MemoryCacheStore implements CacheStore {

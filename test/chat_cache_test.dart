@@ -95,6 +95,9 @@ class _FakeChatRemoteDataSource implements ChatRemoteDataSource {
   Future<ConversationDto> getConversation(String conversationId) async {
     throw UnimplementedError();
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
@@ -115,6 +118,9 @@ class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
   Future<UserDto> getMe() async {
     throw UnimplementedError();
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeMediaRepo implements MediaRepository {

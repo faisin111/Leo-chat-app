@@ -8,6 +8,11 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
+import '../../../ai/presentation/pages/ai_page.dart';
+import '../../../calls/domain/entities/call_session.dart';
+import '../../../calls/presentation/pages/active_call_page.dart';
+import '../../../calls/presentation/providers/call_notifier.dart';
+import '../../../calls/presentation/widgets/incoming_call_dialog.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../domain/entities/conversation.dart';
 import '../providers/chat_notifier.dart';
@@ -71,26 +76,51 @@ class _ChatShellPageState extends ConsumerState<ChatShellPage> {
       );
     }
 
+    Widget bodyContent;
+    switch (_selectedTab) {
+      case 1:
+        bodyContent = const AiPage();
+        break;
+      case 2:
+        bodyContent = const NewConversationPage();
+        break;
+      case 3:
+        bodyContent = const SettingsPage();
+        break;
+      case 0:
+      default:
+        bodyContent = _ChatsContent(
+          chatState: chatState,
+          onOpenConversation: (conversation) {
+            ref
+                .read(chatNotifierProvider.notifier)
+                .selectConversation(conversation);
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => _ConversationPage(
+                  conversationId: conversation.id,
+                ),
+              ),
+            );
+          },
+        );
+        break;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
       body: SafeArea(
-        child: _selectedTab == 3
-            ? const SettingsPage()
-            : _ChatsContent(
-                chatState: chatState,
-                onOpenConversation: (conversation) {
-                  ref
-                      .read(chatNotifierProvider.notifier)
-                      .selectConversation(conversation);
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => _ConversationPage(
-                        conversationId: conversation.id,
-                      ),
-                    ),
-                  );
-                },
-              ),
+        child: Stack(
+          children: [
+            bodyContent,
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: IncomingCallBanner(),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: _BottomNav(
         selectedIndex: _selectedTab,
@@ -744,7 +774,7 @@ class _ConversationDetailViewState
   }
 }
 
-class _ConversationHeader extends StatelessWidget {
+class _ConversationHeader extends ConsumerWidget {
   const _ConversationHeader({
     required this.conversation,
     this.showBackButton = false,
@@ -754,7 +784,7 @@ class _ConversationHeader extends StatelessWidget {
   final bool showBackButton;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final title = conversation.effectiveTitle;
     final subtitle = conversation.isGroup
         ? 'Group conversation'
@@ -841,7 +871,20 @@ class _ConversationHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           LeoPressable(
-            onPressed: () {},
+            onPressed: () {
+              ref.read(callNotifierProvider.notifier).startCall(
+                    conversationId: conversation.id,
+                    targetUserId: conversation.targetUserId ?? conversation.id,
+                    targetUserName: conversation.effectiveTitle,
+                    targetAvatarUrl: conversation.preferredAvatarUrl,
+                    callType: CallType.audio,
+                  );
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ActiveCallPage(),
+                ),
+              );
+            },
             child: const Icon(
               Icons.phone_outlined,
               color: LeoColors.textPrimary,
@@ -850,7 +893,20 @@ class _ConversationHeader extends StatelessWidget {
           ),
           const SizedBox(width: 18),
           LeoPressable(
-            onPressed: () {},
+            onPressed: () {
+              ref.read(callNotifierProvider.notifier).startCall(
+                    conversationId: conversation.id,
+                    targetUserId: conversation.targetUserId ?? conversation.id,
+                    targetUserName: conversation.effectiveTitle,
+                    targetAvatarUrl: conversation.preferredAvatarUrl,
+                    callType: CallType.video,
+                  );
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ActiveCallPage(),
+                ),
+              );
+            },
             child: const Icon(
               Icons.videocam_outlined,
               color: LeoColors.textPrimary,
@@ -889,9 +945,9 @@ class _BottomNav extends StatelessWidget {
               onTap: () => onTap(0),
             ),
             _NavItem(
-              icon: Icons.phone_outlined,
-              activeIcon: Icons.phone_rounded,
-              label: AppStrings.calls,
+              icon: Icons.auto_awesome_outlined,
+              activeIcon: Icons.auto_awesome,
+              label: AppStrings.aiAssistant,
               active: selectedIndex == 1,
               onTap: () => onTap(1),
             ),

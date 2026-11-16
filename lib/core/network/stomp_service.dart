@@ -46,6 +46,11 @@ class StompService {
   final _errorController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get errorStream => _errorController.stream;
 
+  final _callSignalController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get callSignalStream =>
+      _callSignalController.stream;
+
   // Active conversations to subscribe / resubscribe on reconnect
   final Set<String> _activeConversationSubscriptions = <String>{};
   final Map<String, List<StompUnsubscribe>> _unsubscribers = {};
@@ -128,7 +133,20 @@ class StompService {
       },
     );
 
-    // 3. Resubscribe to all active conversations
+    // 3. Subscribe to incoming call signals
+    _client?.subscribe(
+      destination: '/user/queue/calls',
+      callback: (frame) {
+        if (frame.body != null) {
+          try {
+            final json = jsonDecode(frame.body!) as Map<String, dynamic>;
+            _callSignalController.add(json);
+          } catch (_) {}
+        }
+      },
+    );
+
+    // 4. Resubscribe to all active conversations
     for (final conversationId in _activeConversationSubscriptions) {
       _applyConversationSubscriptions(conversationId);
     }
@@ -246,6 +264,16 @@ class StompService {
     return true;
   }
 
+  bool sendCallSignal(Map<String, dynamic> payload) {
+    if (_client == null || !_client!.connected) return false;
+
+    _client!.send(
+      destination: '/app/call.signal',
+      body: jsonEncode(payload),
+    );
+    return true;
+  }
+
   void disconnect() {
     _activeConversationSubscriptions.clear();
     _unsubscribers.clear();
@@ -262,6 +290,7 @@ class StompService {
     _typingController.close();
     _ackController.close();
     _errorController.close();
+    _callSignalController.close();
     _connectionStatusNotifier.dispose();
   }
 }

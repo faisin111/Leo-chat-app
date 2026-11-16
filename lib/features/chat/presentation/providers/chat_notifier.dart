@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/di/providers.dart';
+import '../../../../core/network/result.dart';
 import '../../../../core/network/stomp_service.dart';
 import '../../../media/domain/repositories/media_repository.dart';
 import '../../data/models/message_dto.dart';
@@ -562,6 +563,128 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       },
     );
+  }
+
+  Future<Result<Conversation>> startDirectMessage(String targetUserId) async {
+    final result = await _chatRepository.startDirectMessage(
+      targetUserId: targetUserId,
+    );
+    await result.fold(
+      (failure) async {},
+      (conversation) async {
+        await loadConversations();
+        await selectConversation(conversation);
+      },
+    );
+    return result;
+  }
+
+  Future<Result<Conversation>> createGroup({
+    required String title,
+    required List<String> memberIds,
+  }) async {
+    final result = await _chatRepository.createGroup(
+      title: title,
+      memberIds: memberIds,
+    );
+    await result.fold(
+      (failure) async {},
+      (conversation) async {
+        await loadConversations();
+        await selectConversation(conversation);
+      },
+    );
+    return result;
+  }
+
+  Future<void> editMessage(String messageId, String content) async {
+    final result = await _chatRepository.editMessage(
+      messageId: messageId,
+      content: content,
+    );
+    result.fold(
+      (_) {},
+      (updated) {
+        final messages = state.messages.map((m) {
+          if (m.id == messageId) {
+            return updated.copyWith(isOwn: m.isOwn);
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(messages: messages);
+        if (state.selectedConversationId != null) {
+          _chatRepository.saveCachedMessages(
+            state.selectedConversationId!,
+            messages,
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    final result = await _chatRepository.deleteMessage(messageId);
+    result.fold(
+      (_) {},
+      (_) {
+        final messages = state.messages.map((m) {
+          if (m.id == messageId) {
+            return m.copyWith(deleted: true, content: 'Message deleted');
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(messages: messages);
+        if (state.selectedConversationId != null) {
+          _chatRepository.saveCachedMessages(
+            state.selectedConversationId!,
+            messages,
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> toggleReaction(String messageId, String emoji) async {
+    final msg = state.messages.firstWhere(
+      (m) => m.id == messageId,
+      orElse: () => Message(
+        id: messageId,
+        conversationId: '',
+        senderId: '',
+        senderUsername: '',
+        seq: 0,
+        type: 'TEXT',
+        content: '',
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    final hasReacted = msg.hasUserReacted(emoji);
+    if (hasReacted) {
+      await _chatRepository.removeReaction(messageId: messageId, emoji: emoji);
+    } else {
+      await _chatRepository.addReaction(messageId: messageId, emoji: emoji);
+    }
+  }
+
+  Future<void> pinConversation(String conversationId) async {
+    await _chatRepository.pinConversation(conversationId);
+    await loadConversations();
+  }
+
+  Future<void> unpinConversation(String conversationId) async {
+    await _chatRepository.unpinConversation(conversationId);
+    await loadConversations();
+  }
+
+  Future<void> archiveConversation(String conversationId) async {
+    await _chatRepository.archiveConversation(conversationId);
+    await loadConversations();
+  }
+
+  Future<void> unarchiveConversation(String conversationId) async {
+    await _chatRepository.unarchiveConversation(conversationId);
+    await loadConversations();
   }
 
   void reset() {

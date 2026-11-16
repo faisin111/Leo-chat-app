@@ -100,6 +100,88 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<void>> logoutAll() async {
+    try {
+      try {
+        await _remoteDataSource.logoutAll();
+      } on DioException {
+        // Continue to clear local
+      }
+      await _cacheStore?.clearAll();
+      await AuthSessionManager.clearLocalSession(_secureStorage);
+      return const Right(null);
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> forgotPassword({required String email}) async {
+    try {
+      await _remoteDataSource.forgotPassword(email.trim());
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      await _remoteDataSource.resetPassword(token.trim(), newPassword);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _remoteDataSource.changePassword(currentPassword, newPassword);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> verifyEmail({required String token}) async {
+    try {
+      await _remoteDataSource.verifyEmail(token.trim());
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> resendVerification({String? email}) async {
+    try {
+      await _remoteDataSource.resendVerification(email: email?.trim());
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Result<User?>> getCurrentUser() async {
     try {
       final token = await _secureStorage.read(key: _keyAccessToken);

@@ -11,6 +11,7 @@ class LeoAuthField extends StatelessWidget {
     required this.controller,
     this.obscureText = false,
     this.suffix,
+    this.keyboardType,
   });
 
   final String label;
@@ -19,6 +20,7 @@ class LeoAuthField extends StatelessWidget {
   final TextEditingController controller;
   final bool obscureText;
   final Widget? suffix;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -36,6 +38,7 @@ class LeoAuthField extends StatelessWidget {
           TextField(
             controller: controller,
             obscureText: obscureText,
+            keyboardType: keyboardType,
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,

@@ -6,6 +6,7 @@ class LeoAvatar extends StatelessWidget {
   const LeoAvatar({
     super.key,
     required this.radius,
+    this.name,
     this.imageUrl,
     this.assetPath,
     this.fallbackText,
@@ -16,6 +17,7 @@ class LeoAvatar extends StatelessWidget {
   });
 
   final double radius;
+  final String? name;
   final String? imageUrl;
   final String? assetPath;
   final String? fallbackText;
@@ -25,7 +27,12 @@ class LeoAvatar extends StatelessWidget {
   final bool hasOnlineBadge;
 
   Widget _fallback() {
-    final text = fallbackText?.trim();
+    final text = fallbackText?.trim() ??
+        (name != null && name!.trim().isNotEmpty
+            ? (name!.trim().length > 1
+                ? name!.trim().substring(0, 2).toUpperCase()
+                : name!.trim().substring(0, 1).toUpperCase())
+            : null);
     if (text != null && text.isNotEmpty) {
       return Center(
         child: Text(

@@ -10,6 +10,12 @@ abstract interface class AuthRemoteDataSource {
   Future<AuthResponseDto> register(RegisterRequestDto request);
   Future<UserDto> getMe();
   Future<void> logout();
+  Future<void> logoutAll();
+  Future<void> forgotPassword(String email);
+  Future<void> resetPassword(String token, String newPassword);
+  Future<void> changePassword(String currentPassword, String newPassword);
+  Future<void> verifyEmail(String token);
+  Future<void> resendVerification({String? email});
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -47,5 +53,45 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout() async {
     await _dio.post<void>('/auth/logout');
+  }
+
+  @override
+  Future<void> logoutAll() async {
+    await _dio.post<void>('/auth/logout-all');
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async {
+    await _dio.post<void>('/auth/forgot-password', data: {'email': email});
+  }
+
+  @override
+  Future<void> resetPassword(String token, String newPassword) async {
+    await _dio.post<void>(
+      '/auth/reset-password',
+      data: {'token': token, 'newPassword': newPassword},
+    );
+  }
+
+  @override
+  Future<void> changePassword(
+      String currentPassword, String newPassword) async {
+    await _dio.post<void>(
+      '/auth/change-password',
+      data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+    );
+  }
+
+  @override
+  Future<void> verifyEmail(String token) async {
+    await _dio.post<void>('/auth/verify-email', data: {'token': token});
+  }
+
+  @override
+  Future<void> resendVerification({String? email}) async {
+    await _dio.post<void>(
+      '/auth/resend-verification',
+      data: email != null ? {'email': email} : null,
+    );
   }
 }

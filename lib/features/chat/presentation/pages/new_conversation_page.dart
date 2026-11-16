@@ -6,7 +6,7 @@ import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
 import '../../domain/entities/conversation.dart';
 import '../providers/chat_notifier.dart';
-import 'group_details_page.dart';
+import 'new_group_page.dart';
 
 class NewConversationPage extends ConsumerStatefulWidget {
   const NewConversationPage({super.key});
@@ -193,7 +193,7 @@ class _NewConversationPageState extends ConsumerState<NewConversationPage> {
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (_) => const GroupDetailsPage(),
+                            builder: (_) => const NewGroupPage(),
                           ),
                         );
                       },

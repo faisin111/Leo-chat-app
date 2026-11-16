@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -31,6 +32,10 @@ final dioClientProvider = Provider<DioClient>((ref) {
     config: ref.watch(appConfigProvider),
     storage: ref.watch(secureStorageProvider),
   );
+});
+
+final dioProvider = Provider<Dio>((ref) {
+  return ref.watch(dioClientProvider).dio;
 });
 
 final stompServiceProvider = Provider<StompService>((ref) {

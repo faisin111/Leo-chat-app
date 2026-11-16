@@ -47,3 +47,59 @@ class GetCurrentUserUseCase {
 
   Future<Result<User?>> call() => _repository.getCurrentUser();
 }
+
+class ForgotPasswordUseCase {
+  const ForgotPasswordUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<void>> call(String email) =>
+      _repository.forgotPassword(email: email);
+}
+
+class ResetPasswordUseCase {
+  const ResetPasswordUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<void>> call({
+    required String token,
+    required String newPassword,
+  }) =>
+      _repository.resetPassword(token: token, newPassword: newPassword);
+}
+
+class ChangePasswordUseCase {
+  const ChangePasswordUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<void>> call({
+    required String currentPassword,
+    required String newPassword,
+  }) =>
+      _repository.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+}
+
+class VerifyEmailUseCase {
+  const VerifyEmailUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<void>> call(String token) =>
+      _repository.verifyEmail(token: token);
+}
+
+class ResendVerificationUseCase {
+  const ResendVerificationUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<void>> call({String? email}) =>
+      _repository.resendVerification(email: email);
+}
+
+class LogoutAllUseCase {
+  const LogoutAllUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<void>> call() => _repository.logoutAll();
+}

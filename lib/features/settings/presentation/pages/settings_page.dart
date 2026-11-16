@@ -214,7 +214,37 @@ class SettingsPage extends ConsumerWidget {
                         color: Color(0xFFF3ECE5)),
                     _SettingNavigationTile(
                       title: 'Password & security',
-                      onTap: () {},
+                      onTap: () => context.push('/settings/security'),
+                    ),
+                    const Divider(
+                        height: 1,
+                        indent: 18,
+                        endIndent: 18,
+                        color: Color(0xFFF3ECE5)),
+                    _SettingNavigationTile(
+                      title: 'Sessions & devices',
+                      trailingText: 'Active',
+                      onTap: () => context.push('/settings/sessions'),
+                    ),
+                    const Divider(
+                        height: 1,
+                        indent: 18,
+                        endIndent: 18,
+                        color: Color(0xFFF3ECE5)),
+                    _SettingNavigationTile(
+                      title: 'Appearance & theme',
+                      trailingText: 'Customize',
+                      onTap: () => context.push('/settings/appearance'),
+                    ),
+                    const Divider(
+                        height: 1,
+                        indent: 18,
+                        endIndent: 18,
+                        color: Color(0xFFF3ECE5)),
+                    _SettingNavigationTile(
+                      title: 'Admin console',
+                      trailingText: 'Dashboard',
+                      onTap: () => context.push('/admin'),
                     ),
                   ],
                 ),

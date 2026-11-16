@@ -53,6 +53,9 @@ class _MockRegisterAuthRepository implements AuthRepository {
 
   @override
   Future<Result<User?>> getCurrentUser() async => const Right(null);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {

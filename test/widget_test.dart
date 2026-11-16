@@ -30,14 +30,22 @@ class _FakeChatRepository implements ChatRepository {
       const Right([]);
 
   @override
-  Future<Result<Message>> sendMessage(
-          {required String conversationId,
-          required String clientMessageId,
-          required String content,
-          String type = 'TEXT',
-          String? replyToId}) async =>
+  Future<Result<Message>> sendMessage({
+    required String conversationId,
+    required String clientMessageId,
+    required String content,
+    String type = 'TEXT',
+    String? replyToId,
+    String? storageKey,
+    String? fileName,
+    String? mimeType,
+    int? sizeBytes,
+  }) async =>
       Right(
           Message(id: 'm-1', conversationId: conversationId, content: content));
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
   Future<Result<void>> markConversationRead(
@@ -112,6 +120,9 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<Result<User?>> getCurrentUser() async => const Right(null);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {

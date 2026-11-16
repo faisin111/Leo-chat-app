@@ -98,6 +98,10 @@ class _FakeChatRepository implements ChatRepository {
     required String content,
     String type = 'TEXT',
     String? replyToId,
+    String? storageKey,
+    String? fileName,
+    String? mimeType,
+    int? sizeBytes,
   }) async {
     return Right(Message(
       id: 'm-persisted',
@@ -109,6 +113,9 @@ class _FakeChatRepository implements ChatRepository {
       sendStatus: MessageSendStatus.sent,
     ));
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
   Future<Result<void>> markConversationRead({

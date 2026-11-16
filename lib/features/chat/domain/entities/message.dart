@@ -99,6 +99,16 @@ class Message {
     return 'User';
   }
 
+  bool hasUserReacted(String emoji) {
+    for (final r in reactions) {
+      if (r.emoji == emoji) {
+        if (r.users.any((u) => u.id == senderId)) return true;
+        if (isOwn && r.count > 0) return true;
+      }
+    }
+    return false;
+  }
+
   Message copyWith({
     String? id,
     String? conversationId,

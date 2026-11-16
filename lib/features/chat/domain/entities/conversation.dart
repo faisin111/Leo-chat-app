@@ -10,6 +10,7 @@ class Conversation {
     this.lastMessageAt,
     this.createdAt,
     this.status = 'ACTIVE',
+    this.targetUserId,
     this.targetUsername,
     this.targetDisplayName,
     this.targetAvatarUrl,
@@ -32,6 +33,7 @@ class Conversation {
   final DateTime? lastMessageAt;
   final DateTime? createdAt;
   final String status;
+  final String? targetUserId;
   final String? targetUsername;
   final String? targetDisplayName;
   final String? targetAvatarUrl;
@@ -75,6 +77,7 @@ class Conversation {
     DateTime? lastMessageAt,
     DateTime? createdAt,
     String? status,
+    String? targetUserId,
     String? targetUsername,
     String? targetDisplayName,
     String? targetAvatarUrl,
@@ -97,6 +100,7 @@ class Conversation {
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
       createdAt: createdAt ?? this.createdAt,
       status: status ?? this.status,
+      targetUserId: targetUserId ?? this.targetUserId,
       targetUsername: targetUsername ?? this.targetUsername,
       targetDisplayName: targetDisplayName ?? this.targetDisplayName,
       targetAvatarUrl: targetAvatarUrl ?? this.targetAvatarUrl,

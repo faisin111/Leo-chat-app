@@ -6,6 +6,7 @@ import 'package:record/record.dart';
 
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
+import '../../domain/entities/message.dart';
 
 class LeoChatComposer extends StatefulWidget {
   const LeoChatComposer({
@@ -14,12 +15,16 @@ class LeoChatComposer extends StatefulWidget {
     this.onTyping,
     this.onAttachmentTap,
     this.onVoiceRecorded,
+    this.replyMessage,
+    this.onCancelReply,
   });
 
   final ValueChanged<String> onSend;
   final ValueChanged<bool>? onTyping;
   final VoidCallback? onAttachmentTap;
   final Future<void> Function(String filePath)? onVoiceRecorded;
+  final Message? replyMessage;
+  final VoidCallback? onCancelReply;
 
   @override
   State<LeoChatComposer> createState() => _LeoChatComposerState();
@@ -182,155 +187,215 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (!_isRecording) ...[
-              LeoPressable(
-                child: InkWell(
-                  onTap: widget.onAttachmentTap,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF3ECE5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.add,
-                        color: LeoColors.primary, size: 24),
+            if (widget.replyMessage != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: LeoColors.primarySoft,
+                  borderRadius: BorderRadius.circular(14),
+                  border: const Border(
+                    left: BorderSide(color: LeoColors.primary, width: 3),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: _isRecording
-                  ? Container(
-                      height: 48,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFEEE3),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFFFD7C2)),
-                      ),
-                      child: Row(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          LeoPressable(
-                            child: InkWell(
-                              onTap: _cancelRecording,
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFFD7C2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.delete_outline_rounded,
-                                  color: Color(0xFFDC2626),
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFDC2626),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
                           Text(
-                            _formatDuration(_recordDuration),
+                            'Replying to ${widget.replyMessage!.senderDisplayName ?? widget.replyMessage!.senderUsername}',
                             style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                               color: LeoColors.primary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: List.generate(14, (i) {
-                                final h = 6.0 +
-                                    ((i * 3 + _recordDuration.inSeconds * 4) %
-                                        18);
-                                return Container(
-                                  width: 2.5,
-                                  height: h,
-                                  decoration: BoxDecoration(
-                                    color: LeoColors.primary.withOpacity(0.7),
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                );
-                              }),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.replyMessage!.content ?? 'Attachment',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: LeoColors.textSecondary,
                             ),
                           ),
                         ],
                       ),
-                    )
-                  : TextField(
-                      controller: _controller,
-                      onChanged: _handleChanged,
-                      onSubmitted: (_) => _handleSend(),
-                      textCapitalization: TextCapitalization.sentences,
-                      textInputAction: TextInputAction.send,
-                      decoration: const InputDecoration(
-                        hintText: 'Message...',
-                        hintStyle: TextStyle(
-                          color: Color(0xFF78716C),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        filled: true,
-                        fillColor: Color(0xFFF3ECE5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(30)),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        isDense: true,
-                      ),
                     ),
-            ),
-            const SizedBox(width: 12),
-            LeoPressable(
-              child: InkWell(
-                onTap: _hasText
-                    ? _handleSend
-                    : (_isRecording ? _stopAndSendRecording : _startRecording),
-                borderRadius: BorderRadius.circular(26),
-                child: Container(
-                  width: 46,
-                  height: 46,
-                  decoration: const BoxDecoration(
-                    color: LeoColors.primary,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x33E64A19),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    _hasText
-                        ? Icons.send_rounded
-                        : (_isRecording
-                            ? Icons.arrow_upward_rounded
-                            : Icons.mic_none_rounded),
-                    color: Colors.white,
-                    size: 22,
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded,
+                          size: 18, color: LeoColors.textSecondary),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: widget.onCancelReply,
+                    ),
+                  ],
                 ),
               ),
+            Row(
+              children: [
+                if (!_isRecording) ...[
+                  LeoPressable(
+                    child: InkWell(
+                      onTap: widget.onAttachmentTap,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF3ECE5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.add,
+                            color: LeoColors.primary, size: 24),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: _isRecording
+                      ? Container(
+                          height: 48,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFEEE3),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFFFD7C2)),
+                          ),
+                          child: Row(
+                            children: [
+                              LeoPressable(
+                                child: InkWell(
+                                  onTap: _cancelRecording,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFFFD7C2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: Color(0xFFDC2626),
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFDC2626),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _formatDuration(_recordDuration),
+                                style: const TextStyle(
+                                  color: LeoColors.primary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: List.generate(14, (i) {
+                                    final h = 6.0 +
+                                        ((i * 3 +
+                                                _recordDuration.inSeconds * 4) %
+                                            18);
+                                    return Container(
+                                      width: 2.5,
+                                      height: h,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            LeoColors.primary.withOpacity(0.7),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : TextField(
+                          controller: _controller,
+                          onChanged: _handleChanged,
+                          onSubmitted: (_) => _handleSend(),
+                          textCapitalization: TextCapitalization.sentences,
+                          textInputAction: TextInputAction.send,
+                          decoration: const InputDecoration(
+                            hintText: 'Message...',
+                            hintStyle: TextStyle(
+                              color: Color(0xFF78716C),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            filled: true,
+                            fillColor: Color(0xFFF3ECE5),
+                            border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(30)),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 12),
+                            isDense: true,
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 12),
+                LeoPressable(
+                  child: InkWell(
+                    onTap: _hasText
+                        ? _handleSend
+                        : (_isRecording
+                            ? _stopAndSendRecording
+                            : _startRecording),
+                    borderRadius: BorderRadius.circular(26),
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: const BoxDecoration(
+                        color: LeoColors.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x33E64A19),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _hasText
+                            ? Icons.send_rounded
+                            : (_isRecording
+                                ? Icons.arrow_upward_rounded
+                                : Icons.mic_none_rounded),
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

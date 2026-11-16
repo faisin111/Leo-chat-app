@@ -5,6 +5,10 @@ class SendMessageRequestDto {
     required this.content,
     this.type = 'TEXT',
     this.replyToId,
+    this.storageKey,
+    this.fileName,
+    this.mimeType,
+    this.sizeBytes,
   });
 
   final String conversationId;
@@ -12,6 +16,10 @@ class SendMessageRequestDto {
   final String content;
   final String type;
   final String? replyToId;
+  final String? storageKey;
+  final String? fileName;
+  final String? mimeType;
+  final int? sizeBytes;
 
   Map<String, dynamic> toJson() => {
         'conversationId': conversationId,
@@ -19,5 +27,9 @@ class SendMessageRequestDto {
         'content': content,
         'type': type,
         if (replyToId != null) 'replyToId': replyToId,
+        if (storageKey != null) 'storageKey': storageKey,
+        if (fileName != null) 'fileName': fileName,
+        if (mimeType != null) 'mimeType': mimeType,
+        if (sizeBytes != null) 'sizeBytes': sizeBytes,
       };
 }

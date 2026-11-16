@@ -69,6 +69,9 @@ class _FakeAuthRemoteDataSource implements AuthRemoteDataSource {
         email: 'alex@example.com',
         displayName: 'Alex Morgan',
       );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeSecureStorage extends FlutterSecureStorage {
