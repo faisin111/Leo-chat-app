@@ -168,7 +168,8 @@ class _AiPageState extends ConsumerState<AiPage> {
                                           horizontal: 6, vertical: 1.5),
                                       decoration: BoxDecoration(
                                         color: isSelected
-                                            ? LeoColors.primary.withOpacity(0.15)
+                                            ? LeoColors.primary
+                                                .withOpacity(0.15)
                                             : (isDark
                                                 ? LeoColors.darkBorder
                                                 : const Color(0xFFE2E8F0)),
@@ -353,9 +354,8 @@ class _AiPageState extends ConsumerState<AiPage> {
                     label: 'Reasoning',
                     isActive: aiState.isDeepThinkEnabled,
                     isDark: isDark,
-                    onTap: () => ref
-                        .read(aiNotifierProvider.notifier)
-                        .toggleDeepThink(),
+                    onTap: () =>
+                        ref.read(aiNotifierProvider.notifier).toggleDeepThink(),
                   ),
                   const SizedBox(width: 8),
                   _CapabilityChip(
@@ -363,9 +363,8 @@ class _AiPageState extends ConsumerState<AiPage> {
                     label: 'Web search',
                     isActive: aiState.isWebSearchEnabled,
                     isDark: isDark,
-                    onTap: () => ref
-                        .read(aiNotifierProvider.notifier)
-                        .toggleWebSearch(),
+                    onTap: () =>
+                        ref.read(aiNotifierProvider.notifier).toggleWebSearch(),
                   ),
                 ],
               ),
@@ -401,7 +400,8 @@ class _AiPageState extends ConsumerState<AiPage> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : const Color(0xFF9A3412),
+                            color:
+                                isDark ? Colors.white : const Color(0xFF9A3412),
                           ),
                         ),
                       ],
@@ -515,9 +515,8 @@ class _AiPageState extends ConsumerState<AiPage> {
                 color: isDark ? LeoColors.darkSurface : Colors.white,
                 border: Border(
                   top: BorderSide(
-                    color: isDark
-                        ? LeoColors.darkBorder
-                        : const Color(0xFFE2E8F0),
+                    color:
+                        isDark ? LeoColors.darkBorder : const Color(0xFFE2E8F0),
                   ),
                 ),
               ),
@@ -625,9 +624,8 @@ class _AiPageState extends ConsumerState<AiPage> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: isDark
-                    ? LeoColors.darkTextPrimary
-                    : LeoColors.textPrimary,
+                color:
+                    isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -682,9 +680,7 @@ class _AiPageState extends ConsumerState<AiPage> {
             style: TextStyle(
               fontSize: 13,
               fontStyle: FontStyle.italic,
-              color: isDark
-                  ? LeoColors.darkTextMuted
-                  : const Color(0xFF64748B),
+              color: isDark ? LeoColors.darkTextMuted : const Color(0xFF64748B),
             ),
           ),
         ],

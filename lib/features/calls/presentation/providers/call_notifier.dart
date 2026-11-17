@@ -111,18 +111,6 @@ class CallNotifier extends StateNotifier<CallState> {
       'action': 'OFFER',
       'callType': callType.name,
     });
-
-    // Auto-connect after 2 seconds for demo/simulation
-    Future<void>.delayed(const Duration(seconds: 2), () {
-      if (state.activeCall?.status == CallStatus.outgoing) {
-        state = state.copyWith(
-          activeCall: state.activeCall!.copyWith(
-            status: CallStatus.connected,
-          ),
-        );
-        _startTimer();
-      }
-    });
   }
 
   void acceptIncomingCall() {

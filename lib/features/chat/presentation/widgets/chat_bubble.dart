@@ -180,7 +180,9 @@ class LeoChatBubble extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    message.aiGenerated ? 'Leo AI' : message.effectiveSenderName,
+                    message.aiGenerated
+                        ? 'Leo AI'
+                        : message.effectiveSenderName,
                     style: const TextStyle(
                       color: LeoColors.primary,
                       fontSize: 14,
@@ -268,9 +270,7 @@ class LeoChatBubble extends StatelessWidget {
                     child: Text(
                       timeStr,
                       style: TextStyle(
-                        color: isDark
-                            ? Colors.white54
-                            : LeoColors.textMuted,
+                        color: isDark ? Colors.white54 : LeoColors.textMuted,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),

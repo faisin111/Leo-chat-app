@@ -114,7 +114,8 @@ class AiNotifier extends StateNotifier<AiState> {
     final prompt = text.trim();
     if (prompt.isEmpty || state.isGenerating) return;
 
-    final clientMessageId = 'ai-client-${DateTime.now().millisecondsSinceEpoch}';
+    final clientMessageId =
+        'ai-client-${DateTime.now().millisecondsSinceEpoch}';
     final userMsg = AiMessage(
       id: clientMessageId,
       role: AiMessageRole.user,
@@ -257,8 +258,7 @@ class AiNotifier extends StateNotifier<AiState> {
   }
 }
 
-final aiNotifierProvider =
-    StateNotifierProvider<AiNotifier, AiState>((ref) {
+final aiNotifierProvider = StateNotifierProvider<AiNotifier, AiState>((ref) {
   final aiRepo = ref.watch(aiRepositoryProvider);
   final chatRepo = ref.watch(chatRepositoryProvider);
   return AiNotifier(aiRepo, chatRepo);

@@ -104,7 +104,8 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           decoration: BoxDecoration(
-                            color: isDark ? LeoColors.darkSurface : Colors.white,
+                            color:
+                                isDark ? LeoColors.darkSurface : Colors.white,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: isSelected

@@ -132,7 +132,8 @@ class SessionsPage extends ConsumerWidget {
                         color: isDark ? LeoColors.darkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isDark ? LeoColors.darkBorder : LeoColors.border,
+                          color:
+                              isDark ? LeoColors.darkBorder : LeoColors.border,
                         ),
                       ),
                       child: Column(

@@ -42,9 +42,8 @@ class AiState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isDeepThinkEnabled: isDeepThinkEnabled ?? this.isDeepThinkEnabled,
       isWebSearchEnabled: isWebSearchEnabled ?? this.isWebSearchEnabled,
-      pendingAction: clearPendingAction
-          ? null
-          : (pendingAction ?? this.pendingAction),
+      pendingAction:
+          clearPendingAction ? null : (pendingAction ?? this.pendingAction),
     );
   }
 }

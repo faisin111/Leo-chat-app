@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
+import '../../../../core/widgets/common_widgets/feedback/leo_snack_bar.dart';
+import '../../../users/domain/entities/user_search_item.dart';
+import '../../../users/presentation/providers/users_providers.dart';
 import '../../domain/entities/conversation.dart';
 import '../providers/chat_notifier.dart';
 import 'new_group_page.dart';
@@ -18,38 +21,7 @@ class NewConversationPage extends ConsumerStatefulWidget {
 
 class _NewConversationPageState extends ConsumerState<NewConversationPage> {
   final _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  final _contacts = const [
-    _ContactItem(
-      id: 'c-ellie',
-      name: 'Ellie Park',
-      username: 'elliepark',
-      avatarUrl: 'assets/avatars/ellie.png',
-      isOnline: false,
-    ),
-    _ContactItem(
-      id: 'c-maya',
-      name: 'Maya Chen',
-      username: 'mayachen',
-      avatarUrl: 'assets/avatars/maya.png',
-      isOnline: true,
-    ),
-    _ContactItem(
-      id: 'c-noah',
-      name: 'Noah Williams',
-      username: 'noahw',
-      avatarUrl: 'assets/avatars/noah.png',
-      isOnline: true,
-    ),
-    _ContactItem(
-      id: 'c-sofia',
-      name: 'Sofia Rivera',
-      username: 'sofiar',
-      avatarUrl: 'assets/avatars/sofia.png',
-      isOnline: false,
-    ),
-  ];
+  bool _isStartingChat = false;
 
   @override
   void dispose() {
@@ -57,29 +29,40 @@ class _NewConversationPageState extends ConsumerState<NewConversationPage> {
     super.dispose();
   }
 
-  void _openChatWithContact(_ContactItem contact) {
-    final conversation = Conversation(
-      id: contact.id,
-      title: contact.name,
-      lastMessageSnippet: 'Hey there! How is it going?',
-      lastMessageAt: DateTime.now(),
-      unreadCount: 0,
-      avatarUrl: contact.avatarUrl,
-      isOnline: contact.isOnline,
-      type: 'DIRECT',
-    );
+  Future<void> _startChatWithUser(UserSearchItem user) async {
+    if (_isStartingChat) return;
+    setState(() => _isStartingChat = true);
 
+    final result = await ref
+        .read(chatNotifierProvider.notifier)
+        .startDirectMessage(user.id);
+
+    if (!mounted) return;
+    setState(() => _isStartingChat = false);
+
+    result.fold(
+      (failure) {
+        LeoSnackBar.showError(context, failure.message);
+      },
+      (conversation) {
+        Navigator.of(context).pop();
+      },
+    );
+  }
+
+  void _openExistingConversation(Conversation conversation) {
     ref.read(chatNotifierProvider.notifier).selectConversation(conversation);
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredContacts = _contacts.where((c) {
-      if (_searchQuery.isEmpty) return true;
-      return c.name.toLowerCase().contains(_searchQuery) ||
-          c.username.toLowerCase().contains(_searchQuery);
-    }).toList();
+    final searchQuery = ref.watch(userSearchQueryProvider);
+    final searchResults = ref.watch(userSearchResultsProvider);
+    final chatState = ref.watch(chatNotifierProvider);
+
+    final recentDirectChats =
+        chatState.conversations.where((c) => !c.isGroup && !c.isAi).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
@@ -115,14 +98,12 @@ class _NewConversationPageState extends ConsumerState<NewConversationPage> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Search Bar
-              Container(
+        child: Column(
+          children: [
+            // Search Input Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Container(
                 height: 48,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -140,8 +121,10 @@ class _NewConversationPageState extends ConsumerState<NewConversationPage> {
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        onChanged: (val) => setState(
-                            () => _searchQuery = val.trim().toLowerCase()),
+                        onChanged: (val) {
+                          ref.read(userSearchQueryProvider.notifier).state =
+                              val.trim();
+                        },
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
@@ -164,7 +147,7 @@ class _NewConversationPageState extends ConsumerState<NewConversationPage> {
                       GestureDetector(
                         onTap: () {
                           _searchController.clear();
-                          setState(() => _searchQuery = '');
+                          ref.read(userSearchQueryProvider.notifier).state = '';
                         },
                         child: const Icon(
                           Icons.close_rounded,
@@ -175,45 +158,246 @@ class _NewConversationPageState extends ConsumerState<NewConversationPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+            ),
 
-              // Action Cards: Create a group & Invite a friend
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFE7DFD8)),
+            if (_isStartingChat)
+              const LinearProgressIndicator(
+                backgroundColor: Colors.transparent,
+                color: LeoColors.primary,
+                minHeight: 2,
+              ),
+
+            // Content Area
+            Expanded(
+              child: searchQuery.isNotEmpty
+                  ? _buildSearchResults(searchResults)
+                  : _buildDefaultContent(recentDirectChats),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResults(AsyncValue<List<UserSearchItem>> searchResults) {
+    return searchResults.when(
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(color: LeoColors.primary),
+        ),
+      ),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  size: 40, color: Color(0xFFEF4444)),
+              const SizedBox(height: 12),
+              Text(
+                'Could not load search results: $e',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: LeoColors.textSecondary,
+                  fontSize: 14,
                 ),
-                child: Column(
-                  children: [
-                    _ActionTile(
-                      icon: Icons.groups_rounded,
-                      title: 'Create a group',
-                      subtitle: 'Bring your people together',
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const NewGroupPage(),
-                          ),
-                        );
-                      },
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (users) {
+        if (users.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3ECE5),
+                      borderRadius: BorderRadius.circular(28),
                     ),
-                    const Divider(
-                        height: 1, indent: 64, color: Color(0xFFF3ECE5)),
-                    _ActionTile(
-                      icon: Icons.person_add_rounded,
-                      title: 'Invite a friend',
-                      subtitle: 'A good chat starts with a hello',
-                      onTap: () {},
+                    child: const Icon(
+                      Icons.person_search_rounded,
+                      size: 28,
+                      color: Color(0xFF78716C),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No people found',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: LeoColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Check the spelling or try searching for another username.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: LeoColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          itemCount: users.length,
+          separatorBuilder: (_, __) =>
+              const Divider(height: 1, indent: 64, color: Color(0xFFF3ECE5)),
+          itemBuilder: (context, index) {
+            final user = users[index];
+            return LeoPressable(
+              onPressed: () => _startChatWithUser(user),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                color: Colors.transparent,
+                child: Row(
+                  children: [
+                    LeoAvatar(
+                      radius: 24,
+                      name: user.effectiveName,
+                      imageUrl: user.profilePictureUrl,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.effectiveName,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: LeoColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '@${user.username}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: LeoColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 20,
+                      color: LeoColors.primary,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+            );
+          },
+        );
+      },
+    );
+  }
 
-              // YOUR FAVORITES
+  Widget _buildDefaultContent(List<Conversation> recentChats) {
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      children: [
+        // Action Cards: Create a group
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFE7DFD8)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 8,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: LeoPressable(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const NewGroupPage(),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: LeoColors.primarySoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.groups_rounded,
+                      color: LeoColors.primary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Create a group',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: LeoColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Bring your team or friends together',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: LeoColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF78716C),
+                    size: 22,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // RECENT CONTACTS
+        if (recentChats.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               const Text(
-                'YOUR FAVORITES',
+                'RECENT CONTACTS',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -221,264 +405,133 @@ class _NewConversationPageState extends ConsumerState<NewConversationPage> {
                   color: Color(0xFF78716C),
                 ),
               ),
-              const SizedBox(height: 14),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: _contacts.map((contact) {
-                  return LeoPressable(
-                    onPressed: () => _openChatWithContact(contact),
-                    child: Column(
+              Text(
+                '${recentChats.length} people',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF78716C),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFE7DFD8)),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: recentChats.length,
+              separatorBuilder: (_, __) => const Divider(
+                  height: 1, indent: 64, color: Color(0xFFF3ECE5)),
+              itemBuilder: (context, index) {
+                final chat = recentChats[index];
+                return LeoPressable(
+                  onPressed: () => _openExistingConversation(chat),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Row(
                       children: [
                         LeoAvatar(
-                          radius: 28,
-                          imageUrl: contact.avatarUrl,
-                          assetPath: contact.avatarUrl,
-                          hasOnlineBadge: contact.isOnline,
+                          radius: 22,
+                          name: chat.title,
+                          imageUrl: chat.preferredAvatarUrl,
+                          hasOnlineBadge: chat.isOnline,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          contact.name.split(' ').first,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: LeoColors.textPrimary,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                chat.title,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: LeoColors.textPrimary,
+                                ),
+                              ),
+                              if (chat.lastMessageSnippet != null &&
+                                  chat.lastMessageSnippet!.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  chat.lastMessageSnippet!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: LeoColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Color(0xFFCBD5E1),
+                          size: 20,
                         ),
                       ],
                     ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 26),
-
-              // ON LEOCHAT
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'ON LEOCHAT',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6,
-                      color: Color(0xFF78716C),
-                    ),
                   ),
-                  Text(
-                    '${filteredContacts.length} contacts',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF78716C),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Contact Rows
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFE7DFD8)),
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: filteredContacts.length,
-                  separatorBuilder: (_, __) => const Divider(
-                      height: 1, indent: 68, color: Color(0xFFF3ECE5)),
-                  itemBuilder: (context, index) {
-                    final contact = filteredContacts[index];
-                    return InkWell(
-                      onTap: () => _openChatWithContact(contact),
-                      borderRadius: BorderRadius.circular(22),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        child: Row(
-                          children: [
-                            LeoAvatar(
-                              radius: 22,
-                              imageUrl: contact.avatarUrl,
-                              assetPath: contact.avatarUrl,
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    contact.name,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: LeoColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '@${contact.username}',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF78716C),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            LeoPressable(
-                              onPressed: () => _openChatWithContact(contact),
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: Colors.transparent,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: LeoColors.primary, width: 1.5),
-                                ),
-                                child: const Icon(
-                                  Icons.chat_bubble_outline_rounded,
-                                  color: LeoColors.primary,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 22),
-
-              // Bottom Callout Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEEE3),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFFFD7C2)),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Can't find someone?",
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: LeoColors.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      'Try their exact username, or send them an invite to join your conversations.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        height: 1.4,
-                        color: Color(0xFF78716C),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
+                );
+              },
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ContactItem {
-  const _ContactItem({
-    required this.id,
-    required this.name,
-    required this.username,
-    required this.avatarUrl,
-    required this.isOnline,
-  });
-
-  final String id;
-  final String name;
-  final String username;
-  final String avatarUrl;
-  final bool isOnline;
-}
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(22),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEEE3),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: LeoColors.primary, size: 24),
+        ] else ...[
+          // Empty State when no recent contacts and no search query
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFE7DFD8)),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: LeoColors.textPrimary,
-                    ),
+            child: Column(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: LeoColors.primarySoft,
+                    borderRadius: BorderRadius.circular(28),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF78716C),
-                    ),
+                  child: const Icon(
+                    Icons.people_outline_rounded,
+                    size: 28,
+                    color: LeoColors.primary,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Start a new conversation',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: LeoColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Search for people above by their username or display name to begin chatting.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: LeoColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Color(0xFF78716C),
-              size: 20,
-            ),
-          ],
-        ),
-      ),
+          ),
+        ],
+      ],
     );
   }
 }

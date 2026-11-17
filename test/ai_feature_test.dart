@@ -31,7 +31,8 @@ void main() {
       await notifier.sendMessage('Hello Leo AI');
       expect(notifier.state.messages.length, equals(2));
       expect(notifier.state.messages.first.content, equals('Hello Leo AI'));
-      expect(notifier.state.messages.last.role, equals(AiMessageRole.assistant));
+      expect(
+          notifier.state.messages.last.role, equals(AiMessageRole.assistant));
     });
 
     test('clearHistory empties the messages list', () async {

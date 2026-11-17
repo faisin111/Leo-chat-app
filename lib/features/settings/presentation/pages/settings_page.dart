@@ -6,7 +6,9 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../auth/presentation/providers/auth_state.dart';
 import '../../../chat/presentation/providers/chat_notifier.dart';
+import '../../../users/presentation/providers/users_providers.dart';
 import '../providers/settings_notifier.dart';
 import 'edit_profile_page.dart';
 
@@ -17,6 +19,27 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsNotifierProvider);
     final settingsNotifier = ref.read(settingsNotifierProvider.notifier);
+    final profileAsync = ref.watch(currentUserProfileProvider);
+    final authState = ref.watch(authNotifierProvider);
+    final authUser =
+        (authState is Authenticated) ? authState.session.user : null;
+
+    final profile = profileAsync.valueOrNull;
+    final displayName = (profile?.effectiveName.isNotEmpty == true)
+        ? profile!.effectiveName
+        : (authUser != null && authUser.displayName.isNotEmpty
+            ? authUser.displayName
+            : (authUser != null && authUser.username.isNotEmpty
+                ? authUser.username
+                : (settings.displayName.isNotEmpty
+                    ? settings.displayName
+                    : 'Your Profile')));
+    final username = profile?.username ??
+        authUser?.username ??
+        (settings.username.isNotEmpty ? settings.username : 'username');
+    final avatarUrl = profile?.profilePictureUrl ??
+        authUser?.avatarUrl ??
+        (settings.avatarUrl.isNotEmpty ? settings.avatarUrl : null);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
@@ -81,8 +104,8 @@ class SettingsPage extends ConsumerWidget {
                     children: [
                       LeoAvatar(
                         radius: 28,
-                        imageUrl: settings.avatarUrl,
-                        assetPath: settings.avatarUrl,
+                        name: displayName,
+                        imageUrl: avatarUrl,
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -90,7 +113,7 @@ class SettingsPage extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              settings.displayName,
+                              displayName,
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
@@ -99,7 +122,7 @@ class SettingsPage extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '@${settings.username} · Edit profile',
+                              '@$username · Edit profile',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,

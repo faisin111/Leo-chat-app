@@ -1,53 +1,79 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/colors.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
-import '../../../../core/widgets/common_widgets/feedback/leo_snack_bar.dart';
+import '../../domain/entities/conversation.dart';
+import '../../domain/entities/message.dart';
+import '../providers/chat_notifier.dart';
 
-class SharedMediaPage extends StatefulWidget {
+class SharedMediaPage extends ConsumerStatefulWidget {
   const SharedMediaPage({
     super.key,
-    this.conversationTitle = 'Shared with Maya',
+    this.conversation,
+    this.conversationTitle = 'Shared media & files',
   });
 
+  final Conversation? conversation;
   final String conversationTitle;
 
   @override
-  State<SharedMediaPage> createState() => _SharedMediaPageState();
+  ConsumerState<SharedMediaPage> createState() => _SharedMediaPageState();
 }
 
-class _SharedMediaPageState extends State<SharedMediaPage> {
+class _SharedMediaPageState extends ConsumerState<SharedMediaPage> {
   int _selectedFilter = 0; // 0: Media, 1: Files, 2: Links
 
-  final _photos = const [
-    'assets/images/shared_1.png',
-    'assets/images/shared_2.png',
-    'assets/images/shared_3.png',
-    'assets/images/shared_4.png',
-    'assets/images/shared_5.png',
-    'assets/images/shared_6.png',
-  ];
+  bool _isImage(Message m) {
+    final t = m.type.toUpperCase();
+    if (t == 'IMAGE' || t == 'IMAGE_MESSAGE') return true;
+    final c = (m.content ?? '').toLowerCase();
+    return c.endsWith('.png') ||
+        c.endsWith('.jpg') ||
+        c.endsWith('.jpeg') ||
+        c.endsWith('.webp') ||
+        c.endsWith('.gif');
+  }
 
-  final _files = const [
-    _SharedFileInfo(
-      icon: Icons.article_rounded,
-      title: 'Coast weekend.pdf',
-      subtitle: 'Maya Chen · 2.4 MB · Today',
-    ),
-    _SharedFileInfo(
-      icon: Icons.confirmation_number_rounded,
-      title: 'Train tickets.pdf',
-      subtitle: 'You · 840 KB · Oct 16',
-    ),
-    _SharedFileInfo(
-      icon: Icons.music_note_rounded,
-      title: 'Trip playlist.m4a',
-      subtitle: 'Maya Chen · 4.8 MB · Oct 15',
-    ),
-  ];
+  bool _isFile(Message m) {
+    if (_isImage(m)) return false;
+    final t = m.type.toUpperCase();
+    if (t == 'FILE' || t == 'DOCUMENT' || t == 'AUDIO' || t == 'VIDEO') {
+      return true;
+    }
+    final c = (m.content ?? '').toLowerCase();
+    return c.endsWith('.pdf') ||
+        c.endsWith('.doc') ||
+        c.endsWith('.docx') ||
+        c.endsWith('.zip') ||
+        c.endsWith('.mp3') ||
+        c.endsWith('.mp4');
+  }
+
+  bool _hasLink(Message m) {
+    if (_isImage(m) || _isFile(m)) return false;
+    final content = m.content ?? '';
+    return content.contains('http://') || content.contains('https://');
+  }
 
   @override
   Widget build(BuildContext context) {
+    final chatState = ref.watch(chatNotifierProvider);
+    final convId = widget.conversation?.id ?? chatState.selectedConversationId;
+
+    final messages = chatState.messages.where((m) {
+      if (convId != null && convId.isNotEmpty) {
+        return m.conversationId == convId;
+      }
+      return true;
+    }).toList();
+
+    final mediaMessages = messages.where(_isImage).toList();
+    final fileMessages = messages.where(_isFile).toList();
+    final linkMessages = messages.where(_hasLink).toList();
+
+    final title = widget.conversation?.title ?? widget.conversationTitle;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
       appBar: AppBar(
@@ -65,9 +91,9 @@ class _SharedMediaPageState extends State<SharedMediaPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.conversationTitle,
+              'Shared in $title',
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.5,
                 color: LeoColors.textPrimary,
@@ -75,316 +101,310 @@ class _SharedMediaPageState extends State<SharedMediaPage> {
             ),
             const SizedBox(height: 2),
             const Text(
-              'Everything, all in one place',
+              'Everything in one place',
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: LeoColors.textSecondary,
               ),
             ),
           ],
         ),
-        actions: [
-          LeoPressable(
-            child: IconButton(
-              icon: const Icon(Icons.search_rounded,
-                  color: LeoColors.textPrimary, size: 24),
-              onPressed: () {},
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Filter Pills
-              Row(
-                children: [
-                  _FilterPill(
-                    label: 'Media 18',
-                    isSelected: _selectedFilter == 0,
-                    onTap: () => setState(() => _selectedFilter = 0),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Files 4',
-                    isSelected: _selectedFilter == 1,
-                    onTap: () => setState(() => _selectedFilter = 1),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterPill(
-                    label: 'Links 2',
-                    isSelected: _selectedFilter == 2,
-                    onTap: () => setState(() => _selectedFilter = 2),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Section: October 2026
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'October 2026',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: LeoColors.textPrimary,
-                    ),
-                  ),
-                  LeoPressable(
-                    onPressed: () {},
-                    child: const Text(
-                      'Select',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: LeoColors.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              // Grid of photos (2 rows x 3 columns)
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 0.9,
-                ),
-                itemCount: _photos.length,
-                itemBuilder: (context, index) {
-                  return LeoPressable(
-                    onPressed: () {
-                      _showPhotoPreview(context, _photos[index]);
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(
-                        _photos[index],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: const Color(0xFFF3ECE5),
-                          child: const Icon(Icons.image_outlined,
-                              color: Color(0xFF78716C)),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 26),
-
-              // Section: Recent files
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Recent files',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: LeoColors.textPrimary,
-                    ),
-                  ),
-                  LeoPressable(
-                    onPressed: () {},
-                    child: const Text(
-                      'View all',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: LeoColors.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Files Card
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFE7DFD8)),
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _files.length,
-                  separatorBuilder: (_, __) => const Divider(
-                      height: 1, indent: 68, color: Color(0xFFF3ECE5)),
-                  itemBuilder: (context, index) {
-                    final file = _files[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFEEE3),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Icon(
-                              file.icon,
-                              color: LeoColors.primary,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  file.title,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: LeoColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  file.subtitle,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF78716C),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          LeoPressable(
-                            onPressed: () {
-                              LeoSnackBar.showSuccess(
-                                  context, 'Downloading ${file.title}...');
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Icon(
-                                Icons.download_rounded,
-                                color: Color(0xFF78716C),
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Footer Info
-              const Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    size: 16,
-                    color: Color(0xFF78716C),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Photos and files shared in this conversation.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF78716C),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showPhotoPreview(BuildContext context, String assetPath) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(16),
-        child: Stack(
-          alignment: Alignment.topRight,
+        child: Column(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.asset(assetPath, fit: BoxFit.contain),
+            // Filter Pills Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFE8E1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    _buildFilterPill(0, 'Media (${mediaMessages.length})'),
+                    _buildFilterPill(1, 'Files (${fileMessages.length})'),
+                    _buildFilterPill(2, 'Links (${linkMessages.length})'),
+                  ],
+                ),
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.close_rounded,
-                  color: Colors.white, size: 28),
-              onPressed: () => Navigator.of(context).pop(),
+
+            // Content Area
+            Expanded(
+              child: IndexedStack(
+                index: _selectedFilter,
+                children: [
+                  _buildMediaGrid(mediaMessages),
+                  _buildFilesList(fileMessages),
+                  _buildLinksList(linkMessages),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _SharedFileInfo {
-  const _SharedFileInfo({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-}
-
-class _FilterPill extends StatelessWidget {
-  const _FilterPill({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return LeoPressable(
-      onPressed: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? LeoColors.primary : const Color(0xFFF3ECE5),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: isSelected ? Colors.white : const Color(0xFFC05621),
+  Widget _buildFilterPill(int index, String label) {
+    final isSelected = _selectedFilter == index;
+    return Expanded(
+      child: LeoPressable(
+        onPressed: () => setState(() => _selectedFilter = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? const [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? LeoColors.primary : const Color(0xFF78716C),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMediaGrid(List<Message> mediaItems) {
+    if (mediaItems.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.photo_library_outlined,
+        title: 'No media shared yet',
+        subtitle: 'Photos and videos sent in this chat will appear here.',
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(20),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1,
+      ),
+      itemCount: mediaItems.length,
+      itemBuilder: (context, index) {
+        final item = mediaItems[index];
+        final url = item.content ?? '';
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            color: const Color(0xFFE2E8F0),
+            child: url.startsWith('http')
+                ? Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image_rounded,
+                          color: Color(0xFF94A3B8)),
+                    ),
+                  )
+                : const Center(
+                    child: Icon(Icons.image_rounded,
+                        color: Color(0xFF94A3B8), size: 32),
+                  ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFilesList(List<Message> fileItems) {
+    if (fileItems.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.insert_drive_file_outlined,
+        title: 'No files shared yet',
+        subtitle: 'Documents, audio, and attachments will appear here.',
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      itemCount: fileItems.length,
+      separatorBuilder: (_, __) =>
+          const Divider(height: 1, indent: 64, color: Color(0xFFF3ECE5)),
+      itemBuilder: (context, index) {
+        final item = fileItems[index];
+        final content = item.content ?? 'Shared file';
+        final fileName =
+            content.contains('/') ? content.split('/').last : content;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.description_rounded,
+                    color: Color(0xFF3B82F6), size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fileName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: LeoColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.type,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: LeoColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLinksList(List<Message> linkItems) {
+    if (linkItems.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.link_rounded,
+        title: 'No links shared yet',
+        subtitle: 'Web links and URLs sent in this chat will appear here.',
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      itemCount: linkItems.length,
+      separatorBuilder: (_, __) =>
+          const Divider(height: 1, indent: 64, color: Color(0xFFF3ECE5)),
+      itemBuilder: (context, index) {
+        final item = linkItems[index];
+        final content = item.content ?? '';
+        final urlMatch =
+            RegExp(r'https?://[^\s]+').firstMatch(content)?.group(0) ?? content;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: LeoColors.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.link_rounded,
+                    color: LeoColors.primary, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      urlMatch,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: LeoColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      content,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: LeoColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3ECE5),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Icon(icon, size: 28, color: const Color(0xFF78716C)),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: LeoColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: LeoColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
       ),
     );

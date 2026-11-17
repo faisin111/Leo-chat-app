@@ -55,7 +55,8 @@ class AiRemoteDataSourceImpl implements AiRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> executeAction(Map<String, dynamic> request) async {
+  Future<Map<String, dynamic>> executeAction(
+      Map<String, dynamic> request) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/ai/actions',
       data: request,

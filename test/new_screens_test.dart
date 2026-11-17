@@ -6,19 +6,34 @@ import 'package:leochat/features/chat/presentation/pages/new_conversation_page.d
 import 'package:leochat/features/chat/presentation/pages/shared_media_page.dart';
 import 'package:leochat/features/settings/presentation/pages/edit_profile_page.dart';
 import 'package:leochat/features/settings/presentation/pages/settings_page.dart';
-import 'package:leochat/features/settings/presentation/providers/settings_notifier.dart';
+import 'package:leochat/features/users/domain/entities/user_profile.dart';
+import 'package:leochat/features/users/domain/entities/user_search_item.dart';
+import 'package:leochat/features/users/presentation/providers/users_providers.dart';
 
 void main() {
   group('SettingsPage and EditProfilePage', () {
     testWidgets('SettingsPage renders profile card and settings sections',
         (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            currentUserProfileProvider.overrideWith(
+              (ref) async => const UserProfile(
+                id: 'u-1',
+                username: 'alexmorgan',
+                displayName: 'Alex Morgan',
+                email: 'alex@example.com',
+                bio: 'Product designer and builder',
+              ),
+            ),
+          ],
+          child: const MaterialApp(
             home: SettingsPage(),
           ),
         ),
       );
+
+      await tester.pumpAndSettle();
 
       expect(find.text('Settings'), findsOneWidget);
       expect(find.text('Alex Morgan'), findsOneWidget);
@@ -33,12 +48,25 @@ void main() {
     testWidgets('Tapping profile card in SettingsPage opens EditProfilePage',
         (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            currentUserProfileProvider.overrideWith(
+              (ref) async => const UserProfile(
+                id: 'u-1',
+                username: 'alexmorgan',
+                displayName: 'Alex Morgan',
+                email: 'alex@example.com',
+                bio: 'Product designer and builder',
+              ),
+            ),
+          ],
+          child: const MaterialApp(
             home: SettingsPage(),
           ),
         ),
       );
+
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Alex Morgan'));
       await tester.pumpAndSettle();
@@ -49,33 +77,38 @@ void main() {
       expect(find.text('Save changes'), findsOneWidget);
     });
 
-    testWidgets('EditProfilePage updates display name and saves',
+    testWidgets('EditProfilePage renders form fields from profile',
         (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
       await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
+        ProviderScope(
+          overrides: [
+            currentUserProfileProvider.overrideWith(
+              (ref) async => const UserProfile(
+                id: 'u-1',
+                username: 'alexmorgan',
+                displayName: 'Alex Morgan',
+                email: 'alex@example.com',
+                bio: 'Product designer and builder',
+              ),
+            ),
+          ],
           child: const MaterialApp(
             home: EditProfilePage(),
           ),
         ),
       );
 
-      expect(find.text('Alex Morgan'), findsOneWidget);
-
-      await tester.enterText(find.byType(TextField).first, 'Alexander M.');
-      await tester.tap(find.byIcon(Icons.check_rounded));
       await tester.pumpAndSettle();
 
-      expect(
-          container.read(settingsNotifierProvider).displayName, 'Alexander M.');
+      expect(find.text('Edit profile'), findsOneWidget);
+      expect(find.text('Display name'), findsOneWidget);
+      expect(find.text('Change profile photo'), findsOneWidget);
+      expect(find.text('Save changes'), findsOneWidget);
     });
   });
 
   group('NewConversationPage', () {
-    testWidgets('renders search, favorites and contact rows', (tester) async {
+    testWidgets('renders search header and action options', (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -83,41 +116,55 @@ void main() {
           ),
         ),
       );
+
+      await tester.pumpAndSettle();
 
       expect(find.text('New conversation'), findsOneWidget);
       expect(find.text('Create a group'), findsOneWidget);
-      expect(find.text('Invite a friend'), findsOneWidget);
-      expect(find.text('YOUR FAVORITES'), findsOneWidget);
-      expect(find.text('ON LEOCHAT'), findsOneWidget);
-      expect(find.text('Maya'), findsOneWidget);
-      expect(find.text('Ellie Park'), findsOneWidget);
-      expect(find.text("Can't find someone?"), findsOneWidget);
+      expect(find.text('Start a new conversation'), findsOneWidget);
     });
 
-    testWidgets('Search filters contact list dynamically', (tester) async {
+    testWidgets('displays matching users when search returns results',
+        (tester) async {
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
+        ProviderScope(
+          overrides: [
+            userSearchResultsProvider.overrideWith(
+              (ref) async => const [
+                UserSearchItem(
+                  id: 'u-2',
+                  username: 'maya_lin',
+                  displayName: 'Maya Lin',
+                ),
+                UserSearchItem(
+                  id: 'u-3',
+                  username: 'noah_w',
+                  displayName: 'Noah Williams',
+                ),
+              ],
+            ),
+          ],
+          child: const MaterialApp(
             home: NewConversationPage(),
           ),
         ),
       );
 
-      expect(find.text('Ellie Park'), findsOneWidget);
-      expect(find.text('Noah Williams'), findsOneWidget);
-
-      await tester.enterText(
-          find.widgetWithText(TextField, 'Search by name or username'),
-          'Ellie');
       await tester.pumpAndSettle();
 
-      expect(find.text('Ellie Park'), findsOneWidget);
-      expect(find.text('Noah Williams'), findsNothing);
+      await tester.enterText(
+          find.widgetWithText(TextField, 'Search by name or username'), 'maya');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Maya Lin'), findsOneWidget);
+      expect(find.text('Noah Williams'), findsOneWidget);
+      expect(find.text('@maya_lin'), findsOneWidget);
+      expect(find.text('@noah_w'), findsOneWidget);
     });
   });
 
   group('GroupDetailsPage', () {
-    testWidgets('renders group hero, quick actions, and members list',
+    testWidgets('renders group hero, quick actions, and members section',
         (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
@@ -129,16 +176,15 @@ void main() {
         ),
       );
 
+      await tester.pumpAndSettle();
+
       expect(find.text('Group details'), findsOneWidget);
       expect(find.text('Weekend people'), findsOneWidget);
-      expect(find.text('Call'), findsOneWidget);
-      expect(find.text('Search'), findsOneWidget);
       expect(find.text('Mute'), findsOneWidget);
+      expect(find.text('Media'), findsOneWidget);
       expect(find.text('Shared media & files'), findsOneWidget);
-      expect(find.text('Group invite link'), findsOneWidget);
-      expect(find.text('Group owner'), findsOneWidget);
-      expect(find.text('Admin'), findsOneWidget);
-      expect(find.text('Leave group'), findsOneWidget);
+      expect(find.text('Members · 0'), findsOneWidget);
+      expect(find.text('No members found'), findsOneWidget);
     });
 
     testWidgets('Tapping Shared media & files opens SharedMediaPage',
@@ -153,39 +199,41 @@ void main() {
         ),
       );
 
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Shared media & files'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Weekend people'), findsOneWidget);
-      expect(find.text('Everything, all in one place'), findsOneWidget);
-      expect(find.text('Media 18'), findsOneWidget);
-      expect(find.text('Recent files'), findsOneWidget);
+      expect(find.text('Shared in Shared with Weekend people'), findsOneWidget);
+      expect(find.text('Everything in one place'), findsOneWidget);
+      expect(find.text('Media (0)'), findsOneWidget);
+      expect(find.text('Files (0)'), findsOneWidget);
+      expect(find.text('Links (0)'), findsOneWidget);
     });
   });
 
   group('SharedMediaPage', () {
-    testWidgets('renders filter pills, photos and recent files',
+    testWidgets('renders filter pills and empty state when no media shared',
         (tester) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
             home: SharedMediaPage(
-              conversationTitle: 'Shared with Maya',
+              conversationTitle: 'Maya',
             ),
           ),
         ),
       );
 
-      expect(find.text('Shared with Maya'), findsOneWidget);
-      expect(find.text('Media 18'), findsOneWidget);
-      expect(find.text('Files 4'), findsOneWidget);
-      expect(find.text('Links 2'), findsOneWidget);
-      expect(find.text('October 2026'), findsOneWidget);
-      expect(find.text('Recent files'), findsOneWidget);
-      expect(find.text('Coast weekend.pdf'), findsOneWidget);
-      expect(find.text('Train tickets.pdf'), findsOneWidget);
-      expect(find.text('Trip playlist.m4a'), findsOneWidget);
-      expect(find.text('Photos and files shared in this conversation.'),
+      await tester.pumpAndSettle();
+
+      expect(find.text('Shared in Maya'), findsOneWidget);
+      expect(find.text('Everything in one place'), findsOneWidget);
+      expect(find.text('Media (0)'), findsOneWidget);
+      expect(find.text('Files (0)'), findsOneWidget);
+      expect(find.text('Links (0)'), findsOneWidget);
+      expect(find.text('No media shared yet'), findsOneWidget);
+      expect(find.text('Photos and videos sent in this chat will appear here.'),
           findsOneWidget);
     });
   });

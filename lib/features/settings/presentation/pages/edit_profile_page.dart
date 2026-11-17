@@ -6,6 +6,10 @@ import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_primary_button.dart';
 import '../../../../core/widgets/common_widgets/feedback/leo_snack_bar.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../auth/presentation/providers/auth_state.dart';
+import '../../../users/domain/entities/user_profile.dart';
+import '../../../users/presentation/providers/users_providers.dart';
 import '../providers/settings_notifier.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
@@ -20,15 +24,33 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late final TextEditingController _usernameController;
   late final TextEditingController _emailController;
   late final TextEditingController _bioController;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
+    final profile = ref.read(currentUserProfileProvider).valueOrNull;
+    final authState = ref.read(authNotifierProvider);
+    final authUser =
+        (authState is Authenticated) ? authState.session.user : null;
     final settings = ref.read(settingsNotifierProvider);
-    _nameController = TextEditingController(text: settings.displayName);
-    _usernameController = TextEditingController(text: settings.username);
-    _emailController = TextEditingController(text: settings.email);
-    _bioController = TextEditingController(text: settings.bio);
+
+    final initialName = profile?.displayName ??
+        authUser?.displayName ??
+        (settings.displayName.isNotEmpty ? settings.displayName : '');
+    final initialUsername = profile?.username ??
+        authUser?.username ??
+        (settings.username.isNotEmpty ? settings.username : '');
+    final initialEmail = profile?.email ??
+        authUser?.email ??
+        (settings.email.isNotEmpty ? settings.email : '');
+    final initialBio =
+        profile?.bio ?? (settings.bio.isNotEmpty ? settings.bio : '');
+
+    _nameController = TextEditingController(text: initialName);
+    _usernameController = TextEditingController(text: initialUsername);
+    _emailController = TextEditingController(text: initialEmail);
+    _bioController = TextEditingController(text: initialBio);
   }
 
   @override
@@ -40,21 +62,59 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     super.dispose();
   }
 
-  void _saveProfile() {
-    ref.read(settingsNotifierProvider.notifier).updateProfile(
-          displayName: _nameController.text.trim(),
-          username: _usernameController.text.trim(),
-          email: _emailController.text.trim(),
-          bio: _bioController.text.trim(),
+  Future<void> _saveProfile() async {
+    final name = _nameController.text.trim();
+    final bio = _bioController.text.trim();
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+
+    final res = await ref.read(usersRepositoryProvider).updateProfile(
+          displayName: name.isNotEmpty ? name : null,
+          bio: bio.isNotEmpty ? bio : null,
         );
 
-    LeoSnackBar.showSuccess(context, 'Profile updated successfully');
-    Navigator.of(context).pop();
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    res.fold(
+      (failure) {
+        LeoSnackBar.showError(context, failure.message);
+      },
+      (_) {
+        ref.read(settingsNotifierProvider.notifier).updateProfile(
+              displayName: name,
+              bio: bio,
+            );
+        ref.invalidate(currentUserProfileProvider);
+        LeoSnackBar.showSuccess(context, 'Profile updated successfully');
+        Navigator.of(context).pop();
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsNotifierProvider);
+
+    ref.listen<AsyncValue<UserProfile?>>(currentUserProfileProvider,
+        (prev, next) {
+      next.whenData((profile) {
+        if (profile != null) {
+          if (_nameController.text.isEmpty && profile.displayName != null) {
+            _nameController.text = profile.displayName!;
+          }
+          if (_usernameController.text.isEmpty) {
+            _usernameController.text = profile.username;
+          }
+          if (_emailController.text.isEmpty && profile.email != null) {
+            _emailController.text = profile.email!;
+          }
+          if (_bioController.text.isEmpty && profile.bio != null) {
+            _bioController.text = profile.bio!;
+          }
+        }
+      });
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F4),
@@ -80,11 +140,23 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ),
         actions: [
           LeoPressable(
-            child: IconButton(
-              icon: const Icon(Icons.check_rounded,
-                  color: LeoColors.textPrimary, size: 26),
-              onPressed: _saveProfile,
-            ),
+            child: _isSaving
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: LeoColors.primary,
+                      ),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.check_rounded,
+                        color: LeoColors.textPrimary, size: 26),
+                    onPressed: _saveProfile,
+                  ),
           ),
           const SizedBox(width: 8),
         ],
@@ -103,8 +175,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   children: [
                     LeoAvatar(
                       radius: 54,
-                      imageUrl: settings.avatarUrl,
-                      assetPath: settings.avatarUrl,
+                      name: _nameController.text.isNotEmpty
+                          ? _nameController.text
+                          : 'User',
+                      imageUrl: settings.avatarUrl.isNotEmpty
+                          ? settings.avatarUrl
+                          : null,
                     ),
                     Positioned(
                       right: 0,
@@ -351,6 +427,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 height: 52,
                 child: LeoPrimaryButton(
                   label: 'Save changes',
+                  isLoading: _isSaving,
                   onPressed: _saveProfile,
                 ),
               ),

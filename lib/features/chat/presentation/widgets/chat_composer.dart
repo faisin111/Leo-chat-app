@@ -409,9 +409,8 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                             fontSize: 15,
                           ),
                           decoration: InputDecoration(
-                            hintText: isAiMode
-                                ? 'Ask Leo AI (/ai)...'
-                                : 'Message...',
+                            hintText:
+                                isAiMode ? 'Ask Leo AI (/ai)...' : 'Message...',
                             hintStyle: TextStyle(
                               color: isDark
                                   ? LeoColors.darkTextSecondary

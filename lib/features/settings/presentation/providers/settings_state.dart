@@ -1,16 +1,16 @@
 class SettingsState {
   const SettingsState({
-    this.displayName = 'Alex Morgan',
-    this.username = 'alexmorgan',
-    this.email = 'alex.morgan@email.com',
-    this.bio = 'Collecting moments, not notifications. ☀️',
-    this.avatarUrl = 'assets/avatars/alex.png',
+    this.displayName = '',
+    this.username = '',
+    this.email = '',
+    this.bio = '',
+    this.avatarUrl = '',
     this.messageNotifications = true,
     this.messagePreviews = false,
     this.callNotifications = true,
     this.onlineStatus = true,
     this.profileVisibility = 'Contacts',
-    this.blockedCount = 2,
+    this.blockedCount = 0,
     this.isSaving = false,
   });
 

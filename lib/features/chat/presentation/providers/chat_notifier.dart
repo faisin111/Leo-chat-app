@@ -421,7 +421,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final cleanPrompt = prompt.trim();
     if (cleanPrompt.isEmpty) return;
 
-    final clientMessageId = 'ai-client-${DateTime.now().millisecondsSinceEpoch}';
+    final clientMessageId =
+        'ai-client-${DateTime.now().millisecondsSinceEpoch}';
 
     final optimisticMsg = Message(
       id: clientMessageId,

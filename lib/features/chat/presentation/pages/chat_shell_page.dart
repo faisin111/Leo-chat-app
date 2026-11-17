@@ -9,11 +9,14 @@ import '../../../../core/widgets/common_widgets/branding/leo_avatar.dart';
 import '../../../../core/widgets/common_widgets/branding/leo_logo.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
 import '../../../ai/presentation/pages/ai_page.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../auth/presentation/providers/auth_state.dart';
 import '../../../calls/domain/entities/call_session.dart';
 import '../../../calls/presentation/pages/active_call_page.dart';
 import '../../../calls/presentation/providers/call_notifier.dart';
 import '../../../calls/presentation/widgets/incoming_call_dialog.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
+import '../../../users/presentation/providers/users_providers.dart';
 import '../../domain/entities/conversation.dart';
 import '../providers/chat_notifier.dart';
 import '../providers/chat_state.dart';
@@ -45,31 +48,67 @@ class _ChatShellPageState extends ConsumerState<ChatShellPage> {
         layoutForWidth(MediaQuery.sizeOf(context).width) == LeoLayout.mobile;
 
     if (!isMobile) {
+      Widget desktopMainContent;
+      switch (_selectedTab) {
+        case 1:
+          desktopMainContent = const Expanded(child: AiPage());
+          break;
+        case 2:
+          desktopMainContent = const Expanded(child: NewConversationPage());
+          break;
+        case 3:
+          desktopMainContent = const Expanded(child: SettingsPage());
+          break;
+        case 0:
+        default:
+          desktopMainContent = Expanded(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 360,
+                  child: _ChatsContent(
+                    chatState: chatState,
+                    onOpenSettings: () => setState(() => _selectedTab = 3),
+                    onOpenConversation: (conversation) {
+                      ref
+                          .read(chatNotifierProvider.notifier)
+                          .selectConversation(conversation);
+                    },
+                  ),
+                ),
+                const VerticalDivider(width: 1, color: Color(0xFFE7DFD8)),
+                Expanded(
+                  child: _ConversationDetailView(
+                    conversation: chatState.selectedConversation,
+                  ),
+                ),
+              ],
+            ),
+          );
+      }
+
       return Scaffold(
         backgroundColor: const Color(0xFFFAF7F4),
-        body: Row(
+        body: Stack(
           children: [
-            Container(
-              width: 72,
-              color: LeoColors.rail,
-              child: const _DesktopRail(),
+            Row(
+              children: [
+                Container(
+                  width: 72,
+                  color: LeoColors.rail,
+                  child: _DesktopRail(
+                    selectedIndex: _selectedTab,
+                    onSelectTab: (idx) => setState(() => _selectedTab = idx),
+                  ),
+                ),
+                desktopMainContent,
+              ],
             ),
-            SizedBox(
-              width: 360,
-              child: _ChatsContent(
-                chatState: chatState,
-                onOpenConversation: (conversation) {
-                  ref
-                      .read(chatNotifierProvider.notifier)
-                      .selectConversation(conversation);
-                },
-              ),
-            ),
-            const VerticalDivider(width: 1, color: Color(0xFFE7DFD8)),
-            Expanded(
-              child: _ConversationDetailView(
-                conversation: chatState.selectedConversation,
-              ),
+            const Positioned(
+              top: 10,
+              left: 80,
+              right: 20,
+              child: IncomingCallBanner(),
             ),
           ],
         ),
@@ -91,6 +130,7 @@ class _ChatShellPageState extends ConsumerState<ChatShellPage> {
       default:
         bodyContent = _ChatsContent(
           chatState: chatState,
+          onOpenSettings: () => setState(() => _selectedTab = 3),
           onOpenConversation: (conversation) {
             ref
                 .read(chatNotifierProvider.notifier)
@@ -136,10 +176,12 @@ class _ChatsContent extends ConsumerStatefulWidget {
   const _ChatsContent({
     required this.chatState,
     required this.onOpenConversation,
+    this.onOpenSettings,
   });
 
   final ChatState chatState;
   final ValueChanged<Conversation> onOpenConversation;
+  final VoidCallback? onOpenSettings;
 
   @override
   ConsumerState<_ChatsContent> createState() => _ChatsContentState();
@@ -158,6 +200,18 @@ class _ChatsContentState extends ConsumerState<_ChatsContent> {
   Widget build(BuildContext context) {
     final chatState = widget.chatState;
     final conversations = chatState.displayedConversations;
+    final authState = ref.watch(authNotifierProvider);
+    final authUser =
+        (authState is Authenticated) ? authState.session.user : null;
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final userName = (profile?.effectiveName.isNotEmpty == true)
+        ? profile!.effectiveName
+        : (authUser != null && authUser.displayName.isNotEmpty
+            ? authUser.displayName
+            : (authUser != null && authUser.username.isNotEmpty
+                ? authUser.username
+                : 'You'));
+    final userAvatar = profile?.profilePictureUrl ?? authUser?.avatarUrl;
 
     return RefreshIndicator(
       color: LeoColors.primary,
@@ -176,13 +230,17 @@ class _ChatsContentState extends ConsumerState<_ChatsContent> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Top Bar: Logo & User Avatar
-            const Row(
+            Row(
               children: [
-                LeoLogo(),
-                Spacer(),
-                LeoAvatar(
-                  radius: 20,
-                  assetPath: 'assets/avatars/Portrait.png',
+                const LeoLogo(),
+                const Spacer(),
+                LeoPressable(
+                  onPressed: widget.onOpenSettings,
+                  child: LeoAvatar(
+                    radius: 20,
+                    name: userName,
+                    imageUrl: userAvatar,
+                  ),
                 ),
               ],
             ),
@@ -812,7 +870,9 @@ class _ConversationHeader extends ConsumerWidget {
                 onPressed: () => Navigator.of(context).pop(),
                 icon: Icon(
                   Icons.arrow_back_rounded,
-                  color: isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
+                  color: isDark
+                      ? LeoColors.darkTextPrimary
+                      : LeoColors.textPrimary,
                 ),
               ),
             ),
@@ -824,6 +884,7 @@ class _ConversationHeader extends ConsumerWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => GroupDetailsPage(
+                        conversation: conversation,
                         groupName: title,
                       ),
                     ),
@@ -832,6 +893,7 @@ class _ConversationHeader extends ConsumerWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => SharedMediaPage(
+                        conversation: conversation,
                         conversationTitle: 'Shared with $title',
                       ),
                     ),
@@ -871,8 +933,8 @@ class _ConversationHeader extends ConsumerWidget {
                     else
                       LeoAvatar(
                         radius: 26,
+                        name: title,
                         imageUrl: conversation.preferredAvatarUrl,
-                        assetPath: 'assets/avatars/Portrait.png',
                         hasOnlineBadge: conversation.isOnline,
                       ),
                     const SizedBox(width: 14),
@@ -997,9 +1059,8 @@ class _ConversationHeader extends ConsumerWidget {
               },
               child: Icon(
                 Icons.phone_outlined,
-                color: isDark
-                    ? LeoColors.darkTextPrimary
-                    : LeoColors.textPrimary,
+                color:
+                    isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
                 size: 22,
               ),
             ),
@@ -1022,9 +1083,8 @@ class _ConversationHeader extends ConsumerWidget {
               },
               child: Icon(
                 Icons.videocam_outlined,
-                color: isDark
-                    ? LeoColors.darkTextPrimary
-                    : LeoColors.textPrimary,
+                color:
+                    isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
                 size: 24,
               ),
             ),
@@ -1042,7 +1102,8 @@ class _ConversationHeader extends ConsumerWidget {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: Text(isGroup ? 'Leave Group?' : 'Delete Conversation?'),
+                      title: Text(
+                          isGroup ? 'Leave Group?' : 'Delete Conversation?'),
                       content: Text(isGroup
                           ? 'Are you sure you want to leave this group?'
                           : 'Are you sure you want to delete this conversation?'),
@@ -1055,7 +1116,8 @@ class _ConversationHeader extends ConsumerWidget {
                           onPressed: () => Navigator.of(ctx).pop(true),
                           child: Text(
                             isGroup ? 'Leave' : 'Delete',
-                            style: const TextStyle(color: LeoColors.destructive),
+                            style:
+                                const TextStyle(color: LeoColors.destructive),
                           ),
                         ),
                       ],
@@ -1199,23 +1261,85 @@ class _NavItem extends StatelessWidget {
 }
 
 class _DesktopRail extends StatelessWidget {
-  const _DesktopRail();
+  const _DesktopRail({
+    this.selectedIndex = 0,
+    this.onSelectTab,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int>? onSelectTab;
 
   @override
-  Widget build(BuildContext context) => const Column(
+  Widget build(BuildContext context) => Column(
         children: [
-          SizedBox(height: 24),
-          LeoLogo(compact: true, onDark: true),
-          Spacer(),
-          Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 24),
-          SizedBox(height: 28),
-          Icon(Icons.phone_outlined, color: Color(0xFF78716C), size: 24),
-          SizedBox(height: 28),
-          Icon(Icons.people_outline_rounded,
-              color: Color(0xFF78716C), size: 24),
-          SizedBox(height: 28),
-          Icon(Icons.tune_rounded, color: Color(0xFF78716C), size: 24),
-          SizedBox(height: 24),
+          const SizedBox(height: 24),
+          const LeoLogo(compact: true, onDark: true),
+          const Spacer(),
+          _RailIconButton(
+            icon: Icons.chat_bubble_rounded,
+            isSelected: selectedIndex == 0,
+            tooltip: 'Chats',
+            onTap: () => onSelectTab?.call(0),
+          ),
+          const SizedBox(height: 24),
+          _RailIconButton(
+            icon: Icons.auto_awesome,
+            isSelected: selectedIndex == 1,
+            tooltip: 'Leo AI',
+            onTap: () => onSelectTab?.call(1),
+          ),
+          const SizedBox(height: 24),
+          _RailIconButton(
+            icon: Icons.people_rounded,
+            isSelected: selectedIndex == 2,
+            tooltip: 'Contacts',
+            onTap: () => onSelectTab?.call(2),
+          ),
+          const SizedBox(height: 24),
+          _RailIconButton(
+            icon: Icons.tune_rounded,
+            isSelected: selectedIndex == 3,
+            tooltip: 'Settings',
+            onTap: () => onSelectTab?.call(3),
+          ),
+          const SizedBox(height: 24),
         ],
       );
+}
+
+class _RailIconButton extends StatelessWidget {
+  const _RailIconButton({
+    required this.icon,
+    required this.isSelected,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool isSelected;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: LeoPressable(
+        onPressed: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: isSelected ? LeoColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(
+            icon,
+            color: isSelected ? Colors.white : const Color(0xFF78716C),
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
 }
