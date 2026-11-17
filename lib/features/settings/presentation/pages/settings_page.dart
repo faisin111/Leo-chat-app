@@ -236,16 +236,6 @@ class SettingsPage extends ConsumerWidget {
                       trailingText: 'Customize',
                       onTap: () => context.push('/settings/appearance'),
                     ),
-                    const Divider(
-                        height: 1,
-                        indent: 18,
-                        endIndent: 18,
-                        color: Color(0xFFF3ECE5)),
-                    _SettingNavigationTile(
-                      title: 'Admin console',
-                      trailingText: 'Dashboard',
-                      onTap: () => context.push('/admin'),
-                    ),
                   ],
                 ),
               ),

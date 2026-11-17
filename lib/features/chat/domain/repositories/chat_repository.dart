@@ -55,6 +55,8 @@ abstract interface class ChatRepository {
     String? avatarUrl,
   });
 
+  Future<Result<void>> leaveConversation(String conversationId);
+
   Future<Result<List<ConversationMember>>> getMembers(String conversationId);
 
   Future<Result<void>> addGroupMembers({

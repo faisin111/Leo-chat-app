@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/colors.dart';
+import '../../../../core/theme/theme_mode_notifier.dart';
 import '../../../../core/widgets/common_widgets/buttons/leo_pressable.dart';
 
-class AppearancePage extends StatefulWidget {
+class AppearancePage extends ConsumerStatefulWidget {
   const AppearancePage({super.key});
 
   @override
-  State<AppearancePage> createState() => _AppearancePageState();
+  ConsumerState<AppearancePage> createState() => _AppearancePageState();
 }
 
-class _AppearancePageState extends State<AppearancePage> {
-  String _selectedTheme = 'Light';
+class _AppearancePageState extends ConsumerState<AppearancePage> {
   Color _selectedAccent = LeoColors.primary;
 
   static const _accents = [
@@ -26,25 +27,36 @@ class _AppearancePageState extends State<AppearancePage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeNotifierProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final selectedModeString = switch (themeMode) {
+      ThemeMode.dark => 'Dark',
+      ThemeMode.light => 'Light',
+      ThemeMode.system => 'System',
+    };
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF7F4),
+      backgroundColor: isDark ? LeoColors.darkBackground : LeoColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? LeoColors.darkSurface : Colors.white,
         elevation: 0,
         scrolledUnderElevation: 1,
         leading: LeoPressable(
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: LeoColors.textPrimary),
+            icon: Icon(
+              Icons.arrow_back_rounded,
+              color: isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
+            ),
             onPressed: () => context.pop(),
           ),
         ),
-        title: const Text(
+        title: Text(
           AppStrings.appearance,
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w800,
-            color: LeoColors.textPrimary,
+            color: isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
           ),
         ),
       ),
@@ -55,20 +67,22 @@ class _AppearancePageState extends State<AppearancePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Theme Mode
-              const Text(
+              Text(
                 'THEME MODE',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.6,
-                  color: LeoColors.textSecondary,
+                  color: isDark
+                      ? LeoColors.darkTextSecondary
+                      : LeoColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
 
               Row(
                 children: ['Light', 'Dark', 'System'].map((mode) {
-                  final isSelected = _selectedTheme == mode;
+                  final isSelected = selectedModeString == mode;
                   IconData icon = Icons.light_mode_rounded;
                   if (mode == 'Dark') icon = Icons.dark_mode_rounded;
                   if (mode == 'System') icon = Icons.brightness_auto_rounded;
@@ -77,16 +91,27 @@ class _AppearancePageState extends State<AppearancePage> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: LeoPressable(
-                        onPressed: () => setState(() => _selectedTheme = mode),
+                        onPressed: () {
+                          final targetMode = switch (mode) {
+                            'Dark' => ThemeMode.dark,
+                            'Light' => ThemeMode.light,
+                            _ => ThemeMode.system,
+                          };
+                          ref
+                              .read(themeModeNotifierProvider.notifier)
+                              .setThemeMode(targetMode);
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: isDark ? LeoColors.darkSurface : Colors.white,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: isSelected
                                   ? _selectedAccent
-                                  : LeoColors.border,
+                                  : (isDark
+                                      ? LeoColors.darkBorder
+                                      : LeoColors.border),
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -96,7 +121,9 @@ class _AppearancePageState extends State<AppearancePage> {
                                 icon,
                                 color: isSelected
                                     ? _selectedAccent
-                                    : const Color(0xFF64748B),
+                                    : (isDark
+                                        ? LeoColors.darkTextSecondary
+                                        : const Color(0xFF64748B)),
                                 size: 26,
                               ),
                               const SizedBox(height: 8),
@@ -107,7 +134,9 @@ class _AppearancePageState extends State<AppearancePage> {
                                   fontWeight: FontWeight.w700,
                                   color: isSelected
                                       ? _selectedAccent
-                                      : LeoColors.textPrimary,
+                                      : (isDark
+                                          ? LeoColors.darkTextPrimary
+                                          : LeoColors.textPrimary),
                                 ),
                               ),
                             ],
@@ -121,13 +150,15 @@ class _AppearancePageState extends State<AppearancePage> {
               const SizedBox(height: 24),
 
               // Accent Color
-              const Text(
+              Text(
                 'ACCENT COLOR',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.6,
-                  color: LeoColors.textSecondary,
+                  color: isDark
+                      ? LeoColors.darkTextSecondary
+                      : LeoColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -135,9 +166,11 @@ class _AppearancePageState extends State<AppearancePage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? LeoColors.darkSurface : Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: LeoColors.border),
+                  border: Border.all(
+                    color: isDark ? LeoColors.darkBorder : LeoColors.border,
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -175,13 +208,15 @@ class _AppearancePageState extends State<AppearancePage> {
               const SizedBox(height: 24),
 
               // Preview Card
-              const Text(
+              Text(
                 'LIVE PREVIEW',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.6,
-                  color: LeoColors.textSecondary,
+                  color: isDark
+                      ? LeoColors.darkTextSecondary
+                      : LeoColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -190,9 +225,11 @@ class _AppearancePageState extends State<AppearancePage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? LeoColors.darkSurface : Colors.white,
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: LeoColors.border),
+                  border: Border.all(
+                    color: isDark ? LeoColors.darkBorder : LeoColors.border,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,13 +256,17 @@ class _AppearancePageState extends State<AppearancePage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: isDark
+                              ? LeoColors.darkIncomingBubble
+                              : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Clean architecture meets responsive polish.',
                           style: TextStyle(
-                            color: Color(0xFF1E293B),
+                            color: isDark
+                                ? LeoColors.darkTextPrimary
+                                : const Color(0xFF1E293B),
                             fontSize: 13,
                           ),
                         ),

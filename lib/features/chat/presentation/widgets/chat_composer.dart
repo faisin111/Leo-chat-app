@@ -179,11 +179,18 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isAiMode = _controller.text.trim().toLowerCase().startsWith('/ai');
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE7DFD8))),
+      decoration: BoxDecoration(
+        color: isDark ? LeoColors.darkSurface : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? LeoColors.darkBorder : const Color(0xFFE7DFD8),
+          ),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -249,8 +256,10 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                       child: Container(
                         width: 40,
                         height: 40,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF3ECE5),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? LeoColors.darkSurfaceElevated
+                              : const Color(0xFFF3ECE5),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.add,
@@ -258,7 +267,53 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
+                  LeoPressable(
+                    child: InkWell(
+                      onTap: () {
+                        final current = _controller.text;
+                        if (current.trim().toLowerCase().startsWith('/ai')) {
+                          final cleaned = current.replaceFirst(
+                              RegExp(r'^/ai\s*', caseSensitive: false), '');
+                          _controller.text = cleaned;
+                        } else {
+                          _controller.text = current.isEmpty
+                              ? '/ai '
+                              : '/ai ${current.trim()} ';
+                        }
+                        _controller.selection = TextSelection.fromPosition(
+                          TextPosition(offset: _controller.text.length),
+                        );
+                        _handleChanged(_controller.text);
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isAiMode
+                              ? LeoColors.primarySoft
+                              : (isDark
+                                  ? LeoColors.darkSurfaceElevated
+                                  : const Color(0xFFF3ECE5)),
+                          shape: BoxShape.circle,
+                          border: isAiMode
+                              ? Border.all(color: LeoColors.primary, width: 1.5)
+                              : null,
+                        ),
+                        child: Icon(
+                          Icons.auto_awesome,
+                          color: isAiMode
+                              ? LeoColors.primary
+                              : (isDark
+                                  ? LeoColors.darkTextSecondary
+                                  : const Color(0xFF78716C)),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                 ],
                 Expanded(
                   child: _isRecording
@@ -266,9 +321,14 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                           height: 48,
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFEEE3),
+                            color: isDark
+                                ? const Color(0xFF3B1E12)
+                                : const Color(0xFFFFEEE3),
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: const Color(0xFFFFD7C2)),
+                            border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF7A3416)
+                                    : const Color(0xFFFFD7C2)),
                           ),
                           child: Row(
                             children: [
@@ -279,8 +339,10 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                                   child: Container(
                                     width: 32,
                                     height: 32,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFFFD7C2),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF5A2414)
+                                          : const Color(0xFFFFD7C2),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
@@ -340,21 +402,33 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                           onSubmitted: (_) => _handleSend(),
                           textCapitalization: TextCapitalization.sentences,
                           textInputAction: TextInputAction.send,
-                          decoration: const InputDecoration(
-                            hintText: 'Message...',
+                          style: TextStyle(
+                            color: isDark
+                                ? LeoColors.darkTextPrimary
+                                : LeoColors.textPrimary,
+                            fontSize: 15,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: isAiMode
+                                ? 'Ask Leo AI (/ai)...'
+                                : 'Message...',
                             hintStyle: TextStyle(
-                              color: Color(0xFF78716C),
+                              color: isDark
+                                  ? LeoColors.darkTextSecondary
+                                  : const Color(0xFF78716C),
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
                             filled: true,
-                            fillColor: Color(0xFFF3ECE5),
-                            border: OutlineInputBorder(
+                            fillColor: isDark
+                                ? LeoColors.darkInput
+                                : const Color(0xFFF3ECE5),
+                            border: const OutlineInputBorder(
                               borderRadius:
                                   BorderRadius.all(Radius.circular(30)),
                               borderSide: BorderSide.none,
                             ),
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 18, vertical: 12),
                             isDense: true,
                           ),
@@ -384,11 +458,13 @@ class _LeoChatComposerState extends State<LeoChatComposer> {
                         ],
                       ),
                       child: Icon(
-                        _hasText
-                            ? Icons.send_rounded
-                            : (_isRecording
-                                ? Icons.arrow_upward_rounded
-                                : Icons.mic_none_rounded),
+                        isAiMode
+                            ? Icons.auto_awesome
+                            : (_hasText
+                                ? Icons.send_rounded
+                                : (_isRecording
+                                    ? Icons.arrow_upward_rounded
+                                    : Icons.mic_none_rounded)),
                         color: Colors.white,
                         size: 22,
                       ),

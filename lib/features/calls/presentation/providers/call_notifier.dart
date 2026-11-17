@@ -23,6 +23,7 @@ class CallNotifier extends StateNotifier<CallState> {
     final fromUsername = data['fromUsername']?.toString() ?? 'Caller';
 
     switch (action) {
+      case 'INVITE':
       case 'OFFER':
         final callTypeStr = data['callType']?.toString().toLowerCase();
         final callType =
@@ -38,6 +39,23 @@ class CallNotifier extends StateNotifier<CallState> {
             status: CallStatus.incoming,
             isCaller: false,
           ),
+        );
+        break;
+
+      case 'DELIVERED':
+        if (state.activeCall != null &&
+            state.activeCall!.status == CallStatus.outgoing) {
+          state = state.copyWith(
+            activeCall: state.activeCall!.copyWith(status: CallStatus.outgoing),
+          );
+        }
+        break;
+
+      case 'UNAVAILABLE':
+        _stopTimer();
+        state = state.copyWith(
+          clearActiveCall: true,
+          clearIncomingCall: true,
         );
         break;
 

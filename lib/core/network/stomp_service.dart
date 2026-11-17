@@ -234,6 +234,26 @@ class StompService {
     return true;
   }
 
+  bool sendAiChat({
+    required String conversationId,
+    required String prompt,
+    String? clientMessageId,
+  }) {
+    if (_client == null || !_client!.connected) return false;
+
+    final payload = {
+      'conversationId': conversationId,
+      'prompt': prompt,
+      if (clientMessageId != null) 'clientMessageId': clientMessageId,
+    };
+
+    _client!.send(
+      destination: '/app/ai.chat',
+      body: jsonEncode(payload),
+    );
+    return true;
+  }
+
   bool sendTyping({required String conversationId, required bool isTyping}) {
     if (_client == null || !_client!.connected) return false;
 

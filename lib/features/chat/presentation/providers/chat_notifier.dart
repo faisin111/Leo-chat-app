@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/di/providers.dart';
 import '../../../../core/network/result.dart';
@@ -12,17 +13,21 @@ import '../../domain/entities/message.dart';
 import '../../domain/repositories/chat_repository.dart';
 import 'chat_state.dart';
 
+import '../../../ai/domain/repositories/ai_repository.dart';
+
 final chatNotifierProvider =
     StateNotifierProvider<ChatNotifier, ChatState>((ref) {
   final repository = ref.watch(chatRepositoryProvider);
   final stompService = ref.watch(stompServiceProvider);
   final storage = ref.watch(secureStorageProvider);
+  final aiRepo = ref.watch(aiRepositoryProvider);
 
   return ChatNotifier(
     chatRepository: repository,
     stompService: stompService,
     secureStorage: storage,
     mediaRepository: ref.watch(mediaRepositoryProvider),
+    aiRepository: aiRepo,
   );
 });
 
@@ -32,10 +37,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
     required StompService stompService,
     required FlutterSecureStorage secureStorage,
     required MediaRepository mediaRepository,
+    AiRepository? aiRepository,
   })  : _chatRepository = chatRepository,
         _stompService = stompService,
         _secureStorage = secureStorage,
         _mediaRepository = mediaRepository,
+        _aiRepository = aiRepository,
         super(const ChatState(isLoadingConversations: true)) {
     _init();
   }
@@ -44,6 +51,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
   final StompService _stompService;
   final FlutterSecureStorage _secureStorage;
   final MediaRepository _mediaRepository;
+  final AiRepository? _aiRepository;
 
   StreamSubscription<MessageDto>? _msgSub;
   StreamSubscription<MessageDto>? _ackSub;
@@ -409,10 +417,98 @@ class ChatNotifier extends StateNotifier<ChatState> {
     );
   }
 
+  Future<void> sendAiPrompt(String conversationId, String prompt) async {
+    final cleanPrompt = prompt.trim();
+    if (cleanPrompt.isEmpty) return;
+
+    final clientMessageId = 'ai-client-${DateTime.now().millisecondsSinceEpoch}';
+
+    final optimisticMsg = Message(
+      id: clientMessageId,
+      conversationId: conversationId,
+      clientMessageId: clientMessageId,
+      content: cleanPrompt,
+      type: 'TEXT',
+      createdAt: DateTime.now(),
+      isOwn: true,
+      isRead: false,
+      seq: (state.messages.isNotEmpty ? state.messages.last.seq : 0) + 1,
+      sendStatus: MessageSendStatus.sending,
+    );
+
+    final updated = List<Message>.from(state.messages)..add(optimisticMsg);
+    state = state.copyWith(messages: updated);
+
+    final sentRealtime = _stompService.sendAiChat(
+      conversationId: conversationId,
+      prompt: cleanPrompt,
+      clientMessageId: clientMessageId,
+    );
+
+    final aiRepo = _aiRepository;
+    if (!sentRealtime && aiRepo != null) {
+      final res = await aiRepo.chat(
+        conversationId: conversationId,
+        prompt: cleanPrompt,
+        clientMessageId: clientMessageId,
+      );
+      res.fold(
+        (failure) {
+          final list = state.messages.map((m) {
+            if (m.clientMessageId == clientMessageId) {
+              return m.copyWith(sendStatus: MessageSendStatus.failed);
+            }
+            return m;
+          }).toList();
+          state = state.copyWith(messages: list, errorMessage: failure.message);
+        },
+        (aiMsg) {
+          if (!state.messages.any((m) => m.id == aiMsg.id)) {
+            final list = List<Message>.from(state.messages)..add(aiMsg);
+            state = state.copyWith(messages: list);
+          }
+        },
+      );
+    }
+  }
+
+  Future<Result<void>> leaveConversation(String conversationId) async {
+    final result = await _chatRepository.leaveConversation(conversationId);
+    return result.fold(
+      (failure) => Left(failure),
+      (_) {
+        final updated =
+            state.conversations.where((c) => c.id != conversationId).toList();
+        _stompService.unsubscribeFromConversation(conversationId);
+        final isSelected = state.selectedConversationId == conversationId;
+        state = state.copyWith(
+          conversations: updated,
+          selectedConversationId:
+              isSelected ? null : state.selectedConversationId,
+        );
+        _chatRepository.saveCachedConversations(updated);
+        return const Right(null);
+      },
+    );
+  }
+
   Future<void> sendMessage(String text,
       {String type = 'TEXT', String? replyToId}) async {
     final conv = state.selectedConversation;
     if (conv == null || text.trim().isEmpty) return;
+
+    final trimmed = text.trim();
+    if (conv.isAi || trimmed.toLowerCase().startsWith('/ai')) {
+      final prompt = conv.isAi
+          ? trimmed
+          : trimmed
+              .replaceFirst(RegExp(r'^/ai\s*', caseSensitive: false), '')
+              .trim();
+      if (prompt.isNotEmpty) {
+        await sendAiPrompt(conv.id, prompt);
+        return;
+      }
+    }
 
     final clientMessageId = 'client-${DateTime.now().millisecondsSinceEpoch}';
 

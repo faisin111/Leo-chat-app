@@ -7,6 +7,9 @@ import '../cache/cache_store.dart';
 import '../config/app_config.dart';
 import '../network/dio_client.dart';
 import '../network/stomp_service.dart';
+import '../../features/ai/data/datasources/ai_remote_data_source.dart';
+import '../../features/ai/data/repositories/ai_repository_impl.dart';
+import '../../features/ai/domain/repositories/ai_repository.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -16,6 +19,9 @@ import '../../features/chat/domain/repositories/chat_repository.dart';
 import '../../features/media/data/datasources/media_remote_data_source.dart';
 import '../../features/media/data/repositories/media_repository_impl.dart';
 import '../../features/media/domain/repositories/media_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+final sharedPreferencesProvider = Provider<SharedPreferences?>((_) => null);
 
 final appConfigProvider = Provider<AppConfig>((_) => AppConfig.production);
 
@@ -75,4 +81,13 @@ final mediaRepositoryProvider = Provider<MediaRepository>((ref) {
   return MediaRepositoryImpl(
     MediaRemoteDataSource(ref.watch(dioClientProvider).dio),
   );
+});
+
+final aiRemoteDataSourceProvider = Provider<AiRemoteDataSource>((ref) {
+  final dio = ref.watch(dioClientProvider).dio;
+  return AiRemoteDataSourceImpl(dio);
+});
+
+final aiRepositoryProvider = Provider<AiRepository>((ref) {
+  return AiRepositoryImpl(ref.watch(aiRemoteDataSourceProvider));
 });

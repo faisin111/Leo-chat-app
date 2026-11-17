@@ -36,26 +36,30 @@ class SessionsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sessionsAsync = ref.watch(userSessionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF7F4),
+      backgroundColor:
+          isDark ? LeoColors.darkBackground : const Color(0xFFFAF7F4),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? LeoColors.darkSurface : Colors.white,
         elevation: 0,
         scrolledUnderElevation: 1,
         leading: LeoPressable(
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: LeoColors.textPrimary),
+            icon: Icon(
+              Icons.arrow_back_rounded,
+              color: isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
+            ),
             onPressed: () => context.pop(),
           ),
         ),
-        title: const Text(
+        title: Text(
           AppStrings.sessionsAndDevices,
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w800,
-            color: LeoColors.textPrimary,
+            color: isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
           ),
         ),
       ),
@@ -69,25 +73,33 @@ class SessionsPage extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: isDark
+                      ? const Color(0xFF451A03).withOpacity(0.4)
+                      : const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFFDE68A)),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF78350F)
+                        : const Color(0xFFFDE68A),
+                  ),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.shield_outlined,
                       color: Color(0xFFD97706),
                       size: 22,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'If you see a device you do not recognize, sign out immediately and update your password in Security settings.',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF92400E),
+                          color: isDark
+                              ? const Color(0xFFFDE68A)
+                              : const Color(0xFF92400E),
                           height: 1.4,
                         ),
                       ),
@@ -97,13 +109,15 @@ class SessionsPage extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
 
-              const Text(
+              Text(
                 'LOGGED IN DEVICES',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.6,
-                  color: LeoColors.textSecondary,
+                  color: isDark
+                      ? LeoColors.darkTextSecondary
+                      : LeoColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -115,21 +129,25 @@ class SessionsPage extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? LeoColors.darkSurface : Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: LeoColors.border),
+                        border: Border.all(
+                          color: isDark ? LeoColors.darkBorder : LeoColors.border,
+                        ),
                       ),
-                      child: const Column(
+                      child: Column(
                         children: [
-                          Icon(Icons.devices_other_rounded,
+                          const Icon(Icons.devices_other_rounded,
                               size: 40, color: LeoColors.textMuted),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           Text(
                             'Current device is active',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: LeoColors.textPrimary,
+                              color: isDark
+                                  ? LeoColors.darkTextPrimary
+                                  : LeoColors.textPrimary,
                             ),
                           ),
                         ],
@@ -150,12 +168,14 @@ class SessionsPage extends ConsumerWidget {
                       return Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: isDark ? LeoColors.darkSurface : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isCurrent
                                 ? LeoColors.primary.withOpacity(0.5)
-                                : LeoColors.border,
+                                : (isDark
+                                    ? LeoColors.darkBorder
+                                    : LeoColors.border),
                           ),
                         ),
                         child: Row(
@@ -166,14 +186,18 @@ class SessionsPage extends ConsumerWidget {
                               decoration: BoxDecoration(
                                 color: isCurrent
                                     ? LeoColors.primarySoft
-                                    : const Color(0xFFF1F5F9),
+                                    : (isDark
+                                        ? LeoColors.darkSurfaceElevated
+                                        : const Color(0xFFF1F5F9)),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Icon(
                                 icon,
                                 color: isCurrent
                                     ? LeoColors.primary
-                                    : const Color(0xFF475569),
+                                    : (isDark
+                                        ? LeoColors.darkTextSecondary
+                                        : const Color(0xFF475569)),
                                 size: 24,
                               ),
                             ),
@@ -184,14 +208,20 @@ class SessionsPage extends ConsumerWidget {
                                 children: [
                                   Row(
                                     children: [
-                                      Text(
-                                        s.deviceName ??
-                                            s.platform ??
-                                            'LeoChat Session',
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                          color: LeoColors.textPrimary,
+                                      Flexible(
+                                        child: Text(
+                                          s.deviceName ??
+                                              s.platform ??
+                                              'LeoChat Session',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark
+                                                ? LeoColors.darkTextPrimary
+                                                : LeoColors.textPrimary,
+                                          ),
                                         ),
                                       ),
                                       if (isCurrent) ...[
@@ -220,9 +250,11 @@ class SessionsPage extends ConsumerWidget {
                                   const SizedBox(height: 3),
                                   Text(
                                     '${s.ipAddress ?? "IP Protected"} · ${_formatRelativeTime(s.lastUsedAt)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: LeoColors.textSecondary,
+                                      color: isDark
+                                          ? LeoColors.darkTextSecondary
+                                          : LeoColors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -274,7 +306,16 @@ class SessionsPage extends ConsumerWidget {
                     child: CircularProgressIndicator(color: LeoColors.primary),
                   ),
                 ),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                error: (e, _) => Center(
+                  child: Text(
+                    'Error: $e',
+                    style: TextStyle(
+                      color: isDark
+                          ? LeoColors.darkTextPrimary
+                          : LeoColors.textPrimary,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

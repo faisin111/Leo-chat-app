@@ -165,6 +165,7 @@ class LeoChatBubble extends StatelessWidget {
   Widget _buildIncomingBubble(
       BuildContext context, String timeStr, bool isDeleted) {
     final isVoice = _isVoiceMessage;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -175,21 +176,53 @@ class LeoChatBubble extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 4, bottom: 4),
-              child: Text(
-                message.effectiveSenderName,
-                style: const TextStyle(
-                  color: LeoColors.primary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    message.aiGenerated ? 'Leo AI' : message.effectiveSenderName,
+                    style: const TextStyle(
+                      color: LeoColors.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (message.aiGenerated) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: LeoColors.primarySoft,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome,
+                              size: 10, color: LeoColors.primary),
+                          SizedBox(width: 3),
+                          Text(
+                            'AI',
+                            style: TextStyle(
+                              color: LeoColors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             Container(
               constraints: const BoxConstraints(maxWidth: 520),
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.all(Radius.circular(22)),
+              decoration: BoxDecoration(
+                color: isDark ? LeoColors.darkIncomingBubble : Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(22)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,8 +253,10 @@ class LeoChatBubble extends StatelessWidget {
                   else
                     Text(
                       message.content ?? '',
-                      style: const TextStyle(
-                        color: LeoColors.textPrimary,
+                      style: TextStyle(
+                        color: isDark
+                            ? LeoColors.darkTextPrimary
+                            : LeoColors.textPrimary,
                         fontSize: 16,
                         height: 1.35,
                         fontWeight: FontWeight.w500,
@@ -232,8 +267,10 @@ class LeoChatBubble extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     child: Text(
                       timeStr,
-                      style: const TextStyle(
-                        color: LeoColors.textMuted,
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white54
+                            : LeoColors.textMuted,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),

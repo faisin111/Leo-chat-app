@@ -10,6 +10,7 @@ abstract final class LeoTheme {
     GoogleFonts.config.allowRuntimeFetching = false;
     return ThemeData(
       useMaterial3: true,
+      brightness: Brightness.light,
       fontFamily: 'Poppins',
       textTheme: LeoTypography.textTheme,
       scaffoldBackgroundColor: LeoColors.background,
@@ -26,7 +27,48 @@ abstract final class LeoTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
+      cardTheme: const CardTheme(
+        color: LeoColors.surface,
+        elevation: 0,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: LeoColors.border,
+        thickness: 1,
+      ),
       inputDecorationTheme: LeoFields.inputDecoration,
+    );
+  }
+
+  static ThemeData get dark {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      fontFamily: 'Poppins',
+      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+      scaffoldBackgroundColor: LeoColors.darkBackground,
+      colorScheme: const ColorScheme.dark(
+        primary: LeoColors.primary,
+        onPrimary: Colors.white,
+        surface: LeoColors.darkSurface,
+        onSurface: LeoColors.darkTextPrimary,
+        error: LeoColors.destructive,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: LeoColors.darkSurface,
+        foregroundColor: LeoColors.darkTextPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      cardTheme: const CardTheme(
+        color: LeoColors.darkSurface,
+        elevation: 0,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: LeoColors.darkBorder,
+        thickness: 1,
+      ),
+      inputDecorationTheme: LeoFields.darkInputDecoration,
     );
   }
 }

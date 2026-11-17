@@ -80,6 +80,66 @@ void main() {
       expect(notifier.state.incomingCall?.callType, equals(CallType.audio));
     });
 
+    test('receiving INVITE signal sets incomingCall state', () async {
+      fakeStompService.emitSignal({
+        'action': 'INVITE',
+        'callId': 'incoming-invite-1',
+        'conversationId': 'c1',
+        'fromUserId': 'u2',
+        'fromUsername': 'Bob',
+        'callType': 'video',
+      });
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(notifier.state.hasIncomingCall, isTrue);
+      expect(notifier.state.incomingCall?.callId, equals('incoming-invite-1'));
+      expect(notifier.state.incomingCall?.targetUserName, equals('Bob'));
+      expect(notifier.state.incomingCall?.callType, equals(CallType.video));
+    });
+
+    test('receiving UNAVAILABLE signal clears active call', () async {
+      notifier.startCall(
+        conversationId: 'c1',
+        targetUserId: 'u2',
+        targetUserName: 'Alice',
+        callType: CallType.audio,
+      );
+      expect(notifier.state.hasActiveCall, isTrue);
+
+      fakeStompService.emitSignal({
+        'action': 'UNAVAILABLE',
+        'callId': notifier.state.activeCall!.callId,
+        'conversationId': 'c1',
+        'fromUserId': 'u2',
+      });
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(notifier.state.hasActiveCall, isFalse);
+    });
+
+    test('receiving DELIVERED signal keeps outgoing call active', () async {
+      notifier.startCall(
+        conversationId: 'c1',
+        targetUserId: 'u2',
+        targetUserName: 'Alice',
+        callType: CallType.audio,
+      );
+      expect(notifier.state.hasActiveCall, isTrue);
+
+      fakeStompService.emitSignal({
+        'action': 'DELIVERED',
+        'callId': notifier.state.activeCall!.callId,
+        'conversationId': 'c1',
+      });
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(notifier.state.hasActiveCall, isTrue);
+      expect(notifier.state.activeCall?.status, equals(CallStatus.outgoing));
+    });
+
     test('rejectIncomingCall clears incomingCall and sends REJECT signal',
         () async {
       fakeStompService.emitSignal({

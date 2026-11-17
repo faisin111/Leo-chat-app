@@ -785,16 +785,24 @@ class _ConversationHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final title = conversation.effectiveTitle;
-    final subtitle = conversation.isGroup
-        ? 'Group conversation'
-        : (conversation.isOnline ? 'Online' : 'Offline');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isAi = conversation.isAi;
+    final title = isAi ? 'Leo AI Assistant' : conversation.effectiveTitle;
+    final subtitle = isAi
+        ? 'Always active • Gemini 2.5 Flash'
+        : (conversation.isGroup
+            ? 'Group conversation'
+            : (conversation.isOnline ? 'Online' : 'Offline'));
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE7DFD8))),
+      decoration: BoxDecoration(
+        color: isDark ? LeoColors.darkSurface : Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? LeoColors.darkBorder : const Color(0xFFE7DFD8),
+          ),
+        ),
       ),
       child: Row(
         children: [
@@ -802,12 +810,16 @@ class _ConversationHeader extends ConsumerWidget {
             LeoPressable(
               child: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back_rounded),
+                icon: Icon(
+                  Icons.arrow_back_rounded,
+                  color: isDark ? LeoColors.darkTextPrimary : LeoColors.textPrimary,
+                ),
               ),
             ),
           Expanded(
             child: InkWell(
               onTap: () {
+                if (isAi) return;
                 if (conversation.isGroup) {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -831,34 +843,89 @@ class _ConversationHeader extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    LeoAvatar(
-                      radius: 26,
-                      imageUrl: conversation.preferredAvatarUrl,
-                      assetPath: 'assets/avatars/Portrait.png',
-                      hasOnlineBadge: conversation.isOnline,
-                    ),
+                    if (isAi)
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF6D00), Color(0xFFE64A19)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: LeoColors.primary.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      )
+                    else
+                      LeoAvatar(
+                        radius: 26,
+                        imageUrl: conversation.preferredAvatarUrl,
+                        assetPath: 'assets/avatars/Portrait.png',
+                        hasOnlineBadge: conversation.isOnline,
+                      ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: LeoColors.textPrimary,
-                            ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: isDark
+                                        ? LeoColors.darkTextPrimary
+                                        : LeoColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (isAi) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: LeoColors.primarySoft,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'AI',
+                                    style: TextStyle(
+                                      color: LeoColors.primary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           const SizedBox(height: 3),
                           Text(
                             subtitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: LeoColors.textSecondary,
+                              color: isDark
+                                  ? LeoColors.darkTextSecondary
+                                  : LeoColors.textSecondary,
                             ),
                           ),
                         ],
@@ -870,49 +937,158 @@ class _ConversationHeader extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          LeoPressable(
-            onPressed: () {
-              ref.read(callNotifierProvider.notifier).startCall(
-                    conversationId: conversation.id,
-                    targetUserId: conversation.targetUserId ?? conversation.id,
-                    targetUserName: conversation.effectiveTitle,
-                    targetAvatarUrl: conversation.preferredAvatarUrl,
-                    callType: CallType.audio,
-                  );
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ActiveCallPage(),
+          if (isAi)
+            LeoPressable(
+              child: IconButton(
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  color: isDark
+                      ? LeoColors.darkTextSecondary
+                      : LeoColors.textSecondary,
+                  size: 22,
                 ),
-              );
-            },
-            child: const Icon(
-              Icons.phone_outlined,
-              color: LeoColors.textPrimary,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 18),
-          LeoPressable(
-            onPressed: () {
-              ref.read(callNotifierProvider.notifier).startCall(
-                    conversationId: conversation.id,
-                    targetUserId: conversation.targetUserId ?? conversation.id,
-                    targetUserName: conversation.effectiveTitle,
-                    targetAvatarUrl: conversation.preferredAvatarUrl,
-                    callType: CallType.video,
+                tooltip: 'Clear conversation',
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Clear AI Conversation?'),
+                      content: const Text(
+                          'This will permanently delete your AI chat history.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text(
+                            'Delete',
+                            style: TextStyle(color: LeoColors.destructive),
+                          ),
+                        ),
+                      ],
+                    ),
                   );
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ActiveCallPage(),
-                ),
-              );
-            },
-            child: const Icon(
-              Icons.videocam_outlined,
-              color: LeoColors.textPrimary,
-              size: 24,
+                  if (confirm == true) {
+                    await ref
+                        .read(chatNotifierProvider.notifier)
+                        .leaveConversation(conversation.id);
+                  }
+                },
+              ),
+            )
+          else ...[
+            LeoPressable(
+              onPressed: () {
+                ref.read(callNotifierProvider.notifier).startCall(
+                      conversationId: conversation.id,
+                      targetUserId:
+                          conversation.targetUserId ?? conversation.id,
+                      targetUserName: conversation.effectiveTitle,
+                      targetAvatarUrl: conversation.preferredAvatarUrl,
+                      callType: CallType.audio,
+                    );
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ActiveCallPage(),
+                  ),
+                );
+              },
+              child: Icon(
+                Icons.phone_outlined,
+                color: isDark
+                    ? LeoColors.darkTextPrimary
+                    : LeoColors.textPrimary,
+                size: 22,
+              ),
             ),
-          ),
+            const SizedBox(width: 16),
+            LeoPressable(
+              onPressed: () {
+                ref.read(callNotifierProvider.notifier).startCall(
+                      conversationId: conversation.id,
+                      targetUserId:
+                          conversation.targetUserId ?? conversation.id,
+                      targetUserName: conversation.effectiveTitle,
+                      targetAvatarUrl: conversation.preferredAvatarUrl,
+                      callType: CallType.video,
+                    );
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ActiveCallPage(),
+                  ),
+                );
+              },
+              child: Icon(
+                Icons.videocam_outlined,
+                color: isDark
+                    ? LeoColors.darkTextPrimary
+                    : LeoColors.textPrimary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 6),
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert_rounded,
+                color: isDark
+                    ? LeoColors.darkTextSecondary
+                    : LeoColors.textSecondary,
+              ),
+              onSelected: (val) async {
+                if (val == 'leave') {
+                  final isGroup = conversation.isGroup;
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text(isGroup ? 'Leave Group?' : 'Delete Conversation?'),
+                      content: Text(isGroup
+                          ? 'Are you sure you want to leave this group?'
+                          : 'Are you sure you want to delete this conversation?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: Text(
+                            isGroup ? 'Leave' : 'Delete',
+                            style: const TextStyle(color: LeoColors.destructive),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await ref
+                        .read(chatNotifierProvider.notifier)
+                        .leaveConversation(conversation.id);
+                  }
+                }
+              },
+              itemBuilder: (ctx) => [
+                PopupMenuItem(
+                  value: 'leave',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.delete_outline_rounded,
+                          color: LeoColors.destructive, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        conversation.isGroup ? 'Leave Group' : 'Delete Chat',
+                        style: const TextStyle(
+                          color: LeoColors.destructive,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -926,48 +1102,54 @@ class _BottomNav extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFFAF7F4),
-          border: Border(
-            top: BorderSide(color: Color(0xFFE7DFD8), width: 1),
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? LeoColors.darkSurface : const Color(0xFFFAF7F4),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? LeoColors.darkBorder : const Color(0xFFE7DFD8),
+            width: 1,
           ),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _NavItem(
-              icon: Icons.chat_bubble_outline_rounded,
-              activeIcon: Icons.chat_bubble_rounded,
-              label: AppStrings.chats,
-              active: selectedIndex == 0,
-              onTap: () => onTap(0),
-            ),
-            _NavItem(
-              icon: Icons.auto_awesome_outlined,
-              activeIcon: Icons.auto_awesome,
-              label: AppStrings.aiAssistant,
-              active: selectedIndex == 1,
-              onTap: () => onTap(1),
-            ),
-            _NavItem(
-              icon: Icons.people_outline_rounded,
-              activeIcon: Icons.people_rounded,
-              label: AppStrings.contacts,
-              active: selectedIndex == 2,
-              onTap: () => onTap(2),
-            ),
-            _NavItem(
-              icon: Icons.tune_rounded,
-              activeIcon: Icons.tune_rounded,
-              label: AppStrings.settings,
-              active: selectedIndex == 3,
-              onTap: () => onTap(3),
-            ),
-          ],
-        ),
-      );
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _NavItem(
+            icon: Icons.chat_bubble_outline_rounded,
+            activeIcon: Icons.chat_bubble_rounded,
+            label: AppStrings.chats,
+            active: selectedIndex == 0,
+            onTap: () => onTap(0),
+          ),
+          _NavItem(
+            icon: Icons.auto_awesome_outlined,
+            activeIcon: Icons.auto_awesome,
+            label: AppStrings.aiAssistant,
+            active: selectedIndex == 1,
+            onTap: () => onTap(1),
+          ),
+          _NavItem(
+            icon: Icons.people_outline_rounded,
+            activeIcon: Icons.people_rounded,
+            label: AppStrings.contacts,
+            active: selectedIndex == 2,
+            onTap: () => onTap(2),
+          ),
+          _NavItem(
+            icon: Icons.tune_rounded,
+            activeIcon: Icons.tune_rounded,
+            label: AppStrings.settings,
+            active: selectedIndex == 3,
+            onTap: () => onTap(3),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _NavItem extends StatelessWidget {

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/constants/app_strings.dart';
 import '../core/auth/auth_session_events.dart';
 import '../core/theme/theme.dart';
+import '../core/theme/theme_mode_notifier.dart';
 import '../core/widgets/common_widgets/scrolling/leo_scroll_behavior.dart';
-import '../features/admin/presentation/pages/admin_dashboard_page.dart';
-import '../features/admin/presentation/pages/admin_reports_page.dart';
-import '../features/admin/presentation/pages/admin_users_page.dart';
 import '../features/ai/presentation/pages/ai_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
@@ -92,17 +91,6 @@ final _router = GoRouter(
     GoRoute(
         path: '/shared-media',
         pageBuilder: (context, state) => _page(state, const SharedMediaPage())),
-    GoRoute(
-        path: '/admin',
-        pageBuilder: (context, state) =>
-            _page(state, const AdminDashboardPage())),
-    GoRoute(
-        path: '/admin/users',
-        pageBuilder: (context, state) => _page(state, const AdminUsersPage())),
-    GoRoute(
-        path: '/admin/reports',
-        pageBuilder: (context, state) =>
-            _page(state, const AdminReportsPage())),
   ],
 );
 final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -114,38 +102,30 @@ CustomTransitionPage<void> _page(GoRouterState state, Widget child) =>
       transitionDuration: const Duration(milliseconds: 320),
       reverseTransitionDuration: const Duration(milliseconds: 240),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
+        final tween =
+            Tween<double>(begin: 0.94, end: 1.0).chain(CurveTween(curve: Curves.easeOutCubic));
+        final fade =
+            Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOutCubic));
         return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.025, 0),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          ),
+          opacity: animation.drive(fade),
+          child: ScaleTransition(scale: animation.drive(tween), child: child),
         );
       },
     );
 
-class LeoChatApp extends StatefulWidget {
+class LeoChatApp extends ConsumerStatefulWidget {
   const LeoChatApp({super.key});
 
   @override
-  State<LeoChatApp> createState() => _LeoChatAppState();
+  ConsumerState<LeoChatApp> createState() => _LeoChatAppState();
 }
 
-class _LeoChatAppState extends State<LeoChatApp> {
-  late int _lastSessionEvent;
+class _LeoChatAppState extends ConsumerState<LeoChatApp> {
+  int? _lastSessionEvent;
 
   @override
   void initState() {
     super.initState();
-    _lastSessionEvent = AuthSessionEvents.sessionExpired.value;
     AuthSessionEvents.sessionExpired.addListener(_onSessionExpired);
   }
 
@@ -173,12 +153,18 @@ class _LeoChatAppState extends State<LeoChatApp> {
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp.router(
-        title: AppStrings.appName,
-        theme: LeoTheme.light,
-        scrollBehavior: const LeoScrollBehavior(),
-        routerConfig: _router,
-        scaffoldMessengerKey: _scaffoldMessengerKey,
-        debugShowCheckedModeBanner: false,
-      );
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeNotifierProvider);
+
+    return MaterialApp.router(
+      title: AppStrings.appName,
+      theme: LeoTheme.light,
+      darkTheme: LeoTheme.dark,
+      themeMode: themeMode,
+      scrollBehavior: const LeoScrollBehavior(),
+      routerConfig: _router,
+      scaffoldMessengerKey: _scaffoldMessengerKey,
+      debugShowCheckedModeBanner: false,
+    );
+  }
 }

@@ -27,6 +27,8 @@ abstract interface class ChatRemoteDataSource {
     String? avatarUrl,
   });
 
+  Future<void> leaveConversation(String conversationId);
+
   Future<List<ConversationMemberDto>> getMembers(String conversationId);
 
   Future<void> addGroupMembers(String conversationId, List<String> memberIds);
@@ -145,6 +147,11 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
       data: body,
     );
     return ConversationDto.fromJson(response.data ?? {});
+  }
+
+  @override
+  Future<void> leaveConversation(String conversationId) async {
+    await _dio.delete<void>('/conversations/$conversationId');
   }
 
   @override

@@ -67,6 +67,7 @@ class Message {
     this.sendStatus = MessageSendStatus.sent,
     this.isOwn = false,
     this.isRead = false,
+    this.aiGenerated = false,
   });
 
   final String id;
@@ -88,6 +89,7 @@ class Message {
   final MessageSendStatus sendStatus;
   final bool isOwn;
   final bool isRead;
+  final bool aiGenerated;
 
   String get effectiveSenderName {
     if (senderDisplayName != null && senderDisplayName!.isNotEmpty) {
@@ -129,6 +131,7 @@ class Message {
     MessageSendStatus? sendStatus,
     bool? isOwn,
     bool? isRead,
+    bool? aiGenerated,
   }) {
     return Message(
       id: id ?? this.id,
@@ -150,6 +153,7 @@ class Message {
       sendStatus: sendStatus ?? this.sendStatus,
       isOwn: isOwn ?? this.isOwn,
       isRead: isRead ?? this.isRead,
+      aiGenerated: aiGenerated ?? this.aiGenerated,
     );
   }
 }

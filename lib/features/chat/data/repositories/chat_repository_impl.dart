@@ -246,6 +246,18 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
+  Future<Result<void>> leaveConversation(String conversationId) async {
+    try {
+      await _remoteDataSource.leaveConversation(conversationId);
+      return const Right(null);
+    } on DioException catch (e) {
+      return Left(failureFromDio(e));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Result<Conversation>> createGroup({
     required String title,
     required List<String> memberIds,

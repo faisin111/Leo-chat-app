@@ -14,28 +14,47 @@ abstract final class LeoFields {
     ),
   );
 
+  static const InputDecorationTheme darkInputDecoration = InputDecorationTheme(
+    filled: true,
+    fillColor: LeoColors.darkInput,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(16)),
+      borderSide: BorderSide.none,
+    ),
+  );
+
   static InputDecoration auth({
     required String hint,
     IconData? icon,
     Widget? suffix,
+    bool isDark = false,
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(
-        color: LeoColors.textMuted,
+      hintStyle: TextStyle(
+        color: isDark ? LeoColors.darkTextMuted : LeoColors.textMuted,
         fontWeight: FontWeight.w500,
         fontSize: 15,
       ),
       suffixIcon: suffix ??
           (icon == null
               ? null
-              : Icon(icon, color: LeoColors.textSecondary, size: 22)),
+              : Icon(
+                  icon,
+                  color: isDark
+                      ? LeoColors.darkTextSecondary
+                      : LeoColors.textSecondary,
+                  size: 22,
+                )),
       filled: true,
-      fillColor: LeoColors.surface,
+      fillColor: isDark ? LeoColors.darkSurface : LeoColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: LeoColors.border, width: 1.2),
+        borderSide: BorderSide(
+          color: isDark ? LeoColors.darkBorder : LeoColors.border,
+          width: 1.2,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),

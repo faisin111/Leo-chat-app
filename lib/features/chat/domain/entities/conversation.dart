@@ -46,6 +46,7 @@ class Conversation {
   final bool isMuted;
 
   bool get isGroup => type.toUpperCase() == 'GROUP';
+  bool get isAi => type.toUpperCase() == 'AI';
 
   String? get preferredAvatarUrl {
     for (final value in [avatarUrl, targetAvatarUrl]) {

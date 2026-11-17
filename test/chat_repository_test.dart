@@ -92,6 +92,11 @@ class _FakeChatRemoteDataSource implements ChatRemoteDataSource {
   }) async {}
 
   @override
+  Future<void> leaveConversation(String conversationId) async {
+    conversations.removeWhere((c) => c.id == conversationId);
+  }
+
+  @override
   Future<int> getUnreadCount() async => 3;
 
   @override
@@ -202,5 +207,12 @@ void main() {
   test('getUnreadCount returns total count', () async {
     final result = await repository.getUnreadCount();
     expect(result, const Right(3));
+  });
+
+  test('leaveConversation invokes remote data source and returns Right',
+      () async {
+    final result = await repository.leaveConversation('c-1');
+    expect(result.isRight(), isTrue);
+    expect(remoteDataSource.conversations.any((c) => c.id == 'c-1'), isFalse);
   });
 }

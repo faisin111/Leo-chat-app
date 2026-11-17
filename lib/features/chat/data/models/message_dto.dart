@@ -132,6 +132,7 @@ class MessageDto {
     this.editedAt,
     this.deletedAt,
     this.deleted = false,
+    this.aiGenerated = false,
   });
 
   factory MessageDto.fromJson(Map<String, dynamic> json) {
@@ -163,6 +164,7 @@ class MessageDto {
           ? DateTime.tryParse(json['deletedAt'] as String)
           : null,
       deleted: json['deleted'] as bool? ?? false,
+      aiGenerated: json['aiGenerated'] as bool? ?? false,
     );
   }
 
@@ -182,6 +184,7 @@ class MessageDto {
   final DateTime? editedAt;
   final DateTime? deletedAt;
   final bool deleted;
+  final bool aiGenerated;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -200,6 +203,7 @@ class MessageDto {
         'editedAt': editedAt?.toIso8601String(),
         'deletedAt': deletedAt?.toIso8601String(),
         'deleted': deleted,
+        'aiGenerated': aiGenerated,
       };
 
   factory MessageDto.fromDomain(Message m) {
@@ -241,6 +245,7 @@ class MessageDto {
       editedAt: m.editedAt,
       deletedAt: m.deletedAt,
       deleted: m.deleted,
+      aiGenerated: m.aiGenerated,
     );
   }
 
@@ -266,6 +271,7 @@ class MessageDto {
       deleted: deleted,
       isOwn: isOwn,
       sendStatus: MessageSendStatus.sent,
+      aiGenerated: aiGenerated,
     );
   }
 }
