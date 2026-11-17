@@ -582,6 +582,10 @@ class _AddMemberSheetState extends ConsumerState<_AddMemberSheet> {
                       decoration: const InputDecoration(
                         hintText: 'Search people to add...',
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
                         isDense: true,
                       ),
                     ),

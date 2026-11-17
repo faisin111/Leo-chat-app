@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../di/providers.dart';
 
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier(this._prefs) : super(ThemeMode.system) {
+  ThemeModeNotifier(this._prefs) : super(ThemeMode.light) {
     _loadTheme();
   }
 
@@ -16,10 +16,10 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     final saved = _prefs?.getString(_key);
     if (saved == 'dark') {
       state = ThemeMode.dark;
-    } else if (saved == 'light') {
-      state = ThemeMode.light;
-    } else {
+    } else if (saved == 'system') {
       state = ThemeMode.system;
+    } else {
+      state = ThemeMode.light;
     }
   }
 

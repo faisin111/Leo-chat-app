@@ -12,7 +12,7 @@ abstract final class LeoColors {
   static const background = Color(0xFFFAF7F4);
   static const surface = Color(0xFFFFFFFF);
   static const surfaceSubtle = Color(0xFFFBF9F7);
-  static const rail = Color(0xFF1E1614);
+  static const rail = Color(0xFFFFFFFF);
   static const textPrimary = Color(0xFF1C1917);
   static const textSecondary = Color(0xFF78716C);
   static const textMuted = Color(0xFFA8A19B);

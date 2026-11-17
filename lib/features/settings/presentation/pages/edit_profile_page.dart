@@ -286,6 +286,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   ),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     isDense: true,
                     contentPadding:
                         EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -310,6 +314,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   ),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     isDense: true,
                     contentPadding:
                         EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -335,6 +343,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   ),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     isDense: true,
                     contentPadding:
                         EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -371,6 +383,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
                         isDense: true,
                         contentPadding: EdgeInsets.fromLTRB(16, 14, 16, 6),
                       ),

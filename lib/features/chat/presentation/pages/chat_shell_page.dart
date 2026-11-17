@@ -95,7 +95,12 @@ class _ChatShellPageState extends ConsumerState<ChatShellPage> {
               children: [
                 Container(
                   width: 72,
-                  color: LeoColors.rail,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      right: BorderSide(color: Color(0xFFE7DFD8), width: 1),
+                    ),
+                  ),
                   child: _DesktopRail(
                     selectedIndex: _selectedTab,
                     onSelectTab: (idx) => setState(() => _selectedTab = idx),
@@ -326,6 +331,11 @@ class _ChatsContentState extends ConsumerState<_ChatsContent> {
                   Expanded(
                     child: TextField(
                       controller: _searchController,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: LeoColors.textPrimary,
+                      ),
                       onChanged: (val) {
                         ref.read(chatNotifierProvider.notifier).search(val);
                       },
@@ -337,6 +347,10 @@ class _ChatsContentState extends ConsumerState<_ChatsContent> {
                           fontWeight: FontWeight.w500,
                         ),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
@@ -1165,13 +1179,12 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: BoxDecoration(
-        color: isDark ? LeoColors.darkSurface : const Color(0xFFFAF7F4),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFAF7F4),
         border: Border(
           top: BorderSide(
-            color: isDark ? LeoColors.darkBorder : const Color(0xFFE7DFD8),
+            color: Color(0xFFE7DFD8),
             width: 1,
           ),
         ),
@@ -1273,7 +1286,7 @@ class _DesktopRail extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         children: [
           const SizedBox(height: 24),
-          const LeoLogo(compact: true, onDark: true),
+          const LeoLogo(compact: true, onDark: false),
           const Spacer(),
           _RailIconButton(
             icon: Icons.chat_bubble_rounded,
