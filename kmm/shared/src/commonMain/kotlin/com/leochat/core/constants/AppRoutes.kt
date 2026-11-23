@@ -11,4 +11,5 @@ object AppRoutes {
     @Serializable data object ForgotPassword  // /forgot-password
     @Serializable data object ResetPassword   // /reset-password
     @Serializable data object Home            // /app
+    @Serializable data object Conversation    // full-screen conversation on mobile
 }

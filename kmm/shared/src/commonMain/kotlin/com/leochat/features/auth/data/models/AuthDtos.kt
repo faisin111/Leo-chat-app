@@ -1,12 +1,10 @@
 package com.leochat.features.auth.data.models
 
+import com.leochat.core.network.string
 import com.leochat.features.auth.domain.entities.AuthSession
 import com.leochat.features.auth.domain.entities.User
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 
 @Serializable
 data class LoginRequestDto(val username: String, val password: String)
@@ -76,10 +74,4 @@ data class AuthResponseDto(
             user = UserDto.fromJson(json["user"] as? JsonObject ?: json),
         )
     }
-}
-
-internal fun JsonObject.string(key: String): String? {
-    val value: JsonElement = this[key] ?: return null
-    if (value is JsonNull) return null
-    return (value as? JsonPrimitive)?.content
 }

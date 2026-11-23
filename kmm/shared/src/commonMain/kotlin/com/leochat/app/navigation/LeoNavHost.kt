@@ -9,7 +9,11 @@ import com.leochat.features.auth.presentation.pages.ForgotPasswordPage
 import com.leochat.features.auth.presentation.pages.LoginPage
 import com.leochat.features.auth.presentation.pages.RegisterPage
 import com.leochat.features.auth.presentation.pages.ResetPasswordPage
+import com.leochat.features.chat.presentation.controllers.ChatController
 import com.leochat.features.chat.presentation.pages.ChatShellPage
+import com.leochat.features.chat.presentation.pages.ConversationPage
+import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.runtime.remember
 import com.leochat.features.onboarding.presentation.pages.OnboardingPage
 import com.leochat.features.splash.presentation.pages.SplashPage
 
@@ -66,8 +70,18 @@ fun LeoNavHost(navController: NavHostController) {
                 onNavigateLogin = { navController.goTo(AppRoutes.Login) },
             )
         }
-        composable<AppRoutes.Home> {
-            ChatShellPage(onSignedOut = { navController.goTo(AppRoutes.Login) })
+        composable<AppRoutes.Home> { entry ->
+            ChatShellPage(
+                controller = koinViewModel(viewModelStoreOwner = entry),
+                onOpenConversation = { navController.navigate(AppRoutes.Conversation) { launchSingleTop = true } },
+                onSignedOut = { navController.goTo(AppRoutes.Login) },
+            )
+        }
+        composable<AppRoutes.Conversation> {
+            // Share the shell's controller so selection, cache, and realtime state stay in one place.
+            val homeEntry = remember(it) { navController.getBackStackEntry(AppRoutes.Home) }
+            val controller: ChatController = koinViewModel(viewModelStoreOwner = homeEntry)
+            ConversationPage(controller = controller, onBack = { navController.popBackStack(AppRoutes.Home, inclusive = false) })
         }
     }
 }

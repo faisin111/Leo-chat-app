@@ -119,8 +119,15 @@ class StompClient(
                 current + (destination to id)
             }
         }
-        created?.let { id -> session?.let { scope.launch { it.sendSubscribe(destination, id) } } }
-        return incoming.filter { it.headers["destination"] == destination }
+        // Before CONNECTED, the CONNECTED handler subscribes everything in `destinations`.
+        if (state.value == StompConnectionState.Connected) {
+            created?.let { id -> session?.let { scope.launch { it.sendSubscribe(destination, id) } } }
+        }
+        // Spring rewrites `/user/...` destinations, so match on subscription id as well.
+        return incoming.filter { frame ->
+            val id = destinations.value[destination]
+            frame.headers["destination"] == destination || (id != null && frame.headers["subscription"] == id)
+        }
     }
 
     fun unsubscribe(destination: String) {
