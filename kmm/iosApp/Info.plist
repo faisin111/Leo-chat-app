@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>LeoChat</string>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>LeoChat uses the microphone for voice messages and calls.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>LeoChat uses the camera for video calls and profile images.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+</dict>
+</plist>
