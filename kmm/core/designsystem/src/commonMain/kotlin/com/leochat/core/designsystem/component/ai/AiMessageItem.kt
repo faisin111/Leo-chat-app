@@ -1,5 +1,10 @@
 package com.leochat.core.designsystem.component.ai
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -16,13 +21,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -44,17 +59,24 @@ fun AiMessageItem(message: AiMessageUi, modifier: Modifier = Modifier) {
 
 @Composable
 private fun UserBubble(message: AiMessageUi, modifier: Modifier) {
+    val bubbleShape = RoundedCornerShape(
+        topStart = 20.dp,
+        topEnd = 20.dp,
+        bottomStart = 20.dp,
+        bottomEnd = 4.dp,
+    )
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         Text(
             message.content,
             fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Normal,
             color = Color.White,
-            lineHeight = (15 * 1.4).sp,
+            lineHeight = (15 * 1.45).sp,
             modifier = Modifier
-                .padding(vertical = 6.dp)
+                .padding(vertical = 5.dp)
                 .widthIn(max = 540.dp)
-                .background(LeoColors.primary, RoundedCornerShape(20.dp))
+                .shadow(2.dp, bubbleShape, ambientColor = LeoColors.primary.copy(alpha = 0.25f), spotColor = LeoColors.primary.copy(alpha = 0.25f))
+                .background(LeoColors.primary, bubbleShape)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         )
     }
@@ -66,6 +88,15 @@ private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
     val clipboard = LocalClipboardManager.current
     val snackBar = LocalLeoSnackBar.current
     val shape = RoundedCornerShape(20.dp)
+    var isCopied by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isCopied) {
+        if (isCopied) {
+            kotlinx.coroutines.delay(1800)
+            isCopied = false
+        }
+    }
+
     Column(
         modifier = modifier
             .padding(vertical = 8.dp)
@@ -73,6 +104,14 @@ private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
             .shadow(3.dp, shape, ambientColor = AiTokens.cardShadow, spotColor = AiTokens.cardShadow)
             .background(palette.surface, shape)
             .border(1.dp, palette.border, shape)
+            .drawBehind {
+                drawRoundRect(
+                    brush = AiTokens.gradient,
+                    topLeft = Offset.Zero,
+                    size = Size(3.5.dp.toPx(), size.height),
+                    cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx()),
+                )
+            }
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -90,18 +129,34 @@ private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
                     .padding(horizontal = 8.dp, vertical = 2.dp),
             )
             Spacer(Modifier.weight(1f))
-            Icon(
-                Icons.Rounded.ContentCopy,
-                contentDescription = null,
-                tint = palette.textMuted,
-                modifier = Modifier
-                    .aiPressable {
-                        clipboard.setText(AnnotatedString(message.content))
-                        snackBar.showSuccess(AiStrings.copiedResponse)
-                    }
-                    .padding(4.dp)
-                    .size(18.dp),
-            )
+            AnimatedContent(
+                targetState = isCopied,
+                transitionSpec = { fadeIn(tween(150)) togetherWith fadeOut(tween(150)) },
+                label = "copy_icon",
+            ) { copied ->
+                if (copied) {
+                    Icon(
+                        Icons.Rounded.Check,
+                        contentDescription = null,
+                        tint = LeoColors.success,
+                        modifier = Modifier.padding(4.dp).size(18.dp),
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.ContentCopy,
+                        contentDescription = null,
+                        tint = palette.textMuted,
+                        modifier = Modifier
+                            .aiPressable {
+                                clipboard.setText(AnnotatedString(message.content))
+                                snackBar.showSuccess(AiStrings.copiedResponse)
+                                isCopied = true
+                            }
+                            .padding(4.dp)
+                            .size(18.dp),
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(12.dp))
         val thinking = message.thinkingContent

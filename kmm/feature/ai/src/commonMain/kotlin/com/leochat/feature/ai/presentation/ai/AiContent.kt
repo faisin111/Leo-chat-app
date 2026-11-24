@@ -1,11 +1,23 @@
 package com.leochat.feature.ai.presentation.ai
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,6 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import com.leochat.core.designsystem.component.ai.AiCapabilityBar
 import com.leochat.core.designsystem.component.ai.AiComposer
@@ -29,13 +43,14 @@ import com.leochat.core.designsystem.component.ai.AiModelPickerSheet
 import com.leochat.core.designsystem.component.ai.AiPendingActionBanner
 import com.leochat.core.designsystem.component.ai.AiSuggestionChips
 import com.leochat.core.designsystem.component.ai.AiTopBar
+import com.leochat.core.designsystem.theme.AiTokens
 import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.core.designsystem.theme.LocalLeoPalette
 import com.leochat.feature.ai.domain.model.AiModelInfo
 import com.leochat.feature.ai.presentation.mapper.findById
 import com.leochat.feature.ai.presentation.mapper.toUi
 
-/** Stateless body, driven entirely by [state] and callbacks. */
+/** Stateless body, driven entirely by [state] and callbacks with active asking animations. */
 @Composable
 fun AiContent(
     state: AiUiState,
@@ -88,7 +103,7 @@ fun AiContent(
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (state.isEmpty) {
-                AiEmptyState()
+                AiEmptyState(onSelectPrompt = { send(it) })
             } else {
                 LazyColumn(
                     state = listState,
@@ -96,12 +111,55 @@ fun AiContent(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     itemsIndexed(state.messages, key = { index, m -> "${m.id}-$index" }) { _, message ->
-                        AiMessageItem(message.toUi())
+                        Box(Modifier.animateItem()) {
+                            AiMessageItem(message.toUi())
+                        }
                     }
-                    if (state.isGenerating) item(key = GENERATING_KEY) { AiGeneratingIndicator() }
+                    if (state.isGenerating) {
+                        item(key = GENERATING_KEY) {
+                            Box(Modifier.animateItem()) {
+                                AiGeneratingIndicator()
+                            }
+                        }
+                    }
                 }
             }
         }
+
+        // Active asking glow beam above composer
+        AnimatedVisibility(
+            visible = state.isGenerating,
+            enter = fadeIn(tween(250)) + expandVertically(tween(250)),
+            exit = fadeOut(tween(250)) + shrinkVertically(tween(250)),
+        ) {
+            val beamTransition = rememberInfiniteTransition(label = "ai_generating_beam")
+            val beamProgress by beamTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1000f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1800, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+                label = "beam_progress",
+            )
+            val beamBrush = Brush.linearGradient(
+                colors = listOf(
+                    AiTokens.gradientStart,
+                    AiTokens.gradientEnd,
+                    LeoColors.primaryLight,
+                    AiTokens.gradientStart,
+                ),
+                start = Offset(beamProgress - 500f, 0f),
+                end = Offset(beamProgress + 500f, 0f),
+            )
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(2.5.dp)
+                    .background(beamBrush),
+            )
+        }
+
         if (state.showSuggestions) {
             AiSuggestionChips(onSelect = { send(it) })
         }
