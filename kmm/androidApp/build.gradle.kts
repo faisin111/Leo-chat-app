@@ -29,7 +29,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":shared"))
+    implementation(project(":composeApp"))
     implementation(compose.runtime)
     implementation(compose.ui)
     implementation(libs.androidx.activity.compose)

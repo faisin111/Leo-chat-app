@@ -1,6 +1,7 @@
 import org.gradle.api.initialization.resolve.RepositoriesMode
 
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google()
         mavenCentral()
@@ -17,4 +18,25 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "LeoChatKmp"
-include(":shared", ":androidApp")
+
+include(":androidApp")
+include(":composeApp")
+
+include(":core:common")
+include(":core:platform")
+include(":core:network")
+include(":core:datastore")
+include(":core:designsystem")
+include(":core:navigation")
+include(":core:testing")
+
+include(":feature:auth")
+include(":feature:splash")
+include(":feature:onboarding")
+include(":feature:users")
+include(":feature:media")
+include(":feature:chat")
+include(":feature:ai")
+include(":feature:calls")
+include(":feature:settings")
+include(":feature:home")

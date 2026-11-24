@@ -1,6 +1,6 @@
 import SwiftUI
 import UIKit
-import Shared
+import ComposeApp
 
 /// Hosts the shared Compose Multiplatform UI (`LeoChatApp`) inside SwiftUI.
 struct ComposeView: UIViewControllerRepresentable {

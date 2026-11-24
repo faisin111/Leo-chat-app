@@ -1,0 +1,97 @@
+package com.leochat.core.designsystem.component.auth
+
+import com.leochat.resources.Res
+import com.leochat.resources.avatar_portrait
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.rounded.CheckCircleOutline
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.leochat.core.common.constants.AppStrings
+import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.component.branding.LeoAvatar
+
+/** Avatar with camera badge plus "Add your best hello" copy. */
+@Composable
+fun ProfilePhotoPrompt(
+    modifier: Modifier = Modifier,
+    title: String = AppStrings.profilePhotoPrompt,
+    subtitle: String = AppStrings.profilePhotoSubtext,
+) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box {
+            LeoAvatar(radius = 34.dp, drawable = Res.drawable.avatar_portrait)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .background(LeoColors.primary, CircleShape)
+                    .padding(5.dp),
+            ) {
+                Icon(Icons.Filled.CameraAlt, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Black, color = LeoColors.textPrimary)
+            Spacer(Modifier.height(4.dp))
+            Text(subtitle, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LeoColors.textSecondary)
+        }
+    }
+}
+
+/** Green "strong password" hint under the password field. */
+@Composable
+fun PasswordStrengthHint(modifier: Modifier = Modifier, label: String = AppStrings.strongPassword) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Rounded.CheckCircleOutline, contentDescription = null, tint = LeoColors.online, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, color = LeoColors.online, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Terms checkbox row. */
+@Composable
+fun TermsAgreementRow(
+    accepted: Boolean,
+    onChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    text: String = AppStrings.termsAgreement,
+) {
+    Row(modifier = modifier, verticalAlignment = Alignment.Top) {
+        Checkbox(
+            checked = accepted,
+            onCheckedChange = onChange,
+            colors = CheckboxDefaults.colors(checkedColor = LeoColors.primary),
+            modifier = Modifier.size(32.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text,
+            color = LeoColors.textSecondary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            lineHeight = (13 * 1.35).sp,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
