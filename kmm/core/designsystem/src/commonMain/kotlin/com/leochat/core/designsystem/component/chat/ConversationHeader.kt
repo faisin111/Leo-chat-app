@@ -54,6 +54,7 @@ import com.leochat.core.common.constants.CallStrings
 import com.leochat.core.designsystem.component.branding.LeoAvatar
 import com.leochat.core.designsystem.component.buttons.leoPressable
 import com.leochat.core.designsystem.component.chat.model.ConversationHeaderUi
+import com.leochat.core.designsystem.component.dialog.LeoConfirmationDialog
 import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.core.designsystem.theme.LocalLeoPalette
@@ -233,17 +234,16 @@ fun ConversationHeader(
             header.isGroup -> Triple(AppStrings.leaveGroupTitle, AppStrings.leaveGroupBody, AppStrings.leave)
             else -> Triple(AppStrings.deleteConversationTitle, AppStrings.deleteConversationBody, AppStrings.delete)
         }
-        AlertDialog(
-            onDismissRequest = { confirmLeave = false },
-            title = { Text(titleText) },
-            text = { Text(body) },
-            dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text(AppStrings.cancel) } },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmLeave = false
-                    onLeave()
-                }) { Text(action, color = LeoColors.destructive) }
+        LeoConfirmationDialog(
+            title = titleText,
+            message = body,
+            confirmText = action,
+            cancelText = AppStrings.cancel,
+            onConfirm = {
+                confirmLeave = false
+                onLeave()
             },
+            onDismiss = { confirmLeave = false },
         )
     }
 }

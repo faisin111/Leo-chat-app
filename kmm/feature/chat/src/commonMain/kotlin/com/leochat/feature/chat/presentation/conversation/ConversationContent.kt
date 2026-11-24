@@ -54,9 +54,12 @@ import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.component.chat.ChatDayLabel
 import com.leochat.core.designsystem.component.chat.ChatEmptyPane
 import com.leochat.core.designsystem.component.chat.JumpToLatestPill
+import com.leochat.core.designsystem.component.chat.MessageActionSheet
 import com.leochat.core.designsystem.component.chat.MessageSkeletonList
 import com.leochat.core.designsystem.component.chat.ReconnectingBanner
 import com.leochat.core.designsystem.component.chat.TypingIndicator
+import com.leochat.core.designsystem.component.dialog.LeoConfirmationDialog
+import com.leochat.core.designsystem.component.dialog.LeoInputDialog
 import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.feature.chat.domain.model.Conversation
@@ -64,8 +67,6 @@ import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.presentation.ChatUiState
 import com.leochat.feature.media.domain.model.VoiceRecording
 import kotlinx.coroutines.launch
-
-private val QUICK_REACTION_EMOJIS = listOf("👍", "❤️", "😂", "😮", "😢", "🔥")
 
 /** Stateless conversation UI: header, reconnect banner, message list, and composer. Mirrors `_ConversationDetailView`. */
 @Composable
@@ -151,155 +152,64 @@ fun ConversationContent(
         )
     }
 
-    // Message Actions dialog
+    // Message Actions bottom sheet
     actionMessage?.let { msg ->
-        AlertDialog(
-            onDismissRequest = { actionMessage = null },
-            title = {
-                // Quick emoji reactions row
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    QUICK_REACTION_EMOJIS.forEach { emoji ->
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(LeoThemeTokens.palette.input)
-                                .clickable {
-                                    actionMessage = null
-                                    onToggleReaction(msg.id, emoji)
-                                },
-                        ) {
-                            Text(emoji, fontSize = 20.sp)
-                        }
-                    }
-                }
+        MessageActionSheet(
+            messageText = msg.content,
+            isOwn = msg.isOwn,
+            isDeleted = msg.deleted,
+            onSelectReaction = { emoji ->
+                actionMessage = null
+                onToggleReaction(msg.id, emoji)
             },
-            text = {
-                Column(Modifier.fillMaxWidth()) {
-                    MessageActionItem(
-                        icon = Icons.AutoMirrored.Rounded.Reply,
-                        text = AppStrings.reply,
-                        onClick = {
-                            actionMessage = null
-                            replyingTo = msg
-                        },
-                    )
-                    if (msg.isOwn && !msg.deleted) {
-                        MessageActionItem(
-                            icon = Icons.Rounded.Edit,
-                            text = AppStrings.editMessage,
-                            onClick = {
-                                actionMessage = null
-                                editContent = msg.content.orEmpty()
-                                editingMessage = msg
-                            },
-                        )
-                    }
-                    if (msg.isOwn && !msg.deleted) {
-                        HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                        MessageActionItem(
-                            icon = Icons.Rounded.DeleteOutline,
-                            text = AppStrings.deleteMessage,
-                            textColor = LeoColors.destructive,
-                            onClick = {
-                                actionMessage = null
-                                confirmDeleteMessage = msg
-                            },
-                        )
-                    }
-                }
+            onReply = {
+                actionMessage = null
+                replyingTo = msg
             },
-            confirmButton = {
-                TextButton(onClick = { actionMessage = null }) {
-                    Text(AppStrings.cancel)
-                }
+            onEdit = {
+                actionMessage = null
+                editContent = msg.content.orEmpty()
+                editingMessage = msg
             },
+            onDelete = {
+                actionMessage = null
+                confirmDeleteMessage = msg
+            },
+            onDismiss = { actionMessage = null },
         )
     }
 
     // Edit message dialog
     editingMessage?.let { msg ->
-        AlertDialog(
-            onDismissRequest = { editingMessage = null },
-            title = { Text(AppStrings.editMessage, fontWeight = FontWeight.Bold) },
-            text = {
-                OutlinedTextField(
-                    value = editContent,
-                    onValueChange = { editContent = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 4,
-                )
-            },
-            dismissButton = {
-                TextButton(onClick = { editingMessage = null }) {
-                    Text(AppStrings.cancel)
+        LeoInputDialog(
+            title = AppStrings.editMessage,
+            value = editContent,
+            onValueChange = { editContent = it },
+            onConfirm = {
+                val text = editContent.trim()
+                if (text.isNotEmpty()) {
+                    onEditMessage(msg.id, text)
                 }
+                editingMessage = null
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val text = editContent.trim()
-                        if (text.isNotEmpty()) {
-                            onEditMessage(msg.id, text)
-                        }
-                        editingMessage = null
-                    },
-                ) {
-                    Text(AppStrings.save, color = LeoColors.primary, fontWeight = FontWeight.Bold)
-                }
-            },
+            onDismiss = { editingMessage = null },
         )
     }
 
     // Delete message confirmation dialog
     confirmDeleteMessage?.let { msg ->
-        AlertDialog(
-            onDismissRequest = { confirmDeleteMessage = null },
-            title = { Text(AppStrings.deleteMessageTitle) },
-            text = { Text(AppStrings.deleteMessageBody) },
-            dismissButton = {
-                TextButton(onClick = { confirmDeleteMessage = null }) {
-                    Text(AppStrings.cancel)
-                }
+        LeoConfirmationDialog(
+            title = AppStrings.deleteMessageTitle,
+            message = AppStrings.deleteMessageBody,
+            confirmText = AppStrings.delete,
+            cancelText = AppStrings.cancel,
+            onConfirm = {
+                val id = msg.id
+                confirmDeleteMessage = null
+                onDeleteMessage(id)
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val id = msg.id
-                        confirmDeleteMessage = null
-                        onDeleteMessage(id)
-                    },
-                ) {
-                    Text(AppStrings.delete, color = LeoColors.destructive, fontWeight = FontWeight.Bold)
-                }
-            },
+            onDismiss = { confirmDeleteMessage = null },
         )
-    }
-}
-
-@Composable
-private fun MessageActionItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String,
-    textColor: androidx.compose.ui.graphics.Color = LeoThemeTokens.palette.textPrimary,
-    onClick: () -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-    ) {
-        Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = textColor)
     }
 }
 

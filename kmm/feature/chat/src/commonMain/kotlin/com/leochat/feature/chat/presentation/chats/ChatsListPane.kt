@@ -52,10 +52,12 @@ import com.leochat.core.designsystem.component.chat.ArchivedConversationsBar
 import com.leochat.core.designsystem.component.chat.ChatSearchField
 import com.leochat.core.designsystem.component.chat.ChatsEmptyState
 import com.leochat.core.designsystem.component.chat.ChatsListHeader
+import com.leochat.core.designsystem.component.chat.ConversationActionSheet
 import com.leochat.core.designsystem.component.chat.ConversationSkeletonList
 import com.leochat.core.designsystem.component.chat.ConversationTile
 import com.leochat.core.designsystem.component.chat.FilterBubbleBar
 import com.leochat.core.designsystem.component.chat.MadeForConnectionFooter
+import com.leochat.core.designsystem.component.dialog.LeoConfirmationDialog
 import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.feature.chat.domain.model.Conversation
@@ -139,52 +141,34 @@ fun ChatsListPane(
 
     actionConversation?.let { conv ->
         val isArchived = conv.status.equals("ARCHIVED", ignoreCase = true)
-        AlertDialog(
-            onDismissRequest = { actionConversation = null },
-            title = { Text(conv.effectiveTitle, fontWeight = FontWeight.Bold) },
-            text = {
-                Column(Modifier.fillMaxWidth()) {
-                    ConversationActionItem(
-                        icon = Icons.Rounded.PushPin,
-                        text = if (conv.isPinned) AppStrings.unpinChat else AppStrings.pinChat,
-                        onClick = {
-                            actionConversation = null
-                            onTogglePin(conv.id)
-                        },
-                    )
-                    ConversationActionItem(
-                        icon = if (conv.isMuted) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff,
-                        text = if (conv.isMuted) AppStrings.unmuteChat else AppStrings.muteChat,
-                        onClick = {
-                            actionConversation = null
-                            onToggleMute(conv.id)
-                        },
-                    )
-                    ConversationActionItem(
-                        icon = Icons.Rounded.Archive,
-                        text = if (isArchived) AppStrings.unarchiveChat else AppStrings.archiveChat,
-                        onClick = {
-                            actionConversation = null
-                            onToggleArchive(conv.id)
-                        },
-                    )
-                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                    ConversationActionItem(
-                        icon = Icons.Rounded.DeleteOutline,
-                        text = if (conv.isGroup) AppStrings.leaveGroup else AppStrings.deleteChat,
-                        textColor = LeoColors.destructive,
-                        onClick = {
-                            actionConversation = null
-                            confirmDeleteConversation = conv
-                        },
-                    )
-                }
+        ConversationActionSheet(
+            conversationTitle = conv.effectiveTitle,
+            avatarUrl = conv.avatarUrl,
+            lastSnippet = conv.lastMessageSnippet,
+            isPinned = conv.isPinned,
+            isMuted = conv.isMuted,
+            isArchived = isArchived,
+            isGroup = conv.isGroup,
+            onTogglePin = {
+                val id = conv.id
+                actionConversation = null
+                onTogglePin(id)
             },
-            confirmButton = {
-                TextButton(onClick = { actionConversation = null }) {
-                    Text(AppStrings.cancel)
-                }
+            onToggleMute = {
+                val id = conv.id
+                actionConversation = null
+                onToggleMute(id)
             },
+            onToggleArchive = {
+                val id = conv.id
+                actionConversation = null
+                onToggleArchive(id)
+            },
+            onDelete = {
+                actionConversation = null
+                confirmDeleteConversation = conv
+            },
+            onDismiss = { actionConversation = null },
         )
     }
 
@@ -193,47 +177,18 @@ fun ChatsListPane(
             conv.isGroup -> Triple(AppStrings.leaveGroupTitle, AppStrings.leaveGroupBody, AppStrings.leave)
             else -> Triple(AppStrings.deleteConversationTitle, AppStrings.deleteConversationBody, AppStrings.delete)
         }
-        AlertDialog(
-            onDismissRequest = { confirmDeleteConversation = null },
-            title = { Text(titleText) },
-            text = { Text(body) },
-            dismissButton = {
-                TextButton(onClick = { confirmDeleteConversation = null }) {
-                    Text(AppStrings.cancel)
-                }
+        LeoConfirmationDialog(
+            title = titleText,
+            message = body,
+            confirmText = action,
+            cancelText = AppStrings.cancel,
+            onConfirm = {
+                val id = conv.id
+                confirmDeleteConversation = null
+                onDeleteConversation(id)
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    val id = conv.id
-                    confirmDeleteConversation = null
-                    onDeleteConversation(id)
-                }) {
-                    Text(action, color = LeoColors.destructive)
-                }
-            },
+            onDismiss = { confirmDeleteConversation = null },
         )
-    }
-}
-
-@Composable
-private fun ConversationActionItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String,
-    textColor: androidx.compose.ui.graphics.Color = LeoThemeTokens.palette.textPrimary,
-    onClick: () -> Unit,
-) {
-    val palette = LeoThemeTokens.palette
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-    ) {
-        Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = textColor)
     }
 }
 

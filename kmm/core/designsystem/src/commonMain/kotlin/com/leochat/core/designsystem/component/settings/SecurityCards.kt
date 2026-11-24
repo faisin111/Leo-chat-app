@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.SettingsStrings
+import com.leochat.core.designsystem.component.dialog.LeoConfirmationDialog
 import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.core.designsystem.theme.LeoThemeTokens
 
@@ -69,18 +70,12 @@ fun DeactivateAccountCard(enabled: Boolean, onDeactivate: () -> Unit) {
 /** Confirmation dialog before deactivating the account. */
 @Composable
 fun DeactivateAccountDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(SettingsStrings.deactivateDialogTitle) },
-        text = { Text(SettingsStrings.deactivateDialogBody) },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(SettingsStrings.cancel) }
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = LeoColors.destructive, contentColor = Color.White),
-            ) { Text(SettingsStrings.deactivate) }
-        },
+    LeoConfirmationDialog(
+        title = SettingsStrings.deactivateDialogTitle,
+        message = SettingsStrings.deactivateDialogBody,
+        confirmText = SettingsStrings.deactivate,
+        cancelText = SettingsStrings.cancel,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
