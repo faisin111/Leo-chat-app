@@ -138,7 +138,7 @@ private fun IncomingBubble(bubble: ChatBubbleUi, voiceContent: @Composable () ->
                 Spacer(Modifier.width(6.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.background(LeoColors.primarySoft, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.5.dp),
+                    modifier = Modifier.background(palette.primarySoft, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.5.dp),
                 ) {
                     Icon(Icons.Filled.AutoAwesome, null, tint = LeoColors.primary, modifier = Modifier.size(10.dp))
                     Spacer(Modifier.width(3.dp))
@@ -149,7 +149,7 @@ private fun IncomingBubble(bubble: ChatBubbleUi, voiceContent: @Composable () ->
         Column(
             modifier = Modifier
                 .widthIn(max = 520.dp)
-                .background(if (palette.isDark) LeoColors.darkIncomingBubble else Color.White, BubbleShape)
+                .background(palette.incomingBubble, BubbleShape)
                 .padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 12.dp),
         ) {
             bubble.replyTo?.let { ReplyQuote(it, isOwn = false) }
@@ -157,7 +157,7 @@ private fun IncomingBubble(bubble: ChatBubbleUi, voiceContent: @Composable () ->
             Spacer(Modifier.height(5.dp))
             Text(
                 bubble.time,
-                color = if (palette.isDark) Color.White.copy(alpha = 0.54f) else LeoColors.textMuted,
+                color = palette.textMuted,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.align(Alignment.End),
@@ -181,7 +181,7 @@ private fun MessageBody(body: ChatBubbleBody, isOwn: Boolean, voiceContent: @Com
         is ChatBubbleBody.Image -> ImageContent(body.url)
         is ChatBubbleBody.Text -> Text(
             body.text,
-            color = if (isOwn) Color.White else if (palette.isDark) LeoColors.darkTextPrimary else LeoColors.textPrimary,
+            color = if (isOwn) Color.White else palette.textPrimary,
             fontSize = 16.sp,
             lineHeight = (16 * 1.35).sp,
             fontWeight = FontWeight.Medium,
@@ -191,6 +191,7 @@ private fun MessageBody(body: ChatBubbleBody, isOwn: Boolean, voiceContent: @Com
 
 @Composable
 private fun ImageContent(url: String) {
+    val palette = LocalLeoPalette.current
     SubcomposeAsyncImage(
         model = url,
         contentDescription = null,
@@ -198,8 +199,8 @@ private fun ImageContent(url: String) {
         modifier = Modifier.size(280.dp, 200.dp).clip(RoundedCornerShape(14.dp)),
         loading = { Box(Modifier.size(280.dp, 200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(strokeWidth = 2.dp) } },
         error = {
-            Box(Modifier.size(280.dp, 120.dp).background(LeoColors.input), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.BrokenImage, null, tint = LeoColors.textMuted, modifier = Modifier.size(32.dp))
+            Box(Modifier.size(280.dp, 120.dp).background(palette.input), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.BrokenImage, null, tint = palette.textMuted, modifier = Modifier.size(32.dp))
             }
         },
     )
@@ -207,12 +208,20 @@ private fun ImageContent(url: String) {
 
 @Composable
 private fun ReplyQuote(reply: ReplyQuoteUi, isOwn: Boolean) {
+    val palette = LocalLeoPalette.current
     val accent = if (isOwn) White70 else LeoColors.primary
+    val quoteBackground = if (isOwn) {
+        Color.Black.copy(alpha = 0.12f)
+    } else if (palette.isDark) {
+        palette.surfaceElevated
+    } else {
+        ChatTokens.incomingReplyBackground
+    }
     Column(
         modifier = Modifier
             .padding(bottom = 8.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isOwn) Color.Black.copy(alpha = 0.12f) else ChatTokens.incomingReplyBackground)
+            .background(quoteBackground)
             .drawBehind { drawRect(accent, topLeft = Offset.Zero, size = size.copy(width = 3.dp.toPx())) }
             .padding(start = 13.dp, top = 8.dp, end = 10.dp, bottom = 8.dp),
     ) {
@@ -229,23 +238,24 @@ private fun ReplyQuote(reply: ReplyQuoteUi, isOwn: Boolean) {
             overflow = TextOverflow.Ellipsis,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            color = if (isOwn) White70 else LeoColors.textSecondary,
+            color = if (isOwn) White70 else palette.textSecondary,
         )
     }
 }
 
 @Composable
 private fun ReactionsRow(reactions: List<ReactionUi>) {
+    val palette = LocalLeoPalette.current
     Row(Modifier.padding(top = 4.dp, start = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         reactions.forEach { r ->
             Text(
                 r.label,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = LeoColors.textPrimary,
+                color = palette.textPrimary,
                 modifier = Modifier
-                    .background(Color.White, RoundedCornerShape(12.dp))
-                    .border(1.dp, ChatTokens.reactionBorder, RoundedCornerShape(12.dp))
+                    .background(if (palette.isDark) palette.surfaceElevated else Color.White, RoundedCornerShape(12.dp))
+                    .border(1.dp, if (palette.isDark) palette.border else ChatTokens.reactionBorder, RoundedCornerShape(12.dp))
                     .padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }

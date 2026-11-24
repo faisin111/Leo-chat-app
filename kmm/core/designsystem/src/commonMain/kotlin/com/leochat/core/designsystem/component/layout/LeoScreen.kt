@@ -8,16 +8,17 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /** Full-screen page surface that applies safe-area and keyboard insets (Flutter `Scaffold` + `SafeArea`). */
 @Composable
 fun LeoScreen(
     modifier: Modifier = Modifier,
-    background: Color = LeoColors.background,
+    background: Color = Color.Unspecified,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    Box(modifier = modifier.fillMaxSize().background(background)) {
+    val resolvedBg = if (background != Color.Unspecified) background else LeoThemeTokens.palette.background
+    Box(modifier = modifier.fillMaxSize().background(resolvedBg)) {
         Box(modifier = Modifier.fillMaxSize().safeDrawingPadding(), content = content)
     }
 }

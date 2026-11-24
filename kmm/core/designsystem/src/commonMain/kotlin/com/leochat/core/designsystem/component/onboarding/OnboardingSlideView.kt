@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.onboarding.model.OnboardingPreviewKind
 import com.leochat.core.designsystem.component.onboarding.model.OnboardingSlideUi
 import com.leochat.core.designsystem.theme.OnboardingTokens
@@ -38,6 +39,7 @@ private val PillShape = RoundedCornerShape(999.dp)
 /** One onboarding page: preview card, step pill, title, body, capability chip. */
 @Composable
 fun OnboardingSlideView(slide: OnboardingSlideUi, modifier: Modifier = Modifier) {
+    val palette = LeoThemeTokens.palette
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -55,7 +57,7 @@ fun OnboardingSlideView(slide: OnboardingSlideUi, modifier: Modifier = Modifier)
             fontSize = 11.sp,
             letterSpacing = 0.6.sp,
             fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.background(LeoColors.primarySoft, PillShape).padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.background(palette.primarySoft, PillShape).padding(horizontal = 10.dp, vertical = 4.dp),
         )
         Spacer(Modifier.height(14.dp))
         Text(
@@ -65,7 +67,7 @@ fun OnboardingSlideView(slide: OnboardingSlideUi, modifier: Modifier = Modifier)
             lineHeight = (28 * 1.15).sp,
             fontWeight = FontWeight.Black,
             letterSpacing = (-0.8).sp,
-            color = LeoColors.textPrimary,
+            color = palette.textPrimary,
         )
         Spacer(Modifier.height(12.dp))
         Text(
@@ -74,7 +76,7 @@ fun OnboardingSlideView(slide: OnboardingSlideUi, modifier: Modifier = Modifier)
             fontSize = 14.sp,
             lineHeight = (14 * 1.5).sp,
             fontWeight = FontWeight.SemiBold,
-            color = LeoColors.textSecondary,
+            color = palette.textSecondary,
             modifier = Modifier.widthIn(max = 420.dp),
         )
         Spacer(Modifier.height(14.dp))
@@ -82,11 +84,11 @@ fun OnboardingSlideView(slide: OnboardingSlideUi, modifier: Modifier = Modifier)
             slide.badge,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = LeoColors.textPrimary,
+            color = palette.textPrimary,
             modifier = Modifier
                 .shadow(4.dp, PillShape, ambientColor = OnboardingTokens.badgeShadow, spotColor = OnboardingTokens.badgeShadow)
-                .background(Color.White, PillShape)
-                .border(1.dp, LeoColors.border, PillShape)
+                .background(palette.surface, PillShape)
+                .border(1.dp, palette.border, PillShape)
                 .padding(horizontal = 12.dp, vertical = 6.dp),
         )
     }
@@ -95,8 +97,9 @@ fun OnboardingSlideView(slide: OnboardingSlideUi, modifier: Modifier = Modifier)
 /** Page indicator dot that stretches when active. */
 @Composable
 fun OnboardingDot(active: Boolean, modifier: Modifier = Modifier) {
+    val palette = LeoThemeTokens.palette
     val width by animateDpAsState(if (active) 22.dp else 7.dp, tween(200), label = "dotWidth")
-    val color by animateColorAsState(if (active) LeoColors.primary else LeoColors.border, tween(200), label = "dotColor")
+    val color by animateColorAsState(if (active) LeoColors.primary else palette.border, tween(200), label = "dotColor")
     Box(
         modifier = modifier
             .padding(end = 6.dp)

@@ -69,9 +69,9 @@ fun ConversationHeader(
 ) {
     val palette = LocalLeoPalette.current
     val isAi = header.isAi
-    val primaryText = if (palette.isDark) LeoColors.darkTextPrimary else LeoColors.textPrimary
-    val secondaryText = if (palette.isDark) LeoColors.darkTextSecondary else LeoColors.textSecondary
-    val border = if (palette.isDark) LeoColors.darkBorder else LeoColors.border
+    val primaryText = palette.textPrimary
+    val secondaryText = palette.textSecondary
+    val border = palette.border
     var confirmLeave by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -79,7 +79,7 @@ fun ConversationHeader(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (palette.isDark) LeoColors.darkSurface else Color.White)
+            .background(palette.surface)
             .drawBehind { drawLine(border, Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx()) }
             .padding(start = if (showBackButton) 8.dp else 20.dp, top = 16.dp, end = 20.dp, bottom = 16.dp),
     ) {

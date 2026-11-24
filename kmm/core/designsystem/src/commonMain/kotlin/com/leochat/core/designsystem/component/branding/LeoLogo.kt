@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.AppStrings
-import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.resources.Res
 import com.leochat.resources.leo_chat_icon
 import org.jetbrains.compose.resources.painterResource
@@ -32,6 +32,7 @@ fun LeoLogo(
     compact: Boolean = false,
     onDark: Boolean = false,
 ) {
+    val palette = LeoThemeTokens.palette
     val size = if (compact) 36.dp else 42.dp
     val shape = RoundedCornerShape(if (compact) 11.dp else 13.dp)
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -51,7 +52,7 @@ fun LeoLogo(
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-0.6).sp,
-                color = if (onDark) Color.White else LeoColors.textPrimary,
+                color = if (onDark || palette.isDark) Color.White else palette.textPrimary,
             )
         }
     }

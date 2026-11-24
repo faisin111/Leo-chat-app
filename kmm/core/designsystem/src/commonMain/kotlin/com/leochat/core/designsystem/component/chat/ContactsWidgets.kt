@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.ContactsStrings
 import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.buttons.leoPressable
 
 
@@ -64,9 +65,10 @@ fun ContactsTopBar(
     actions: @Composable RowScope.() -> Unit = {},
     title: @Composable () -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth().height(56.dp).background(LeoColors.background),
+        modifier = modifier.fillMaxWidth().height(56.dp).background(palette.background),
     ) {
         if (onBack != null) {
             Box(Modifier.width(56.dp), contentAlignment = Alignment.Center) {
@@ -81,15 +83,17 @@ fun ContactsTopBar(
 /** Material icon button with the LeoPressable scale effect. */
 @Composable
 fun ContactsIconButton(icon: ImageVector, contentDescription: String?, onClick: () -> Unit, iconSize: Dp = 24.dp) {
+    val palette = LeoThemeTokens.palette
     val interaction = remember { MutableInteractionSource() }
     IconButton(onClick = onClick, interactionSource = interaction, modifier = Modifier.leoPressable(interaction)) {
-        Icon(icon, contentDescription = contentDescription, tint = LeoColors.textPrimary, modifier = Modifier.size(iconSize))
+        Icon(icon, contentDescription = contentDescription, tint = palette.textPrimary, modifier = Modifier.size(iconSize))
     }
 }
 
 @Composable
 fun ContactsTitle(text: String, fontSize: TextUnit = 22.sp, fontWeight: FontWeight = FontWeight.Black, letterSpacing: TextUnit = (-0.5).sp) {
-    Text(text, fontSize = fontSize, fontWeight = fontWeight, letterSpacing = letterSpacing, color = LeoColors.textPrimary, maxLines = 1)
+    val palette = LeoThemeTokens.palette
+    Text(text, fontSize = fontSize, fontWeight = fontWeight, letterSpacing = letterSpacing, color = palette.textPrimary, maxLines = 1)
 }
 
 /** Rounded input-colored search pill with leading search icon and optional clear button. */
@@ -103,27 +107,30 @@ fun ContactsSearchPill(
     horizontalPadding: Dp = 16.dp,
     iconSize: Dp = 22.dp,
     gap: Dp = 10.dp,
-    textStyle: TextStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium, color = LeoColors.textPrimary),
-    placeholderColor: Color = LeoColors.textSecondary,
+    textStyle: TextStyle? = null,
+    placeholderColor: Color = Color.Unspecified,
     onClear: (() -> Unit)? = null,
 ) {
+    val palette = LeoThemeTokens.palette
+    val effectiveTextStyle = textStyle ?: TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium, color = palette.textPrimary)
+    val effectivePlaceholderColor = if (placeholderColor != Color.Unspecified) placeholderColor else palette.textSecondary
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .background(LeoColors.input, RoundedCornerShape(height / 2))
+            .background(palette.input, RoundedCornerShape(height / 2))
             .padding(horizontal = horizontalPadding),
     ) {
-        Icon(Icons.Rounded.Search, contentDescription = null, tint = LeoColors.textSecondary, modifier = Modifier.size(iconSize))
+        Icon(Icons.Rounded.Search, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(iconSize))
         Spacer(Modifier.width(gap))
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            if (value.isEmpty()) Text(placeholder, style = textStyle.copy(color = placeholderColor), maxLines = 1)
+            if (value.isEmpty()) Text(placeholder, style = effectiveTextStyle.copy(color = effectivePlaceholderColor), maxLines = 1)
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
-                textStyle = textStyle,
+                textStyle = effectiveTextStyle,
                 cursorBrush = SolidColor(LeoColors.primary),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -132,7 +139,7 @@ fun ContactsSearchPill(
             Icon(
                 Icons.Rounded.Close,
                 contentDescription = ContactsStrings.clearSearch,
-                tint = LeoColors.textSecondary,
+                tint = palette.textSecondary,
                 modifier = Modifier.size(18.dp).clickable(onClick = onClear),
             )
         }
@@ -146,20 +153,22 @@ fun ContactsCard(
     withShadow: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
     val shape = ChatTokens.cardShape
     Column(
         modifier = modifier
             .fillMaxWidth()
             .then(if (withShadow) Modifier.shadow(3.dp, shape, ambientColor = ChatTokens.cardShadow, spotColor = ChatTokens.cardShadow) else Modifier)
-            .background(LeoColors.surface, shape)
-            .border(1.dp, LeoColors.border, shape),
+            .background(palette.surface, shape)
+            .border(1.dp, palette.border, shape),
         content = content,
     )
 }
 
 @Composable
 fun ContactsDivider(indent: Dp) {
-    HorizontalDivider(modifier = Modifier.padding(start = indent), thickness = 1.dp, color = LeoColors.input)
+    val palette = LeoThemeTokens.palette
+    HorizontalDivider(modifier = Modifier.padding(start = indent), thickness = 1.dp, color = palette.input)
 }
 
 /** Flutter `CircularProgressIndicator(color: primary)` centered with optional padding. */
@@ -178,18 +187,21 @@ fun ContactsEmptyState(
     subtitle: String,
     modifier: Modifier = Modifier,
     discSize: Dp = 56.dp,
-    discColor: Color = LeoColors.input,
-    iconColor: Color = LeoColors.textSecondary,
+    discColor: Color = Color.Unspecified,
+    iconColor: Color = Color.Unspecified,
     subtitleLineHeight: TextUnit = TextUnit.Unspecified,
 ) {
+    val palette = LeoThemeTokens.palette
+    val effectiveDiscColor = if (discColor != Color.Unspecified) discColor else palette.input
+    val effectiveIconColor = if (iconColor != Color.Unspecified) iconColor else palette.textSecondary
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
-        Box(Modifier.size(discSize).background(discColor, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(28.dp))
+        Box(Modifier.size(discSize).background(effectiveDiscColor, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = effectiveIconColor, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(16.dp))
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = LeoColors.textPrimary, textAlign = TextAlign.Center)
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary, textAlign = TextAlign.Center)
         Spacer(Modifier.height(6.dp))
-        Text(subtitle, fontSize = 13.sp, color = LeoColors.textSecondary, textAlign = TextAlign.Center, lineHeight = subtitleLineHeight)
+        Text(subtitle, fontSize = 13.sp, color = palette.textSecondary, textAlign = TextAlign.Center, lineHeight = subtitleLineHeight)
     }
 }
 

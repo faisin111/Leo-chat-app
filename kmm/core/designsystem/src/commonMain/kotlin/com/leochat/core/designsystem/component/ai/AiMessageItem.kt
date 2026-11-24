@@ -34,6 +34,7 @@ import com.leochat.core.designsystem.component.ai.model.AiMessageUi
 import com.leochat.core.designsystem.component.feedback.LocalLeoSnackBar
 import com.leochat.core.designsystem.theme.AiTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LocalLeoPalette
 
 /** One AI conversation turn: user bubble or assistant card. Mirrors `AiMessageItem`. */
 @Composable
@@ -61,6 +62,7 @@ private fun UserBubble(message: AiMessageUi, modifier: Modifier) {
 
 @Composable
 private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
+    val palette = LocalLeoPalette.current
     val clipboard = LocalClipboardManager.current
     val snackBar = LocalLeoSnackBar.current
     val shape = RoundedCornerShape(20.dp)
@@ -69,14 +71,14 @@ private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
             .padding(vertical = 8.dp)
             .fillMaxWidth()
             .shadow(3.dp, shape, ambientColor = AiTokens.cardShadow, spotColor = AiTokens.cardShadow)
-            .background(Color.White, shape)
-            .border(1.dp, AiTokens.slate200, shape)
+            .background(palette.surface, shape)
+            .border(1.dp, palette.border, shape)
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AiGradientBadge(size = 28, cornerRadius = 8, iconSize = 16)
             Spacer(Modifier.width(10.dp))
-            Text(AiStrings.assistantName, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = LeoColors.textPrimary)
+            Text(AiStrings.assistantName, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary)
             Spacer(Modifier.width(8.dp))
             Text(
                 message.modelLabel,
@@ -84,14 +86,14 @@ private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
                 fontWeight = FontWeight.Bold,
                 color = LeoColors.primary,
                 modifier = Modifier
-                    .background(LeoColors.primarySoft, RoundedCornerShape(6.dp))
+                    .background(palette.primarySoft, RoundedCornerShape(6.dp))
                     .padding(horizontal = 8.dp, vertical = 2.dp),
             )
             Spacer(Modifier.weight(1f))
             Icon(
                 Icons.Rounded.ContentCopy,
                 contentDescription = null,
-                tint = AiTokens.slate400,
+                tint = palette.textMuted,
                 modifier = Modifier
                     .aiPressable {
                         clipboard.setText(AnnotatedString(message.content))
@@ -107,7 +109,7 @@ private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
             AiThinkingBox(thinkingContent = thinking, durationText = message.thinkingDurationText)
         }
         SelectionContainer {
-            Text(message.content, fontSize = 14.sp, lineHeight = (14 * 1.55).sp, color = AiTokens.slate800)
+            Text(message.content, fontSize = 14.sp, lineHeight = (14 * 1.55).sp, color = palette.textPrimary)
         }
     }
 }

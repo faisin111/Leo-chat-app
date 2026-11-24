@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.ContactsStrings
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.branding.LeoAvatar
 import com.leochat.core.designsystem.component.chat.model.PersonRowUi
 
@@ -49,13 +50,14 @@ fun GroupInputField(
     textStyle: TextStyle,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LeoThemeTokens.palette
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth().height(48.dp)) {
         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             Icon(leadingIcon, contentDescription = null, tint = leadingTint, modifier = Modifier.size(24.dp))
         }
         Box(Modifier.weight(1f).padding(end = 12.dp), contentAlignment = Alignment.CenterStart) {
             if (value.isEmpty()) {
-                Text(placeholder, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = LeoColors.textMuted, maxLines = 1)
+                Text(placeholder, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = palette.textMuted, maxLines = 1)
             }
             BasicTextField(
                 value = value,
@@ -72,12 +74,13 @@ fun GroupInputField(
 /** Selected member chip with avatar and remove icon (Flutter `Chip`). */
 @Composable
 fun SelectedMemberChip(member: PersonRowUi, onRemove: () -> Unit) {
+    val palette = LeoThemeTokens.palette
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .height(32.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(LeoColors.primarySoft)
+            .background(palette.primarySoft)
             .padding(start = 4.dp, end = 8.dp),
     ) {
         LeoAvatar(radius = 12.dp, name = member.name, imageUrl = member.avatarUrl)
@@ -96,26 +99,27 @@ fun SelectedMemberChip(member: PersonRowUi, onRemove: () -> Unit) {
 /** Search hit with a selection check, highlighted when selected. */
 @Composable
 fun SelectableUserRow(user: PersonRowUi, selected: Boolean, onClick: () -> Unit) {
+    val palette = LeoThemeTokens.palette
     val shape = RoundedCornerShape(16.dp)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .contactsTap(onClick = onClick)
-            .background(if (selected) LeoColors.primarySoft.copy(alpha = 0.5f) else LeoColors.surface, shape)
-            .border(1.dp, if (selected) LeoColors.primary else LeoColors.border, shape)
+            .background(if (selected) palette.primarySoft.copy(alpha = 0.5f) else palette.surface, shape)
+            .border(1.dp, if (selected) LeoColors.primary else palette.border, shape)
             .padding(12.dp),
     ) {
         LeoAvatar(radius = 22.dp, name = user.name, imageUrl = user.avatarUrl)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(user.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = LeoColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(user.handle, fontSize = 13.sp, color = LeoColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(user.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(user.handle, fontSize = 13.sp, color = palette.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Icon(
             if (selected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
             contentDescription = null,
-            tint = if (selected) LeoColors.primary else LeoColors.textMuted,
+            tint = if (selected) LeoColors.primary else palette.textMuted,
         )
     }
 }

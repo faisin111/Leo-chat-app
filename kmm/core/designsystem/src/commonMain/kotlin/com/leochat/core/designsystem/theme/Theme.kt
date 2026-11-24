@@ -17,25 +17,35 @@ val LocalLeoPalette = staticCompositionLocalOf { LeoPalette.Light }
 private val LightScheme = lightColorScheme(
     primary = LeoColors.primary,
     onPrimary = Color.White,
+    primaryContainer = LeoColors.primarySoft,
+    onPrimaryContainer = LeoColors.primaryHover,
     surface = LeoColors.surface,
     onSurface = LeoColors.textPrimary,
+    surfaceVariant = LeoColors.surfaceSubtle,
+    onSurfaceVariant = LeoColors.textSecondary,
     background = LeoColors.background,
     onBackground = LeoColors.textPrimary,
     error = LeoColors.destructive,
+    onError = Color.White,
     outline = LeoColors.border,
-    outlineVariant = LeoColors.border,
+    outlineVariant = LeoColors.borderSubtle,
 )
 
 private val DarkScheme = darkColorScheme(
     primary = LeoColors.primary,
     onPrimary = Color.White,
+    primaryContainer = LeoColors.primarySoftDark,
+    onPrimaryContainer = LeoColors.primaryLight,
     surface = LeoColors.darkSurface,
     onSurface = LeoColors.darkTextPrimary,
+    surfaceVariant = LeoColors.darkSurfaceElevated,
+    onSurfaceVariant = LeoColors.darkTextSecondary,
     background = LeoColors.darkBackground,
     onBackground = LeoColors.darkTextPrimary,
     error = LeoColors.destructive,
+    onError = Color.White,
     outline = LeoColors.darkBorder,
-    outlineVariant = LeoColors.darkBorder,
+    outlineVariant = LeoColors.darkBorderSubtle,
 )
 
 /** App-wide theme: Material 3 + Poppins + LeoChat palette. Mirrors `LeoTheme` in Flutter. */
@@ -49,7 +59,11 @@ fun LeoTheme(
         LeoThemeMode.Dark -> true
         LeoThemeMode.System -> isSystemInDarkTheme()
     }
-    CompositionLocalProvider(LocalLeoPalette provides if (dark) LeoPalette.Dark else LeoPalette.Light) {
+    val palette = if (dark) LeoPalette.Dark else LeoPalette.Light
+    CompositionLocalProvider(
+        LocalLeoPalette provides palette,
+        androidx.compose.material3.LocalContentColor provides palette.textPrimary,
+    ) {
         MaterialTheme(
             colorScheme = if (dark) DarkScheme else LightScheme,
             typography = leoTypography(),

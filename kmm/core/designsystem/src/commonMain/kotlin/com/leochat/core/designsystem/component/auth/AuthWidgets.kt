@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.designsystem.theme.AuthTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.buttons.LeoTextLink
 import org.jetbrains.compose.resources.painterResource
 
@@ -58,9 +59,10 @@ fun WelcomeCard(modifier: Modifier = Modifier) {
 /** Rounded tinted tile holding a feature icon (lock, key, …). */
 @Composable
 fun AuthIconBadge(icon: ImageVector, modifier: Modifier = Modifier) {
+    val palette = LeoThemeTokens.palette
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier.size(56.dp).background(LeoColors.primarySoft, RoundedCornerShape(16.dp)),
+        modifier = modifier.size(56.dp).background(palette.primarySoft, RoundedCornerShape(16.dp)),
     ) {
         Icon(icon, contentDescription = null, tint = LeoColors.primary, modifier = Modifier.size(30.dp))
     }
@@ -69,12 +71,13 @@ fun AuthIconBadge(icon: ImageVector, modifier: Modifier = Modifier) {
 /** "Prompt text  Action" row centered under auth forms. */
 @Composable
 fun AuthFooterPrompt(prompt: String, action: String, onAction: () -> Unit, modifier: Modifier = Modifier) {
+    val palette = LeoThemeTokens.palette
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("$prompt ", color = LeoColors.textSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text("$prompt ", color = palette.textSecondary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         LeoTextLink(label = action, onClick = onAction)
     }
 }

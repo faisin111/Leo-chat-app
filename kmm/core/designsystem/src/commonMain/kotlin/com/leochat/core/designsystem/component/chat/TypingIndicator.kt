@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.branding.LeoAvatar
 import kotlin.math.PI
 import kotlin.math.sin
@@ -42,6 +43,7 @@ private val TypingShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, b
 /** Incoming "X is typing..." bubble with three bouncing dots. Mirrors `LeoTypingIndicator`. */
 @Composable
 fun TypingIndicator(text: String?, avatarUrl: String?, modifier: Modifier = Modifier) {
+    val palette = LeoThemeTokens.palette
     val transition = rememberInfiniteTransition(label = "typing")
     val progress by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(1200, easing = LinearEasing)), label = "typingProgress")
 
@@ -52,11 +54,11 @@ fun TypingIndicator(text: String?, avatarUrl: String?, modifier: Modifier = Modi
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .shadow(4.dp, TypingShape, ambientColor = ChatTokens.typingShadow, spotColor = ChatTokens.typingShadow)
-                .background(Color.White, TypingShape)
-                .border(1.dp, ChatTokens.typingBorder, TypingShape)
+                .background(if (palette.isDark) palette.incomingBubble else Color.White, TypingShape)
+                .border(1.dp, if (palette.isDark) palette.border else ChatTokens.typingBorder, TypingShape)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
-            Text(text ?: AppStrings.typingSuffix, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LeoColors.textSecondary)
+            Text(text ?: AppStrings.typingSuffix, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textSecondary)
             Spacer(Modifier.width(8.dp))
             repeat(3) { index ->
                 val phase = (progress + index * 0.18f) % 1f

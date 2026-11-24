@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /** Neutral outlined button. Mirrors `LeoOutlineButton`. */
 @Composable
@@ -21,14 +21,15 @@ fun LeoOutlineButton(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LeoThemeTokens.palette
     val interaction = remember { MutableInteractionSource() }
     OutlinedButton(
         onClick = { onClick?.invoke() },
         enabled = onClick != null,
         interactionSource = interaction,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, LeoColors.border),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = LeoColors.textPrimary),
+        border = BorderStroke(1.dp, palette.border),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.textPrimary),
         modifier = modifier.leoPressable(interaction, onClick != null),
     ) {
         Text(label, fontWeight = FontWeight.Bold, fontSize = 14.sp)

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.theme.LeoTypography
 import com.leochat.core.designsystem.component.buttons.LeoPrimaryButton
 import com.leochat.core.designsystem.component.inputs.LeoAuthField
@@ -38,6 +39,7 @@ fun ResetPasswordContent(
     onSubmit: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
     LeoScreen {
         Column {
             LeoBackBar(onBack = onBack)
@@ -54,7 +56,7 @@ fun ResetPasswordContent(
                     fontSize = 15.sp,
                     lineHeight = (15 * 1.45).sp,
                     fontWeight = FontWeight.Medium,
-                    color = LeoColors.textSecondary,
+                    color = palette.textSecondary,
                 )
                 Spacer(Modifier.height(28.dp))
                 LeoAuthField(

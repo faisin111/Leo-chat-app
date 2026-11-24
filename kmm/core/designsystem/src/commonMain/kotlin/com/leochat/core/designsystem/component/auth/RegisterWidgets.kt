@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.branding.LeoAvatar
 
 /** Avatar with camera badge plus "Add your best hello" copy. */
@@ -37,6 +38,7 @@ fun ProfilePhotoPrompt(
     title: String = AppStrings.profilePhotoPrompt,
     subtitle: String = AppStrings.profilePhotoSubtext,
 ) {
+    val palette = LeoThemeTokens.palette
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Box {
             LeoAvatar(radius = 34.dp, drawable = Res.drawable.avatar_portrait)
@@ -52,9 +54,9 @@ fun ProfilePhotoPrompt(
         }
         Spacer(Modifier.width(16.dp))
         Column {
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Black, color = LeoColors.textPrimary)
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Black, color = palette.textPrimary)
             Spacer(Modifier.height(4.dp))
-            Text(subtitle, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LeoColors.textSecondary)
+            Text(subtitle, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textSecondary)
         }
     }
 }
@@ -77,17 +79,21 @@ fun TermsAgreementRow(
     modifier: Modifier = Modifier,
     text: String = AppStrings.termsAgreement,
 ) {
+    val palette = LeoThemeTokens.palette
     Row(modifier = modifier, verticalAlignment = Alignment.Top) {
         Checkbox(
             checked = accepted,
             onCheckedChange = onChange,
-            colors = CheckboxDefaults.colors(checkedColor = LeoColors.primary),
+            colors = CheckboxDefaults.colors(
+                checkedColor = LeoColors.primary,
+                uncheckedColor = palette.border,
+            ),
             modifier = Modifier.size(32.dp),
         )
         Spacer(Modifier.width(6.dp))
         Text(
             text,
-            color = LeoColors.textSecondary,
+            color = palette.textSecondary,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             lineHeight = (13 * 1.35).sp,

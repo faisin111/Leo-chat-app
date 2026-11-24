@@ -35,6 +35,7 @@ import com.leochat.core.designsystem.component.buttons.leoPressable
 import com.leochat.core.designsystem.component.chat.model.FilterOption
 import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 private val PillShape = RoundedCornerShape(999.dp)
 private val SelectedGradient = Brush.linearGradient(listOf(LeoColors.primary, LeoColors.primaryLight), Offset.Zero, Offset.Infinite)
@@ -56,14 +57,15 @@ fun <T> FilterBubbleBar(
 
 @Composable
 private fun BubblePill(label: String, isSelected: Boolean, badge: String? = null, onClick: () -> Unit) {
+    val palette = LeoThemeTokens.palette
     val scale by animateFloatAsState(if (isSelected) 1.04f else 1f, tween(240, easing = EaseOutBack), label = "pillScale")
-    val textColor by animateColorAsState(if (isSelected) Color.White else LeoColors.textSecondary, tween(240), label = "pillText")
+    val textColor by animateColorAsState(if (isSelected) Color.White else palette.textSecondary, tween(240), label = "pillText")
     val interaction = remember { MutableInteractionSource() }
     val base = Modifier.scale(scale).leoPressable(interaction)
     val decorated = if (isSelected) {
         base.shadow(6.dp, PillShape, ambientColor = ChatTokens.pillGlow, spotColor = ChatTokens.pillGlow).background(SelectedGradient, PillShape)
     } else {
-        base.background(LeoColors.input, PillShape)
+        base.background(palette.input, PillShape)
     }
     Row(
         verticalAlignment = Alignment.CenterVertically,

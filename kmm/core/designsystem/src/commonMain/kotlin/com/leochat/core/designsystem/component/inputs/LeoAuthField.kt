@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.core.designsystem.theme.LeoFields
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /** Labelled auth input with trailing icon or custom suffix. Mirrors `LeoAuthField`. */
 @Composable
@@ -37,6 +38,7 @@ fun LeoAuthField(
     suffix: (@Composable () -> Unit)? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
 ) {
+    val palette = LeoThemeTokens.palette
     Column(modifier = modifier) {
         Text(label, style = LeoFields.authLabelStyle)
         Spacer(Modifier.height(8.dp))
@@ -47,7 +49,7 @@ fun LeoAuthField(
             singleLine = true,
             textStyle = LeoFields.authTextStyle,
             placeholder = { Text(hint, style = LeoFields.authHintStyle) },
-            trailingIcon = suffix ?: icon?.let { { Icon(it, contentDescription = null, modifier = Modifier.size(LeoFields.iconSize.dp)) } },
+            trailingIcon = suffix ?: icon?.let { { Icon(it, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(LeoFields.iconSize.dp)) } },
             visualTransformation = if (obscureText) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (obscureText) KeyboardType.Password else keyboardType,
@@ -61,11 +63,12 @@ fun LeoAuthField(
 /** Show/hide toggle used as the password field suffix. */
 @Composable
 fun PasswordVisibilityToggle(obscured: Boolean, onToggle: () -> Unit) {
+    val palette = LeoThemeTokens.palette
     IconButton(onClick = onToggle) {
         Icon(
             imageVector = if (obscured) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
             contentDescription = if (obscured) AppStrings.showPassword else AppStrings.hidePassword,
-            tint = LeoColors.textSecondary,
+            tint = palette.textSecondary,
         )
     }
 }

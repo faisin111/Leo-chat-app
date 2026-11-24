@@ -29,6 +29,7 @@ import com.leochat.core.common.constants.AiStrings
 import com.leochat.core.designsystem.component.ai.model.AiModelUi
 import com.leochat.core.designsystem.theme.AiTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoPalette
 import com.leochat.core.designsystem.theme.LocalLeoPalette
 
 /** Bottom sheet listing the intelligence models. Mirrors `_showModelPicker`. */
@@ -40,11 +41,11 @@ fun AiModelPickerSheet(
     onSelect: (AiModelUi) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val isDark = LocalLeoPalette.current.isDark
+    val palette = LocalLeoPalette.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = if (isDark) LeoColors.darkSurface else Color.White,
+        containerColor = palette.surface,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         dragHandle = null,
     ) {
@@ -53,7 +54,7 @@ fun AiModelPickerSheet(
                 Box(
                     Modifier
                         .size(width = 40.dp, height = 4.dp)
-                        .background(if (isDark) LeoColors.darkBorder else AiTokens.slate300, RoundedCornerShape(2.dp)),
+                        .background(palette.border, RoundedCornerShape(2.dp)),
                 )
             }
             Spacer(Modifier.height(16.dp))
@@ -61,36 +62,35 @@ fun AiModelPickerSheet(
                 AiStrings.selectModelTitle,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (isDark) LeoColors.darkTextPrimary else LeoColors.textPrimary,
+                color = palette.textPrimary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 AiStrings.selectModelSubtitle,
                 fontSize = 13.sp,
-                color = if (isDark) LeoColors.darkTextSecondary else LeoColors.textSecondary,
+                color = palette.textSecondary,
             )
             Spacer(Modifier.height(16.dp))
             models.forEach { model ->
-                AiModelOption(model, isSelected = model.id == currentModelId, isDark = isDark, onClick = { onSelect(model) })
+                AiModelOption(model, isSelected = model.id == currentModelId, palette = palette, onClick = { onSelect(model) })
             }
         }
     }
 }
 
 @Composable
-private fun AiModelOption(model: AiModelUi, isSelected: Boolean, isDark: Boolean, onClick: () -> Unit) {
+private fun AiModelOption(model: AiModelUi, isSelected: Boolean, palette: LeoPalette, onClick: () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
     val background = when {
-        isSelected -> if (isDark) LeoColors.primarySoftDark else LeoColors.primarySoft
-        isDark -> LeoColors.darkSurfaceElevated
+        isSelected -> palette.primarySoft
+        palette.isDark -> palette.surfaceElevated
         else -> AiTokens.slate50
     }
     val border = when {
         isSelected -> LeoColors.primary
-        isDark -> LeoColors.darkBorder
-        else -> AiTokens.slate200
+        else -> palette.border
     }
-    val secondary = if (isDark) LeoColors.darkTextSecondary else AiTokens.slate500
+    val secondary = palette.textSecondary
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -114,11 +114,7 @@ private fun AiModelOption(model: AiModelUi, isSelected: Boolean, isDark: Boolean
                     model.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = when {
-                        isSelected -> LeoColors.primary
-                        isDark -> LeoColors.darkTextPrimary
-                        else -> LeoColors.textPrimary
-                    },
+                    color = if (isSelected) LeoColors.primary else palette.textPrimary,
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
@@ -130,7 +126,7 @@ private fun AiModelOption(model: AiModelUi, isSelected: Boolean, isDark: Boolean
                         .background(
                             when {
                                 isSelected -> LeoColors.primary.copy(alpha = 0.15f)
-                                isDark -> LeoColors.darkBorder
+                                palette.isDark -> palette.border
                                 else -> AiTokens.slate200
                             },
                             RoundedCornerShape(8.dp),
@@ -142,7 +138,7 @@ private fun AiModelOption(model: AiModelUi, isSelected: Boolean, isDark: Boolean
             Text(
                 model.tagline,
                 fontSize = 12.sp,
-                color = if (isDark) LeoColors.darkTextMuted else LeoColors.textSecondary,
+                color = palette.textMuted,
             )
         }
     }

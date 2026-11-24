@@ -34,13 +34,15 @@ import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /** Soft orange "Reconnecting…" strip under the conversation header. */
 @Composable
 fun ReconnectingBanner() {
+    val palette = LeoThemeTokens.palette
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().background(ChatTokens.reconnectingBackground).padding(horizontal = 24.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().background(palette.primarySoft).padding(horizontal = 24.dp, vertical = 12.dp),
     ) {
         Icon(Icons.Rounded.WifiOff, null, tint = LeoColors.primary, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(12.dp))
@@ -51,18 +53,19 @@ fun ReconnectingBanner() {
 /** Centered icon disc, title, and body. [circle] above 60 uses the large (no conversation selected) style. */
 @Composable
 fun ChatEmptyPane(icon: ImageVector, circle: Int, iconSize: Int, title: String, body: String, modifier: Modifier = Modifier) {
+    val palette = LeoThemeTokens.palette
     Column(
         modifier = modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(Modifier.size(circle.dp).background(LeoColors.input, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = LeoColors.textMuted, modifier = Modifier.size(iconSize.dp))
+        Box(Modifier.size(circle.dp).background(palette.input, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = palette.textMuted, modifier = Modifier.size(iconSize.dp))
         }
         Spacer(Modifier.height(if (circle > 60) 16.dp else 12.dp))
-        Text(title, fontSize = if (circle > 60) 18.sp else 16.sp, fontWeight = if (circle > 60) FontWeight.ExtraBold else FontWeight.Bold, color = LeoColors.textPrimary)
+        Text(title, fontSize = if (circle > 60) 18.sp else 16.sp, fontWeight = if (circle > 60) FontWeight.ExtraBold else FontWeight.Bold, color = palette.textPrimary)
         Spacer(Modifier.height(if (circle > 60) 6.dp else 4.dp))
-        Text(body, textAlign = TextAlign.Center, fontSize = if (circle > 60) 14.sp else 13.sp, fontWeight = FontWeight.Medium, color = LeoColors.textSecondary)
+        Text(body, textAlign = TextAlign.Center, fontSize = if (circle > 60) 14.sp else 13.sp, fontWeight = FontWeight.Medium, color = palette.textSecondary)
     }
 }
 
@@ -83,12 +86,13 @@ fun ChatDayLabel(text: String, modifier: Modifier = Modifier) {
 /** Floating "Latest" pill that jumps to the newest message. */
 @Composable
 fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val palette = LeoThemeTokens.palette
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = ChatTokens.latestPillShadow, spotColor = ChatTokens.latestPillShadow)
-            .background(Color.White, RoundedCornerShape(24.dp))
-            .border(1.dp, LeoColors.border, RoundedCornerShape(24.dp))
+            .background(palette.surface, RoundedCornerShape(24.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {

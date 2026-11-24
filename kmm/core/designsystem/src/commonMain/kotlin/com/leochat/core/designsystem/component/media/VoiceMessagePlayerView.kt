@@ -39,6 +39,7 @@ import com.leochat.core.common.constants.MediaStrings
 import com.leochat.core.designsystem.component.buttons.leoPressable
 import com.leochat.core.designsystem.component.media.model.VoicePlaybackUi
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LocalLeoPalette
 import com.leochat.core.designsystem.theme.MediaTokens
 import kotlin.math.sin
 
@@ -55,8 +56,9 @@ fun VoiceMessagePlayerView(
     onSpeed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalLeoPalette.current
     val activeWave = if (isOwn) Color.White else LeoColors.primary
-    val inactiveWave = if (isOwn) Color.White.copy(alpha = 0.35f) else MediaTokens.InactiveWaveIncoming
+    val inactiveWave = if (isOwn) Color.White.copy(alpha = 0.35f) else if (palette.isDark) palette.border else MediaTokens.InactiveWaveIncoming
 
     Column(modifier.widthIn(min = 240.dp, max = 320.dp).padding(vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -87,7 +89,7 @@ fun VoiceMessagePlayerView(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.2.sp,
-                color = if (isOwn) Color.White.copy(alpha = 0.9f) else LeoColors.textSecondary,
+                color = if (isOwn) Color.White.copy(alpha = 0.9f) else palette.textSecondary,
             )
             VoiceSpeedChip(isOwn, playback.speedLabel, onSpeed)
         }
@@ -158,6 +160,7 @@ fun VoiceWaveform(
 /** Small pill showing the current playback speed label. */
 @Composable
 fun VoiceSpeedChip(isOwn: Boolean, label: String, onClick: () -> Unit) {
+    val palette = LocalLeoPalette.current
     val interaction = remember { MutableInteractionSource() }
     Text(
         label,
@@ -167,7 +170,7 @@ fun VoiceSpeedChip(isOwn: Boolean, label: String, onClick: () -> Unit) {
         modifier = Modifier
             .leoPressable(interaction)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (isOwn) Color.White.copy(alpha = 0.2f) else LeoColors.input)
+            .background(if (isOwn) Color.White.copy(alpha = 0.2f) else palette.input)
             .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), onClick = onClick)
             .padding(horizontal = 7.dp, vertical = 2.dp),
     )

@@ -79,23 +79,23 @@ fun ChatComposer(
 ) {
     val palette = LocalLeoPalette.current
     val hasText = field.text.isNotBlank()
-    val border = if (palette.isDark) LeoColors.darkBorder else LeoColors.border
+    val border = palette.border
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .background(if (palette.isDark) LeoColors.darkSurface else Color.White)
+            .background(palette.surface)
             .drawBehind { drawLine(border, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .padding(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 16.dp),
     ) {
-        val chip = if (palette.isDark) LeoColors.darkSurfaceElevated else LeoColors.input
+        val chip = if (palette.isDark) palette.surfaceElevated else palette.input
         if (!isRecording) {
             RoundAction(Icons.Filled.Add, chip, LeoColors.primary, 24, onClick = onAttachmentClick)
             Spacer(Modifier.width(8.dp))
             RoundAction(
                 icon = Icons.Filled.AutoAwesome,
-                background = if (isAiMode) LeoColors.primarySoft else chip,
-                tint = if (isAiMode) LeoColors.primary else if (palette.isDark) LeoColors.darkTextSecondary else LeoColors.textSecondary,
+                background = if (isAiMode) palette.primarySoft else chip,
+                tint = if (isAiMode) LeoColors.primary else palette.textSecondary,
                 iconSize = 20,
                 bordered = isAiMode,
                 onClick = onToggleAi,
@@ -113,7 +113,7 @@ fun ChatComposer(
         } else BasicTextField(
             value = field,
             onValueChange = onFieldChange,
-            textStyle = TextStyle(color = if (palette.isDark) LeoColors.darkTextPrimary else LeoColors.textPrimary, fontSize = 15.sp),
+            textStyle = TextStyle(color = palette.textPrimary, fontSize = 15.sp),
             cursorBrush = SolidColor(LeoColors.primary),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
@@ -124,13 +124,13 @@ fun ChatComposer(
                     contentAlignment = Alignment.CenterStart,
                     modifier = Modifier
                         .heightIn(min = 44.dp)
-                        .background(if (palette.isDark) LeoColors.darkInput else LeoColors.input, RoundedCornerShape(30.dp))
+                        .background(palette.input, RoundedCornerShape(30.dp))
                         .padding(horizontal = 18.dp, vertical = 12.dp),
                 ) {
                     if (field.text.isEmpty()) {
                         Text(
                             if (isAiMode) AppStrings.aiMessageHint else AppStrings.messageHint,
-                            color = if (palette.isDark) LeoColors.darkTextSecondary else LeoColors.textSecondary,
+                            color = palette.textSecondary,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
                         )

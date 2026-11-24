@@ -28,6 +28,7 @@ import com.leochat.core.designsystem.component.inputs.LeoAuthField
 import com.leochat.core.designsystem.component.layout.LeoBackBar
 import com.leochat.core.designsystem.component.layout.LeoScreen
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.theme.LeoTypography
 import com.leochat.feature.auth.presentation.ForgotPasswordUiState
 
@@ -67,6 +68,7 @@ private fun ForgotPasswordForm(
     onSubmit: () -> Unit,
     onBackToLogin: () -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
     AuthIconBadge(Icons.Rounded.LockReset)
     Spacer(Modifier.height(24.dp))
     Text(AppStrings.forgotPasswordTitle, style = LeoTypography.mainHeading)
@@ -76,7 +78,7 @@ private fun ForgotPasswordForm(
         fontSize = 15.sp,
         lineHeight = (15 * 1.45).sp,
         fontWeight = FontWeight.Medium,
-        color = LeoColors.textSecondary,
+        color = palette.textSecondary,
     )
     Spacer(Modifier.height(28.dp))
     LeoAuthField(

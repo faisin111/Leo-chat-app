@@ -21,7 +21,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.InsertDriveFile
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.rounded.BrokenImage
 import androidx.compose.material.icons.rounded.Description
@@ -49,6 +49,7 @@ import com.leochat.core.designsystem.component.chat.model.SharedItemUi
 import com.leochat.core.designsystem.component.chat.model.SharedMediaThumbUi
 import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.theme.lineHeight
 
 /** Segmented control with equal-width options (Media / Files / Links). */
@@ -59,7 +60,9 @@ fun <T> SegmentedFilterPills(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier.fillMaxWidth().background(ChatTokens.filterTrack, RoundedCornerShape(16.dp)).padding(4.dp)) {
+    val palette = LeoThemeTokens.palette
+    val trackColor = if (palette.isDark) palette.surfaceElevated else ChatTokens.filterTrack
+    Row(modifier.fillMaxWidth().background(trackColor, RoundedCornerShape(16.dp)).padding(4.dp)) {
         options.forEach { option ->
             FilterPill(option.label, option.value == selected, { onSelect(option.value) }, Modifier.weight(1f))
         }
@@ -68,13 +71,14 @@ fun <T> SegmentedFilterPills(
 
 @Composable
 private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val palette = LeoThemeTokens.palette
     val shape = RoundedCornerShape(12.dp)
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .contactsTap(onClick = onClick)
             .then(if (isSelected) Modifier.shadow(2.dp, shape, ambientColor = ChatTokens.pillShadow, spotColor = ChatTokens.pillShadow) else Modifier)
-            .background(if (isSelected) LeoColors.surface else Color.Transparent, shape)
+            .background(if (isSelected) palette.surface else Color.Transparent, shape)
             .padding(vertical = 8.dp),
     ) {
         Text(
@@ -82,7 +86,7 @@ private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit, 
             textAlign = TextAlign.Center,
             fontSize = 13.sp,
             fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-            color = if (isSelected) LeoColors.primary else LeoColors.textSecondary,
+            color = if (isSelected) LeoColors.primary else palette.textSecondary,
             maxLines = 1,
         )
     }
@@ -130,8 +134,9 @@ fun SharedMediaGrid(items: List<SharedMediaThumbUi>) {
 /** Shared files: document tile, file name, message type. */
 @Composable
 fun SharedFilesList(items: List<SharedItemUi>) {
+    val palette = LeoThemeTokens.palette
     if (items.isEmpty()) {
-        SharedEmptyState(Icons.Outlined.InsertDriveFile, ContactsStrings.noFilesYet, ContactsStrings.noFilesYetHint)
+        SharedEmptyState(Icons.AutoMirrored.Outlined.InsertDriveFile, ContactsStrings.noFilesYet, ContactsStrings.noFilesYetHint)
         return
     }
     LazyColumn(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp), modifier = Modifier.fillMaxSize()) {
@@ -140,9 +145,9 @@ fun SharedFilesList(items: List<SharedItemUi>) {
             SharedItemRow(
                 icon = Icons.Rounded.Description,
                 iconTint = LeoColors.info,
-                tileColor = ChatTokens.fileTileBackground,
+                tileColor = if (palette.isDark) palette.surfaceElevated else ChatTokens.fileTileBackground,
                 title = item.title,
-                titleColor = LeoColors.textPrimary,
+                titleColor = palette.textPrimary,
                 titleSize = 15,
                 subtitle = item.subtitle,
             )
@@ -153,6 +158,7 @@ fun SharedFilesList(items: List<SharedItemUi>) {
 /** Shared links: link tile, first URL, full message text. */
 @Composable
 fun SharedLinksList(items: List<SharedItemUi>) {
+    val palette = LeoThemeTokens.palette
     if (items.isEmpty()) {
         SharedEmptyState(Icons.Rounded.Link, ContactsStrings.noLinksYet, ContactsStrings.noLinksYetHint)
         return
@@ -163,7 +169,7 @@ fun SharedLinksList(items: List<SharedItemUi>) {
             SharedItemRow(
                 icon = Icons.Rounded.Link,
                 iconTint = LeoColors.primary,
-                tileColor = LeoColors.primarySoft,
+                tileColor = palette.primarySoft,
                 title = item.title,
                 titleColor = LeoColors.primary,
                 titleSize = 14,
@@ -183,6 +189,7 @@ private fun SharedItemRow(
     titleSize: Int,
     subtitle: String,
 ) {
+    val palette = LeoThemeTokens.palette
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
         Box(Modifier.size(44.dp).background(tileColor, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
             Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
@@ -191,7 +198,7 @@ private fun SharedItemRow(
         Column(Modifier.weight(1f)) {
             Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = titleSize.sp, fontWeight = FontWeight.Bold, color = titleColor)
             Spacer(Modifier.height(2.dp))
-            Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp, color = LeoColors.textSecondary)
+            Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp, color = palette.textSecondary)
         }
     }
 }

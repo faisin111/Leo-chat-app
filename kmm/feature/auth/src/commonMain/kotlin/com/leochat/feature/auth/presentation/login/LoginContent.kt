@@ -26,6 +26,7 @@ import com.leochat.core.designsystem.component.inputs.LeoAuthField
 import com.leochat.core.designsystem.component.inputs.PasswordVisibilityToggle
 import com.leochat.core.designsystem.component.layout.LeoScreen
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.theme.LeoTypography
 import com.leochat.feature.auth.presentation.LoginUiState
 
@@ -40,6 +41,7 @@ fun LoginContent(
     onForgotPassword: () -> Unit,
     onRegister: () -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
     LeoScreen {
         CenteredScrollColumn(
             maxWidth = 480.dp,
@@ -57,7 +59,7 @@ fun LoginContent(
                 fontSize = 15.sp,
                 lineHeight = (15 * 1.45).sp,
                 fontWeight = FontWeight.SemiBold,
-                color = LeoColors.textSecondary,
+                color = palette.textSecondary,
             )
             Spacer(Modifier.height(26.dp))
             LeoAuthField(

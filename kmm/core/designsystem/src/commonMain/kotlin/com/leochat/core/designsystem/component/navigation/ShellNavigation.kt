@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.branding.LeoLogo
 import com.leochat.core.designsystem.component.buttons.leoPressable
 
@@ -54,12 +55,13 @@ enum class ShellTab(val label: String, val icon: ImageVector, val activeIcon: Im
 /** Mobile bottom bar. Mirrors `_BottomNav`. */
 @Composable
 fun ShellBottomNav(selected: ShellTab, onSelect: (ShellTab) -> Unit) {
+    val palette = LeoThemeTokens.palette
     Row(
         horizontalArrangement = Arrangement.SpaceAround,
         modifier = Modifier
             .fillMaxWidth()
-            .background(LeoColors.background)
-            .drawBehind { drawLine(LeoColors.border, Offset.Zero, Offset(size.width, 0f), 1.dp.toPx()) }
+            .background(palette.background)
+            .drawBehind { drawLine(palette.border, Offset.Zero, Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding()
             .padding(vertical = 8.dp),
     ) {
@@ -74,7 +76,7 @@ fun ShellBottomNav(selected: ShellTab, onSelect: (ShellTab) -> Unit) {
                     .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple()) { onSelect(tab) }
                     .padding(horizontal = 14.dp, vertical = 4.dp),
             ) {
-                val color = if (active) LeoColors.primary else LeoColors.textSecondary
+                val color = if (active) LeoColors.primary else palette.textSecondary
                 Icon(if (active) tab.activeIcon else tab.icon, tab.label, tint = color, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.height(3.dp))
                 Text(tab.label, fontSize = 11.sp, fontWeight = if (active) FontWeight.ExtraBold else FontWeight.SemiBold, color = color)
@@ -86,13 +88,14 @@ fun ShellBottomNav(selected: ShellTab, onSelect: (ShellTab) -> Unit) {
 /** Tablet/desktop rail. Mirrors `_DesktopRail`. */
 @Composable
 fun ShellRail(selected: ShellTab, onSelect: (ShellTab) -> Unit) {
+    val palette = LeoThemeTokens.palette
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .width(72.dp)
             .fillMaxHeight()
-            .background(Color.White)
-            .drawBehind { drawLine(LeoColors.border, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) },
+            .background(palette.rail)
+            .drawBehind { drawLine(palette.border, Offset(size.width, 0f), Offset(size.width, size.height), 1.dp.toPx()) },
     ) {
         Spacer(Modifier.height(24.dp))
         LeoLogo(compact = true)
@@ -109,7 +112,7 @@ fun ShellRail(selected: ShellTab, onSelect: (ShellTab) -> Unit) {
                     .background(if (active) LeoColors.primary else Color.Transparent)
                     .clickable(interactionSource = interaction, indication = null) { onSelect(tab) },
             ) {
-                Icon(tab.activeIcon, tab.label, tint = if (active) Color.White else LeoColors.textSecondary, modifier = Modifier.size(22.dp))
+                Icon(tab.activeIcon, tab.label, tint = if (active) Color.White else palette.textSecondary, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.height(24.dp))
         }

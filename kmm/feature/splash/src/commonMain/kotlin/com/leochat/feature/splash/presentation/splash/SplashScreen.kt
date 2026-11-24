@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.branding.LeoLogo
 import com.leochat.core.designsystem.component.layout.LeoScreen
 import com.leochat.feature.splash.presentation.SplashDestination
@@ -56,6 +57,7 @@ fun SplashScreen(
 /** Stateless splash layout: logo, tagline, progress bar, and privacy note. */
 @Composable
 fun SplashContent() {
+    val palette = LeoThemeTokens.palette
     LeoScreen {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
@@ -68,22 +70,22 @@ fun SplashContent() {
                 AppStrings.yourChatsSubtitle,
                 textAlign = TextAlign.Center,
                 fontSize = 15.sp,
-                color = LeoColors.textSecondary,
+                color = palette.textSecondary,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.weight(1f))
             LinearProgressIndicator(
                 modifier = Modifier.width(56.dp).height(3.dp).clip(RoundedCornerShape(99.dp)),
                 color = LeoColors.primary,
-                trackColor = LeoColors.border,
+                trackColor = palette.border,
                 strokeCap = StrokeCap.Round,
                 gapSize = 0.dp,
             )
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Shield, contentDescription = null, tint = LeoColors.textMuted, modifier = Modifier.size(13.dp))
+                Icon(Icons.Outlined.Shield, contentDescription = null, tint = palette.textMuted, modifier = Modifier.size(13.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(AppStrings.splashSubtitle, color = LeoColors.textSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(AppStrings.splashSubtitle, color = palette.textSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(24.dp))
         }

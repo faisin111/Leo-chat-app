@@ -37,35 +37,35 @@ fun AiTopBar(
     onClearHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = LocalLeoPalette.current.isDark
+    val palette = LocalLeoPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp)
-            .background(if (isDark) LeoColors.darkSurface else Color.White)
+            .background(palette.surface)
             .padding(start = 16.dp, end = 4.dp),
     ) {
-        ModelPill(selectedModel, isDark, onOpenModelPicker)
+        ModelPill(selectedModel, palette.primarySoft, onOpenModelPicker)
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onClearHistory) {
             Icon(
                 Icons.Outlined.DeleteSweep,
                 contentDescription = AiStrings.clearHistory,
-                tint = if (isDark) LeoColors.darkTextSecondary else LeoColors.textSecondary,
+                tint = palette.textSecondary,
             )
         }
     }
 }
 
 @Composable
-private fun ModelPill(model: AiModelUi, isDark: Boolean, onClick: () -> Unit) {
+private fun ModelPill(model: AiModelUi, background: Color, onClick: () -> Unit) {
     val shape = RoundedCornerShape(20.dp)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .aiPressable(onClick = onClick)
-            .background(if (isDark) LeoColors.primarySoftDark else LeoColors.primarySoft, shape)
+            .background(background, shape)
             .border(1.dp, LeoColors.primary.copy(alpha = 0.3f), shape)
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {

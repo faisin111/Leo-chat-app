@@ -22,6 +22,7 @@ import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.component.buttons.LeoOutlineButton
 import com.leochat.core.designsystem.component.buttons.LeoPrimaryButton
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.theme.LeoTypography
 
 /**
@@ -34,6 +35,7 @@ fun ResetLinkSentPanel(
     onEnterResetCode: () -> Unit,
     onBackToLogin: () -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(64.dp).background(LeoColors.success.copy(alpha = 0.12f), CircleShape),
@@ -47,7 +49,7 @@ fun ResetLinkSentPanel(
         AppStrings.resetInstructionsSentTo(email),
         fontSize = 15.sp,
         lineHeight = (15 * 1.45).sp,
-        color = LeoColors.textSecondary,
+        color = palette.textSecondary,
         textAlign = TextAlign.Center,
     )
     Spacer(Modifier.height(28.dp))

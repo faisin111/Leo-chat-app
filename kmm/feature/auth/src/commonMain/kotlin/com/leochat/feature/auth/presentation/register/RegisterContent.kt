@@ -35,6 +35,7 @@ import com.leochat.core.designsystem.component.auth.CenteredScrollColumn
 import com.leochat.core.designsystem.component.auth.PasswordStrengthHint
 import com.leochat.core.designsystem.component.auth.ProfilePhotoPrompt
 import com.leochat.core.designsystem.component.auth.TermsAgreementRow
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.feature.auth.presentation.RegisterUiState
 
 /** Stateless account-creation layout driven by [state]. */
@@ -50,6 +51,7 @@ fun RegisterContent(
     onSubmit: () -> Unit,
     onSignIn: () -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
     LeoScreen {
         CenteredScrollColumn(
             maxWidth = 480.dp,
@@ -61,7 +63,7 @@ fun RegisterContent(
                     Icon(
                         Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = AppStrings.backToSignIn,
-                        tint = LeoColors.textPrimary,
+                        tint = palette.textPrimary,
                         modifier = Modifier.size(26.dp),
                     )
                 }
@@ -71,7 +73,7 @@ fun RegisterContent(
             Spacer(Modifier.height(28.dp))
             Text(AppStrings.registerTitle, style = LeoTypography.mainHeading)
             Spacer(Modifier.height(10.dp))
-            Text(AppStrings.registerSubtitle, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = LeoColors.textSecondary)
+            Text(AppStrings.registerSubtitle, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.textSecondary)
             Spacer(Modifier.height(26.dp))
             ProfilePhotoPrompt()
             Spacer(Modifier.height(24.dp))

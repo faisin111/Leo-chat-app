@@ -110,7 +110,7 @@ private fun LeoSnackBarCard(data: SnackbarData) {
             Spacer(Modifier.height(2.dp))
             Text(
                 visuals.message,
-                color = LeoColors.border,
+                color = Color.White.copy(alpha = 0.82f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 lineHeight = (13 * 1.35).sp,
@@ -118,7 +118,7 @@ private fun LeoSnackBarCard(data: SnackbarData) {
         }
         Spacer(Modifier.width(8.dp))
         IconButton(onClick = { data.dismiss() }, modifier = Modifier.size(24.dp)) {
-            Icon(Icons.Rounded.Close, contentDescription = null, tint = LeoColors.textMuted, modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.Close, contentDescription = null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
         }
     }
 }

@@ -26,7 +26,7 @@ import com.leochat.core.designsystem.component.layout.LeoScreen
 import com.leochat.core.designsystem.component.onboarding.OnboardingDot
 import com.leochat.core.designsystem.component.onboarding.OnboardingSlideView
 import com.leochat.core.designsystem.component.onboarding.model.OnboardingSlideUi
-import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /**
  * Stateless onboarding layout. [pagerState] is hoisted UI state owned by the screen;
@@ -40,6 +40,7 @@ fun OnboardingContent(
     onFinish: () -> Unit,
 ) {
     val isLast = pagerState.currentPage == slides.lastIndex
+    val palette = LeoThemeTokens.palette
 
     LeoScreen {
         Column(Modifier.fillMaxSize()) {
@@ -70,7 +71,7 @@ fun OnboardingContent(
                 AppStrings.onboardingFooter,
                 textAlign = TextAlign.Center,
                 fontSize = 11.sp,
-                color = LeoColors.textMuted,
+                color = palette.textMuted,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.fillMaxWidth().padding(start = 24.dp, top = 10.dp, end = 24.dp, bottom = 16.dp),
             )

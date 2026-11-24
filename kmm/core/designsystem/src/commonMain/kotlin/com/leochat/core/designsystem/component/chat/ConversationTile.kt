@@ -31,6 +31,7 @@ import com.leochat.core.designsystem.component.branding.LeoAvatar
 import com.leochat.core.designsystem.component.chat.model.ConversationTileUi
 import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /** Conversation list row. Mirrors `LeoConversationTile`. */
 @Composable
@@ -40,13 +41,14 @@ fun ConversationTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LeoThemeTokens.palette
     val shape = RoundedCornerShape(16.dp)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(if (isSelected) LeoColors.input else Color.Transparent)
+            .background(if (isSelected) palette.input else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 10.dp),
     ) {
@@ -64,7 +66,7 @@ fun ConversationTile(
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(tile.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = LeoColors.textPrimary)
+            Text(tile.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary)
             Spacer(Modifier.height(3.dp))
             Text(
                 tile.snippet,
@@ -72,7 +74,7 @@ fun ConversationTile(
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 14.sp,
                 fontWeight = if (tile.isTyping) FontWeight.Bold else FontWeight.Medium,
-                color = if (tile.isTyping) LeoColors.primary else LeoColors.textSecondary,
+                color = if (tile.isTyping) LeoColors.primary else palette.textSecondary,
             )
         }
         Spacer(Modifier.width(12.dp))
@@ -81,14 +83,14 @@ fun ConversationTile(
                 tile.time,
                 fontSize = 12.sp,
                 fontWeight = if (tile.hasUnread) FontWeight.Bold else FontWeight.SemiBold,
-                color = if (tile.hasUnread) LeoColors.primary else LeoColors.textSecondary,
+                color = if (tile.hasUnread) LeoColors.primary else palette.textSecondary,
             )
             Spacer(Modifier.height(4.dp))
             when {
                 tile.hasUnread -> Box(Modifier.size(20.dp).background(LeoColors.primary, CircleShape), contentAlignment = Alignment.Center) {
                     Text("${tile.unreadCount}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
                 }
-                tile.isMuted -> Icon(Icons.AutoMirrored.Rounded.VolumeOff, null, tint = LeoColors.textMuted, modifier = Modifier.size(16.dp))
+                tile.isMuted -> Icon(Icons.AutoMirrored.Rounded.VolumeOff, null, tint = palette.textMuted, modifier = Modifier.size(16.dp))
                 else -> Spacer(Modifier.height(20.dp))
             }
         }

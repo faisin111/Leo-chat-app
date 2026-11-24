@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.leochat.core.designsystem.component.navigation.ShellBottomNav
 import com.leochat.core.designsystem.component.navigation.ShellRail
 import com.leochat.core.designsystem.component.navigation.ShellTab
-import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /**
  * Stateless shell layout. Mobile: tab content + bottom bar. Tablet/desktop: rail + 360dp
@@ -35,20 +35,21 @@ fun HomeContent(
     otherTab: @Composable (ShellTab) -> Unit,
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
+    val palette = LeoThemeTokens.palette
     Box(Modifier.fillMaxSize()) {
         if (isMobile) {
-            Column(Modifier.fillMaxSize().background(LeoColors.background)) {
+            Column(Modifier.fillMaxSize().background(palette.background)) {
                 Box(Modifier.weight(1f).statusBarsPadding()) {
                     if (selectedTab == ShellTab.Chats) chatsList(Modifier) else otherTab(selectedTab)
                 }
                 ShellBottomNav(selectedTab, onSelectTab)
             }
         } else {
-            Row(Modifier.fillMaxSize().background(LeoColors.background).systemBarsPadding().imePadding()) {
+            Row(Modifier.fillMaxSize().background(palette.background).systemBarsPadding().imePadding()) {
                 ShellRail(selectedTab, onSelectTab)
                 if (selectedTab == ShellTab.Chats) {
                     chatsList(Modifier.width(360.dp).fillMaxHeight())
-                    VerticalDivider(color = LeoColors.border)
+                    VerticalDivider(color = palette.border)
                     conversationPane()
                 } else {
                     Box(Modifier.weight(1f)) { otherTab(selectedTab) }

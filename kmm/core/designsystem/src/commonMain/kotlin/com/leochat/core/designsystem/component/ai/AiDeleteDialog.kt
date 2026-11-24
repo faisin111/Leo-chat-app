@@ -13,15 +13,15 @@ import com.leochat.core.designsystem.theme.LocalLeoPalette
 /** Confirms permanent deletion of the AI conversation. Mirrors the Leo AI screen dialog. */
 @Composable
 fun AiDeleteDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    val isDark = LocalLeoPalette.current.isDark
+    val palette = LocalLeoPalette.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) LeoColors.darkSurface else Color.White,
+        containerColor = palette.surface,
         title = {
-            Text(AiStrings.deleteTitle, color = if (isDark) LeoColors.darkTextPrimary else LeoColors.textPrimary)
+            Text(AiStrings.deleteTitle, color = palette.textPrimary)
         },
         text = {
-            Text(AiStrings.deleteBody, color = if (isDark) LeoColors.darkTextSecondary else LeoColors.textSecondary)
+            Text(AiStrings.deleteBody, color = palette.textSecondary)
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(AiStrings.cancel, color = LeoColors.primary) }

@@ -31,7 +31,7 @@ import com.leochat.core.designsystem.theme.LocalLeoPalette
 /** Shown when the AI conversation has no messages. Mirrors `_buildEmptyState`. */
 @Composable
 fun AiEmptyState(modifier: Modifier = Modifier) {
-    val isDark = LocalLeoPalette.current.isDark
+    val palette = LocalLeoPalette.current
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
             val shape = RoundedCornerShape(24.dp)
@@ -46,7 +46,7 @@ fun AiEmptyState(modifier: Modifier = Modifier) {
                 AiStrings.emptyTitle,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (isDark) LeoColors.darkTextPrimary else LeoColors.textPrimary,
+                color = palette.textPrimary,
             )
             Spacer(Modifier.height(8.dp))
             Text(
@@ -54,7 +54,7 @@ fun AiEmptyState(modifier: Modifier = Modifier) {
                 textAlign = TextAlign.Center,
                 fontSize = 14.sp,
                 lineHeight = (14 * 1.4).sp,
-                color = if (isDark) LeoColors.darkTextSecondary else LeoColors.textSecondary,
+                color = palette.textSecondary,
             )
         }
     }
@@ -63,15 +63,15 @@ fun AiEmptyState(modifier: Modifier = Modifier) {
 /** Placeholder card while a reply is generating. Mirrors `_buildGeneratingIndicator`. */
 @Composable
 fun AiGeneratingIndicator(modifier: Modifier = Modifier) {
-    val isDark = LocalLeoPalette.current.isDark
+    val palette = LocalLeoPalette.current
     val shape = RoundedCornerShape(20.dp)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .padding(vertical = 8.dp)
             .fillMaxWidth()
-            .background(if (isDark) LeoColors.darkSurface else Color.White, shape)
-            .border(1.dp, if (isDark) LeoColors.darkBorder else AiTokens.slate200, shape)
+            .background(palette.surface, shape)
+            .border(1.dp, palette.border, shape)
             .padding(16.dp),
     ) {
         AiGradientBadge(size = 24, cornerRadius = 6, iconSize = 14)
@@ -80,7 +80,7 @@ fun AiGeneratingIndicator(modifier: Modifier = Modifier) {
             AiStrings.generating,
             fontSize = 13.sp,
             fontStyle = FontStyle.Italic,
-            color = if (isDark) LeoColors.darkTextMuted else AiTokens.slate500,
+            color = palette.textMuted,
         )
     }
 }

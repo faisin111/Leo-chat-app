@@ -12,14 +12,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /** Transparent 56dp app bar with a back arrow (Flutter `AppBar(leading: IconButton)`). */
 @Composable
 fun LeoBackBar(onBack: () -> Unit, modifier: Modifier = Modifier, contentDescription: String? = null) {
+    val palette = LeoThemeTokens.palette
     Box(modifier = modifier.fillMaxWidth().height(56.dp).padding(start = 4.dp), contentAlignment = Alignment.CenterStart) {
         IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = contentDescription, tint = LeoColors.textPrimary)
+            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = contentDescription, tint = palette.textPrimary)
         }
     }
 }

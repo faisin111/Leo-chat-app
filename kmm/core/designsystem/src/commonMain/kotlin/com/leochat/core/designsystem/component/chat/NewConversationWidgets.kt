@@ -34,11 +34,13 @@ import com.leochat.core.designsystem.component.feedback.LeoSkeleton
 import com.leochat.core.designsystem.component.feedback.LeoSkeletonCircle
 import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.theme.lineHeight
 
 /** People search hit: avatar, name, @username, chat icon. */
 @Composable
 fun UserResultRow(user: PersonRowUi, onClick: () -> Unit) {
+    val palette = LeoThemeTokens.palette
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().contactsTap(onClick = onClick).padding(vertical = 12.dp),
@@ -46,9 +48,9 @@ fun UserResultRow(user: PersonRowUi, onClick: () -> Unit) {
         LeoAvatar(radius = 24.dp, name = user.name, imageUrl = user.avatarUrl)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(user.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = LeoColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(user.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(2.dp))
-            Text(user.handle, fontSize = 13.sp, color = LeoColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(user.handle, fontSize = 13.sp, color = palette.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Icon(Icons.Rounded.ChatBubbleOutline, contentDescription = null, tint = LeoColors.primary, modifier = Modifier.size(20.dp))
     }
@@ -57,21 +59,22 @@ fun UserResultRow(user: PersonRowUi, onClick: () -> Unit) {
 /** "Create a group" action card. */
 @Composable
 fun CreateGroupCard(onClick: () -> Unit) {
+    val palette = LeoThemeTokens.palette
     ContactsCard(withShadow = true) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().contactsTap(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
-            Box(Modifier.size(44.dp).background(LeoColors.primarySoft, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(44.dp).background(palette.primarySoft, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
                 Icon(Icons.Rounded.Groups, contentDescription = null, tint = LeoColors.primary, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(ContactsStrings.createAGroup, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = LeoColors.textPrimary)
+                Text(ContactsStrings.createAGroup, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary)
                 Spacer(Modifier.height(2.dp))
-                Text(ContactsStrings.createAGroupSubtitle, fontSize = 13.sp, color = LeoColors.textSecondary)
+                Text(ContactsStrings.createAGroupSubtitle, fontSize = 13.sp, color = palette.textSecondary)
             }
-            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = LeoColors.textSecondary, modifier = Modifier.size(22.dp))
+            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(22.dp))
         }
     }
 }
@@ -79,11 +82,12 @@ fun CreateGroupCard(onClick: () -> Unit) {
 /** RECENT CONTACTS header and card, a skeleton while the first load runs, or the start-a-chat empty card. */
 @Composable
 fun RecentContactsSection(contacts: List<RecentContactUi>, isLoading: Boolean, onOpen: (RecentContactUi) -> Unit) {
+    val palette = LeoThemeTokens.palette
     when {
         contacts.isNotEmpty() -> Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(ContactsStrings.recentContacts, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.6.sp, color = LeoColors.textSecondary)
-                Text(ContactsStrings.peopleCount(contacts.size), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LeoColors.textSecondary)
+                Text(ContactsStrings.recentContacts, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.6.sp, color = palette.textSecondary)
+                Text(ContactsStrings.peopleCount(contacts.size), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = palette.textSecondary)
             }
             Spacer(Modifier.height(12.dp))
             ContactsCard {
@@ -99,7 +103,7 @@ fun RecentContactsSection(contacts: List<RecentContactUi>, isLoading: Boolean, o
                 icon = Icons.Rounded.PeopleOutline,
                 title = ContactsStrings.startNewConversation,
                 subtitle = ContactsStrings.startNewConversationHint,
-                discColor = LeoColors.primarySoft,
+                discColor = palette.primarySoft,
                 iconColor = LeoColors.primary,
                 subtitleLineHeight = lineHeight(13, 1.4),
                 modifier = Modifier.fillMaxWidth().padding(32.dp),
@@ -110,6 +114,7 @@ fun RecentContactsSection(contacts: List<RecentContactUi>, isLoading: Boolean, o
 
 @Composable
 private fun RecentContactRow(contact: RecentContactUi, onClick: () -> Unit) {
+    val palette = LeoThemeTokens.palette
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().contactsTap(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
@@ -117,11 +122,11 @@ private fun RecentContactRow(contact: RecentContactUi, onClick: () -> Unit) {
         LeoAvatar(radius = 22.dp, name = contact.name, imageUrl = contact.avatarUrl, hasOnlineBadge = contact.isOnline)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(contact.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = LeoColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(contact.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val snippet = contact.snippet
             if (!snippet.isNullOrEmpty()) {
                 Spacer(Modifier.height(2.dp))
-                Text(snippet, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 13.sp, color = LeoColors.textSecondary)
+                Text(snippet, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 13.sp, color = palette.textSecondary)
             }
         }
         Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = ChatTokens.chevronMuted, modifier = Modifier.size(20.dp))

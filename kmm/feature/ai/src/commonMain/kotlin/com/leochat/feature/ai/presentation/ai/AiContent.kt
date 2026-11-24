@@ -48,7 +48,7 @@ fun AiContent(
     onCancelAction: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = LocalLeoPalette.current.isDark
+    val palette = LocalLeoPalette.current
     var input by rememberSaveable { mutableStateOf("") }
     var showModelPicker by rememberSaveable { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
@@ -69,7 +69,7 @@ fun AiContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(if (isDark) LeoColors.darkBackground else LeoColors.background)
+            .background(palette.background)
             .imePadding(),
     ) {
         AiTopBar(

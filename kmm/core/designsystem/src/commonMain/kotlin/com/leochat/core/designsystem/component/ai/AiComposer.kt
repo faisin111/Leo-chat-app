@@ -44,13 +44,13 @@ fun AiComposer(
     isSendEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = LocalLeoPalette.current.isDark
-    val border = if (isDark) LeoColors.darkBorder else AiTokens.slate200
+    val palette = LocalLeoPalette.current
+    val border = palette.border
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .background(if (isDark) LeoColors.darkSurface else Color.White)
+            .background(palette.surface)
             .drawBehind { drawLine(border, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 12.dp),
     ) {
@@ -60,7 +60,7 @@ fun AiComposer(
             singleLine = true,
             textStyle = TextStyle(
                 fontSize = 16.sp,
-                color = if (isDark) LeoColors.darkTextPrimary else LeoColors.textPrimary,
+                color = palette.textPrimary,
             ),
             cursorBrush = SolidColor(LeoColors.primary),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -70,7 +70,7 @@ fun AiComposer(
                 Box(
                     contentAlignment = Alignment.CenterStart,
                     modifier = Modifier
-                        .background(if (isDark) LeoColors.darkInput else AiTokens.slate100, RoundedCornerShape(24.dp))
+                        .background(palette.input, RoundedCornerShape(24.dp))
                         // 16dp container inset + 18dp shared field content padding.
                         .padding(horizontal = 34.dp, vertical = 16.dp),
                 ) {
@@ -78,7 +78,7 @@ fun AiComposer(
                         Text(
                             AiStrings.askAnything,
                             fontSize = 14.sp,
-                            color = if (isDark) LeoColors.darkTextMuted else AiTokens.slate400,
+                            color = palette.textMuted,
                         )
                     }
                     inner()
