@@ -45,15 +45,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.constants.AppStrings
+import com.leochat.core.constants.CallStrings
 import com.leochat.core.theme.LeoColors
 import com.leochat.core.theme.LocalLeoPalette
 import com.leochat.core.widgets.common.branding.LeoAvatar
 import com.leochat.core.widgets.common.buttons.leoPressable
+import com.leochat.core.widgets.common.feedback.LocalLeoSnackBar
 import com.leochat.features.chat.domain.entities.Conversation
+import com.leochat.features.media.presentation.permissions.MediaPermission
+import com.leochat.features.media.presentation.permissions.rememberMediaPermissionRequester
 
 private val AiGradient = Brush.linearGradient(listOf(Color(0xFFFF6D00), LeoColors.primary), Offset.Zero, Offset.Infinite)
 
-/** Top bar of an open conversation. Mirrors `_ConversationHeader`. */
+/**
+ * Top bar of an open conversation. Mirrors `_ConversationHeader`.
+ * Call buttons ask for the microphone first, then call [onCall] (`video` = true for video).
+ */
 @Composable
 fun ConversationHeader(
     conversation: Conversation,
@@ -77,6 +84,13 @@ fun ConversationHeader(
     val border = if (palette.isDark) LeoColors.darkBorder else LeoColors.border
     var confirmLeave by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    val permissions = rememberMediaPermissionRequester()
+    val snackBar = LocalLeoSnackBar.current
+    fun startCall(video: Boolean) {
+        permissions.request(setOf(MediaPermission.Microphone)) { granted ->
+            if (granted) onCall(video) else snackBar.showError(CallStrings.microphonePermissionRequired)
+        }
+    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -129,9 +143,9 @@ fun ConversationHeader(
                 Icon(Icons.Rounded.DeleteOutline, AppStrings.clearConversation, tint = secondaryText, modifier = Modifier.size(22.dp))
             }
         } else {
-            HeaderIcon(Icons.Outlined.Phone, primaryText, 22) { onCall(false) }
+            HeaderIcon(Icons.Outlined.Phone, primaryText, 22, CallStrings.voiceCall) { startCall(video = false) }
             Spacer(Modifier.width(16.dp))
-            HeaderIcon(Icons.Outlined.Videocam, primaryText, 24) { onCall(true) }
+            HeaderIcon(Icons.Outlined.Videocam, primaryText, 24, CallStrings.videoCall) { startCall(video = true) }
             Spacer(Modifier.width(6.dp))
             Box {
                 IconButton(onClick = { menuOpen = true }) { Icon(Icons.Rounded.MoreVert, null, tint = secondaryText) }
@@ -177,11 +191,11 @@ fun ConversationHeader(
 }
 
 @Composable
-private fun HeaderIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, size: Int, onClick: () -> Unit) {
+private fun HeaderIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, size: Int, contentDescription: String? = null, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     Icon(
         icon,
-        contentDescription = null,
+        contentDescription = contentDescription,
         tint = tint,
         modifier = Modifier.leoPressable(interaction).clickable(interactionSource = interaction, indication = null, onClick = onClick).size(size.dp),
     )

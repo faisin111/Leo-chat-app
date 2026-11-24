@@ -28,9 +28,23 @@ class FakeChatRepository : ChatRepository {
     val sent = mutableListOf<String>()
     val read = mutableListOf<Pair<String, Long>>()
 
+    // Contacts / group overrides. Defaults keep the original fake behavior.
+    var conversationResult: ((String) -> AppResult<Conversation>)? = null
+    var directResult: AppResult<Conversation>? = null
+    var groupResult: AppResult<Conversation>? = null
+    var membersResult: AppResult<List<ConversationMember>> = Either.Right(emptyList())
+    var memberMutationResult: AppResult<Unit> = Either.Right(Unit)
+    var muteResult: AppResult<Unit> = Either.Right(Unit)
+    val directTargets = mutableListOf<String>()
+    val createdGroups = mutableListOf<Pair<String, List<String>>>()
+    val addedMembers = mutableListOf<Pair<String, List<String>>>()
+    val removedMembers = mutableListOf<Pair<String, String>>()
+    val mutes = mutableListOf<Pair<String, String?>>()
+
     override suspend fun currentIdentity() = me
     override suspend fun getConversations(query: String?, cursor: Int?, limit: Int) = conversations
-    override suspend fun getConversation(conversationId: String): AppResult<Conversation> = Either.Right(Conversation(conversationId))
+    override suspend fun getConversation(conversationId: String): AppResult<Conversation> =
+        conversationResult?.invoke(conversationId) ?: Either.Right(Conversation(conversationId))
     override suspend fun getMessages(conversationId: String, beforeSeq: Long?, afterSeq: Long?, limit: Int) = messages
     override suspend fun sendMessage(conversationId: String, clientMessageId: String, content: String, type: String, replyToId: String?): AppResult<Message> {
         sent += content
@@ -46,16 +60,34 @@ class FakeChatRepository : ChatRepository {
         return Either.Right(Unit)
     }
     override suspend fun getUnreadCount(): AppResult<Int> = Either.Right(3)
-    override suspend fun startDirectMessage(targetUserId: String): AppResult<Conversation> = Either.Right(Conversation("dm"))
-    override suspend fun createGroup(title: String, memberIds: List<String>): AppResult<Conversation> = Either.Right(Conversation("g", type = "GROUP", title = title))
+    override suspend fun startDirectMessage(targetUserId: String): AppResult<Conversation> {
+        directTargets += targetUserId
+        return directResult ?: Either.Right(Conversation("dm"))
+    }
+    override suspend fun createGroup(title: String, memberIds: List<String>): AppResult<Conversation> {
+        createdGroups += title to memberIds
+        return groupResult ?: Either.Right(Conversation("g", type = "GROUP", title = title))
+    }
     override suspend fun updateConversation(conversationId: String, title: String?, avatarUrl: String?): AppResult<Conversation> = Either.Right(Conversation(conversationId))
     override suspend fun leaveConversation(conversationId: String): AppResult<Unit> = Either.Right(Unit)
-    override suspend fun getMembers(conversationId: String): AppResult<List<ConversationMember>> = Either.Right(emptyList())
-    override suspend fun addGroupMembers(conversationId: String, memberIds: List<String>): AppResult<Unit> = Either.Right(Unit)
-    override suspend fun removeMember(conversationId: String, userId: String): AppResult<Unit> = Either.Right(Unit)
+    override suspend fun getMembers(conversationId: String): AppResult<List<ConversationMember>> = membersResult
+    override suspend fun addGroupMembers(conversationId: String, memberIds: List<String>): AppResult<Unit> {
+        addedMembers += conversationId to memberIds
+        return memberMutationResult
+    }
+    override suspend fun removeMember(conversationId: String, userId: String): AppResult<Unit> {
+        removedMembers += conversationId to userId
+        return memberMutationResult
+    }
     override suspend fun updateMemberRole(conversationId: String, userId: String, role: String): AppResult<Unit> = Either.Right(Unit)
-    override suspend fun muteConversation(conversationId: String, mutedUntil: String): AppResult<Unit> = Either.Right(Unit)
-    override suspend fun unmuteConversation(conversationId: String): AppResult<Unit> = Either.Right(Unit)
+    override suspend fun muteConversation(conversationId: String, mutedUntil: String): AppResult<Unit> {
+        mutes += conversationId to mutedUntil
+        return muteResult
+    }
+    override suspend fun unmuteConversation(conversationId: String): AppResult<Unit> {
+        mutes += conversationId to null
+        return muteResult
+    }
     override suspend fun pinConversation(conversationId: String): AppResult<Unit> = Either.Right(Unit)
     override suspend fun unpinConversation(conversationId: String): AppResult<Unit> = Either.Right(Unit)
     override suspend fun archiveConversation(conversationId: String): AppResult<Unit> = Either.Right(Unit)

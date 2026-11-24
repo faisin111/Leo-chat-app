@@ -59,6 +59,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.androidx.security.crypto)
             implementation(libs.koin.android)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.core.ktx)
+            implementation(libs.webrtc.android)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

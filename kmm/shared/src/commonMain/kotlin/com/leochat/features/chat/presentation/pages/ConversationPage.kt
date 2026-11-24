@@ -17,7 +17,7 @@ import com.leochat.features.chat.presentation.controllers.ChatController
 
 /** Full-screen conversation on mobile. Mirrors `_ConversationPage`. */
 @Composable
-fun ConversationPage(controller: ChatController, onBack: () -> Unit) {
+fun ConversationPage(controller: ChatController, nav: ShellNavigator, onBack: () -> Unit) {
     val state by controller.state.collectAsStateWithLifecycle()
     val snackBar = LocalLeoSnackBar.current
     val layout = LocalLeoLayout.current
@@ -26,6 +26,6 @@ fun ConversationPage(controller: ChatController, onBack: () -> Unit) {
         if (state.selectedConversation == null || layout != LeoLayout.Mobile) onBack()
     }
     Box(Modifier.fillMaxSize().background(LeoColors.background).safeDrawingPadding()) {
-        DetailPane(state, controller, showBackButton = true, onBack = onBack, onComingSoon = { snackBar.showInfo(it) })
+        DetailPane(state, controller, nav, showBackButton = true, onBack = onBack, onComingSoon = { snackBar.showInfo(it) })
     }
 }

@@ -1,10 +1,15 @@
 package com.leochat.features.chat.domain.usecases
 
 import com.leochat.core.errors.AppResult
+import com.leochat.core.errors.Either
 import com.leochat.features.chat.domain.entities.Conversation
+import com.leochat.features.chat.domain.entities.ConversationMember
 import com.leochat.features.chat.domain.entities.CurrentIdentity
 import com.leochat.features.chat.domain.entities.Message
 import com.leochat.features.chat.domain.repositories.ChatRepository
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlin.time.Duration.Companion.days
 
 class GetCurrentIdentityUseCase(private val repository: ChatRepository) {
     suspend operator fun invoke(): CurrentIdentity = repository.currentIdentity()
@@ -87,6 +92,50 @@ class StartDirectMessageUseCase(private val repository: ChatRepository) {
 class CreateGroupUseCase(private val repository: ChatRepository) {
     suspend operator fun invoke(title: String, memberIds: List<String>): AppResult<Conversation> =
         repository.createGroup(title.trim(), memberIds)
+}
+
+/** Cached conversation when present (keeps unread/mute/preview), otherwise the REST detail. */
+class ResolveConversationUseCase(private val repository: ChatRepository) {
+    suspend operator fun invoke(conversationId: String): AppResult<Conversation> =
+        repository.getCachedConversations().firstOrNull { it.id == conversationId }?.let { Either.Right(it) }
+            ?: repository.getConversation(conversationId)
+}
+
+/** Puts a created or updated conversation at the top of the cached list, replacing any copy by id. */
+class MergeConversationIntoCacheUseCase(private val repository: ChatRepository) {
+    suspend operator fun invoke(conversation: Conversation) {
+        val cached = repository.getCachedConversations()
+        val index = cached.indexOfFirst { it.id == conversation.id }
+        val merged = if (index >= 0) cached.toMutableList().also { it[index] = conversation } else listOf(conversation) + cached
+        repository.saveCachedConversations(merged)
+    }
+}
+
+class GetGroupMembersUseCase(private val repository: ChatRepository) {
+    suspend operator fun invoke(conversationId: String): AppResult<List<ConversationMember>> = repository.getMembers(conversationId)
+}
+
+class AddGroupMembersUseCase(private val repository: ChatRepository) {
+    suspend operator fun invoke(conversationId: String, memberIds: List<String>): AppResult<Unit> =
+        if (memberIds.isEmpty()) Either.Right(Unit) else repository.addGroupMembers(conversationId, memberIds.distinct())
+}
+
+class RemoveGroupMemberUseCase(private val repository: ChatRepository) {
+    suspend operator fun invoke(conversationId: String, userId: String): AppResult<Unit> = repository.removeMember(conversationId, userId)
+}
+
+/** Mutes for one year (Flutter `Duration(days: 365)`) or unmutes. */
+class SetConversationMutedUseCase(
+    private val repository: ChatRepository,
+    private val now: () -> Instant = { Clock.System.now() },
+) {
+    suspend operator fun invoke(conversationId: String, muted: Boolean): AppResult<Unit> =
+        if (muted) repository.muteConversation(conversationId, (now() + MUTE_DURATION).toString())
+        else repository.unmuteConversation(conversationId)
+
+    companion object {
+        val MUTE_DURATION = 365.days
+    }
 }
 
 /** The use cases the chat controller coordinates, injected as one unit. */

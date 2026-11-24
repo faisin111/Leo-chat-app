@@ -50,7 +50,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.leochat.core.constants.AppStrings
 import com.leochat.core.theme.LeoColors
+import com.leochat.features.chat.domain.entities.Conversation
 import com.leochat.features.chat.domain.entities.Message
+import com.leochat.features.media.domain.entities.VoiceRecording
 import com.leochat.features.chat.presentation.states.ChatState
 import kotlinx.coroutines.launch
 
@@ -66,6 +68,9 @@ fun ConversationDetailView(
     onLeave: (String) -> Unit,
     onComingSoon: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenDetails: (Conversation) -> Unit = { onComingSoon(AppStrings.detailsComingSoon) },
+    onCall: (Conversation, video: Boolean) -> Unit = { _, _ -> onComingSoon(AppStrings.callsComingSoon) },
+    onVoiceRecorded: (VoiceRecording) -> Unit = {},
 ) {
     val conversation = state.selectedConversation
     if (conversation == null) {
@@ -78,8 +83,8 @@ fun ConversationDetailView(
             conversation = conversation,
             showBackButton = showBackButton,
             onBack = onBack,
-            onOpenDetails = { onComingSoon(AppStrings.detailsComingSoon) },
-            onCall = { onComingSoon(AppStrings.callsComingSoon) },
+            onOpenDetails = { onOpenDetails(conversation) },
+            onCall = { video -> onCall(conversation, video) },
             onLeave = { onLeave(conversation.id) },
         )
         AnimatedVisibility(state.isReconnecting) { ReconnectingBanner() }
@@ -105,6 +110,7 @@ fun ConversationDetailView(
             onTyping = onTyping,
             onAttachmentClick = { onComingSoon(AppStrings.attachmentsComingSoon) },
             onVoiceClick = { onComingSoon(AppStrings.voiceComingSoon) },
+            onVoiceRecorded = onVoiceRecorded,
         )
     }
 }

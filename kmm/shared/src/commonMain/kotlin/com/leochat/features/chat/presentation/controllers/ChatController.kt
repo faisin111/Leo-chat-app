@@ -2,6 +2,7 @@ package com.leochat.features.chat.presentation.controllers
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.leochat.core.errors.AppResult
 import com.leochat.core.utils.ClientIds
 import com.leochat.features.auth.domain.usecases.GetCurrentUserUseCase
 import com.leochat.features.auth.domain.usecases.LogoutUseCase
@@ -18,6 +19,10 @@ import com.leochat.features.chat.domain.usecases.ChatUseCaseBundle
 import com.leochat.features.chat.domain.usecases.TypingRules
 import com.leochat.features.chat.presentation.states.ChatFilter
 import com.leochat.features.chat.presentation.states.ChatState
+import com.leochat.features.media.domain.entities.VoiceMessageType
+import com.leochat.features.media.domain.entities.VoiceMessageDraft
+import com.leochat.features.media.domain.entities.VoiceRecording
+import com.leochat.features.media.domain.usecases.SendVoiceMessageUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +42,7 @@ class ChatController(
     private val realtime: ChatRealtimeRepository,
     private val getCurrentUser: GetCurrentUserUseCase,
     private val logout: LogoutUseCase,
+    private val sendVoiceMessage: SendVoiceMessageUseCase? = null,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(ChatState())
     val state: StateFlow<ChatState> = mutableState.asStateFlow()
@@ -204,28 +210,56 @@ class ChatController(
 
         val clientMessageId = ClientIds.next("client")
         insertOptimistic(conv, clientMessageId, trimmed, type, replyToId)
+        viewModelScope.launch { deliver(conv, clientMessageId, trimmed, type, replyToId) }
+    }
 
+    /**
+     * Voice note: optimistic bubble plays the local file, then upload (presign, PUT, confirm)
+     * and send the media URL as a `VOICE` message. Mirrors `ChatNotifier.sendVoice`.
+     */
+    fun sendVoice(recording: VoiceRecording) = sendVoiceFrom(recording.filePath) { useCase -> useCase(recording) }
+
+    private fun sendVoiceFrom(
+        source: String,
+        upload: suspend (SendVoiceMessageUseCase) -> AppResult<VoiceMessageDraft>,
+    ) {
+        val conv = state.value.selectedConversation ?: return
+        val useCase = sendVoiceMessage ?: return
+        val clientMessageId = ClientIds.next("client")
+        insertOptimistic(conv, clientMessageId, source, VoiceMessageType, null)
         viewModelScope.launch {
-            // Same clientMessageId makes the REST call idempotent with the WebSocket send.
-            realtime.sendMessage(conv.id, clientMessageId, trimmed, type, replyToId)
-            useCases.sendMessage(conv.id, clientMessageId, trimmed, type, replyToId).fold(
+            upload(useCase).fold(
                 ifLeft = { failure -> markFailed(clientMessageId, failure.message) },
-                ifRight = { persisted ->
-                    val list = state.value.messages.map {
-                        if (it.clientMessageId == clientMessageId) persisted.copy(isOwn = true, sendStatus = MessageSendStatus.Sent) else it
-                    }.sortedBy { it.seq }
-                    mutableState.update { it.copy(messages = list, errorMessage = null) }
-                    useCases.saveMessages(conv.id, list)
-                    updateConversationPreview(conv.id, persisted.content ?: trimmed, persisted.seq, persisted.createdAt)
-                },
+                ifRight = { draft -> deliver(conv, clientMessageId, draft.content, draft.type, null) },
             )
         }
+    }
+
+    /** STOMP + REST with one clientMessageId, so the REST call is idempotent with the WebSocket send. */
+    private suspend fun deliver(conv: Conversation, clientMessageId: String, content: String, type: String, replyToId: String?) {
+        realtime.sendMessage(conv.id, clientMessageId, content, type, replyToId)
+        useCases.sendMessage(conv.id, clientMessageId, content, type, replyToId).fold(
+            ifLeft = { failure -> markFailed(clientMessageId, failure.message) },
+            ifRight = { persisted ->
+                val list = state.value.messages.map {
+                    if (it.clientMessageId == clientMessageId) persisted.copy(isOwn = true, sendStatus = MessageSendStatus.Sent) else it
+                }.sortedBy { it.seq }
+                mutableState.update { it.copy(messages = list, errorMessage = null) }
+                useCases.saveMessages(conv.id, list)
+                updateConversationPreview(conv.id, persisted.content ?: content, persisted.seq, persisted.createdAt)
+            },
+        )
     }
 
     /** Re-sends a failed message (same content, new client id), as the Flutter retry does. */
     fun retry(message: Message) {
         mutableState.update { s -> s.copy(messages = s.messages.filterNot { it.clientMessageId == message.clientMessageId }) }
-        sendMessage(message.content.orEmpty(), message.type, message.replyToId)
+        if (message.type.uppercase() == VoiceMessageType || message.type.uppercase() == "AUDIO") {
+            val source = message.content.orEmpty()
+            sendVoiceFrom(source) { useCase -> useCase(source) }
+        } else {
+            sendMessage(message.content.orEmpty(), message.type, message.replyToId)
+        }
     }
 
     private fun sendAiPrompt(conversationId: String, prompt: String) {

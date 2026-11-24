@@ -24,8 +24,6 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.rounded.GraphicEq
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -55,6 +53,7 @@ import com.leochat.features.chat.domain.entities.Message
 import com.leochat.features.chat.domain.entities.MessageReaction
 import com.leochat.features.chat.domain.entities.MessageReply
 import com.leochat.features.chat.domain.entities.MessageSendStatus
+import com.leochat.features.media.presentation.widgets.VoiceMessagePlayer
 
 private val BubbleShape = RoundedCornerShape(22.dp)
 private val White70 = Color.White.copy(alpha = 0.7f)
@@ -171,7 +170,7 @@ private fun MessageBody(message: Message, isOwn: Boolean) {
             Spacer(Modifier.width(6.dp))
             Text(AppStrings.messageDeleted, fontStyle = FontStyle.Italic, fontSize = 14.sp, color = color)
         }
-        message.isVoice -> VoiceMessagePill(isOwn)
+        message.isVoice -> VoiceMessagePlayer(isOwn = isOwn, audioUrl = message.content?.trim())
         message.isImage -> ImageContent(message.content!!.trim())
         else -> Text(
             message.content.orEmpty(),
@@ -180,22 +179,6 @@ private fun MessageBody(message: Message, isOwn: Boolean) {
             lineHeight = (16 * 1.35).sp,
             fontWeight = FontWeight.Medium,
         )
-    }
-}
-
-/** Static voice pill; playback lands with the media phase. */
-@Composable
-private fun VoiceMessagePill(isOwn: Boolean) {
-    val tint = if (isOwn) Color.White else LeoColors.primary
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(34.dp).background(if (isOwn) Color.White.copy(alpha = 0.2f) else LeoColors.primarySoft, RoundedCornerShape(17.dp)),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.PlayArrow, null, tint = tint, modifier = Modifier.size(20.dp)) }
-        Spacer(Modifier.width(10.dp))
-        Icon(Icons.Rounded.GraphicEq, null, tint = tint, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(AppStrings.voiceMessage, color = tint, fontSize = 13.sp, fontWeight = FontWeight.Bold)
     }
 }
 
