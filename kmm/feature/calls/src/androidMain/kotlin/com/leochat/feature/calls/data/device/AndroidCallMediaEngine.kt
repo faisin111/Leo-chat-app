@@ -1,17 +1,21 @@
 package com.leochat.feature.calls.data.device
 
-import com.leochat.feature.calls.domain.model.IceServer
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.media.AudioManager
+import androidx.core.content.ContextCompat
 import com.leochat.feature.calls.data.remote.IceCandidatePayload
 import com.leochat.feature.calls.data.remote.SdpPayload
 import com.leochat.feature.calls.domain.model.CallIceConfig
+import com.leochat.feature.calls.domain.model.IceServer
 import com.leochat.feature.calls.domain.repository.CallMediaEngine
 import com.leochat.feature.calls.domain.repository.CallMediaEngineFactory
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.webrtc.AudioSource
 import org.webrtc.AudioTrack
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
@@ -29,16 +33,44 @@ import kotlin.coroutines.resumeWithException
 /** Process-wide WebRTC factory; initializing it twice crashes the native library. */
 private object WebRtcFactoryHolder {
     @Volatile private var factory: PeerConnectionFactory? = null
+    @Volatile private var isInitialized = false
 
     fun get(context: Context): PeerConnectionFactory = factory ?: synchronized(this) {
         factory ?: run {
             val app = context.applicationContext
-            PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(app).createInitializationOptions())
-            val audioModule = JavaAudioDeviceModule.builder(app)
-                .setUseHardwareAcousticEchoCanceler(true)
-                .setUseHardwareNoiseSuppressor(true)
-                .createAudioDeviceModule()
-            PeerConnectionFactory.builder().setAudioDeviceModule(audioModule).createPeerConnectionFactory().also { factory = it }
+            if (!isInitialized) {
+                runCatching {
+                    PeerConnectionFactory.initialize(
+                        PeerConnectionFactory.InitializationOptions.builder(app).createInitializationOptions()
+                    )
+                }
+                isInitialized = true
+            }
+
+            val audioModule = runCatching {
+                val hwAec = runCatching { JavaAudioDeviceModule.isBuiltInAcousticEchoCancelerSupported() }.getOrDefault(false)
+                val hwNs = runCatching { JavaAudioDeviceModule.isBuiltInNoiseSuppressorSupported() }.getOrDefault(false)
+                JavaAudioDeviceModule.builder(app)
+                    .setUseHardwareAcousticEchoCanceler(hwAec)
+                    .setUseHardwareNoiseSuppressor(hwNs)
+                    .setAudioRecordErrorCallback(object : JavaAudioDeviceModule.AudioRecordErrorCallback {
+                        override fun onWebRtcAudioRecordInitError(errorMessage: String?) {}
+                        override fun onWebRtcAudioRecordStartError(errorCode: JavaAudioDeviceModule.AudioRecordStartErrorCode?, errorMessage: String?) {}
+                        override fun onWebRtcAudioRecordError(errorMessage: String?) {}
+                    })
+                    .setAudioTrackErrorCallback(object : JavaAudioDeviceModule.AudioTrackErrorCallback {
+                        override fun onWebRtcAudioTrackInitError(errorMessage: String?) {}
+                        override fun onWebRtcAudioTrackStartError(errorCode: JavaAudioDeviceModule.AudioTrackStartErrorCode?, errorMessage: String?) {}
+                        override fun onWebRtcAudioTrackError(errorMessage: String?) {}
+                    })
+                    .createAudioDeviceModule()
+            }.getOrNull()
+
+            val builder = PeerConnectionFactory.builder()
+            if (audioModule != null) {
+                builder.setAudioDeviceModule(audioModule)
+            }
+            builder.createPeerConnectionFactory().also { factory = it }
         }
     }
 }
@@ -57,6 +89,7 @@ class AndroidCallMediaEngine(
     private val candidates = Channel<String>(Channel.UNLIMITED)
     private val pendingRemoteCandidates = mutableListOf<IceCandidate>()
     private var connection: PeerConnection? = null
+    private var audioSource: AudioSource? = null
     private var audioTrack: AudioTrack? = null
     private var remoteDescriptionSet = false
     private var previousAudioMode = AudioManager.MODE_NORMAL
@@ -65,23 +98,40 @@ class AndroidCallMediaEngine(
 
     override suspend fun start(video: Boolean) {
         if (connection != null) return
-        previousAudioMode = audioManager.mode
-        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
-        val servers = config.servers.map { server ->
-            PeerConnection.IceServer.builder(server.urls).apply {
-                server.username?.let(::setUsername)
-                server.credential?.let(::setPassword)
-            }.createIceServer()
+        runCatching {
+            previousAudioMode = audioManager.mode
+            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+        }
+        val servers = config.servers.flatMap { server ->
+            val validUrls = server.urls.filter { it.isNotBlank() }
+            if (validUrls.isEmpty()) emptyList()
+            else listOf(
+                PeerConnection.IceServer.builder(validUrls).apply {
+                    server.username?.let(::setUsername)
+                    server.credential?.let(::setPassword)
+                }.createIceServer()
+            )
+        }.ifEmpty {
+            listOf(
+                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+                PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+            )
         }
         val rtcConfig = PeerConnection.RTCConfiguration(servers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
         }
         val peer = factory.createPeerConnection(rtcConfig, Observer()) ?: error("PeerConnection unavailable")
-        val source = factory.createAudioSource(MediaConstraints())
-        val track = factory.createAudioTrack("leochat-audio", source)
-        peer.addTrack(track, listOf("leochat"))
-        audioTrack = track
+        val hasMicPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (hasMicPermission) {
+            runCatching {
+                val source = factory.createAudioSource(MediaConstraints())
+                val track = factory.createAudioTrack("leochat-audio", source)
+                peer.addTrack(track, listOf("leochat"))
+                audioSource = source
+                audioTrack = track
+            }
+        }
         connection = peer
     }
 
@@ -131,12 +181,18 @@ class AndroidCallMediaEngine(
     override fun close() {
         candidates.close()
         pendingRemoteCandidates.clear()
+        runCatching { audioTrack?.setEnabled(false) }
+        runCatching { audioTrack?.dispose() }
+        audioTrack = null
+        runCatching { audioSource?.dispose() }
+        audioSource = null
         runCatching { connection?.close() }
         runCatching { connection?.dispose() }
         connection = null
-        audioTrack = null
-        audioManager.isSpeakerphoneOn = false
-        audioManager.mode = previousAudioMode
+        runCatching {
+            audioManager.isSpeakerphoneOn = false
+            audioManager.mode = previousAudioMode
+        }
     }
 
     private fun onRemoteDescriptionSet(peer: PeerConnection) {

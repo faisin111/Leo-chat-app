@@ -3,6 +3,9 @@ package com.leochat.feature.calls.presentation.activecall
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leochat.feature.calls.presentation.CallController
 import org.koin.compose.koinInject
@@ -14,17 +17,21 @@ import org.koin.compose.koinInject
 @Composable
 fun ActiveCallScreen(onEnded: () -> Unit, controller: CallController = koinInject()) {
     val state by controller.state.collectAsStateWithLifecycle()
-    val ended = state.activeCall == null
-    LaunchedEffect(ended) { if (ended) onEnded() }
+    var hadActiveCall by remember { mutableStateOf(state.activeCall != null) }
+
+    LaunchedEffect(state.activeCall) {
+        if (state.activeCall != null) {
+            hadActiveCall = true
+        } else if (hadActiveCall) {
+            onEnded()
+        }
+    }
 
     ActiveCallContent(
         state = state,
         onToggleMute = controller::toggleMute,
         onToggleSpeaker = controller::toggleSpeaker,
         onFlipCamera = controller::flipCamera,
-        onEnd = {
-            controller.endCall()
-            onEnded()
-        },
+        onEnd = { controller.endCall() },
     )
 }

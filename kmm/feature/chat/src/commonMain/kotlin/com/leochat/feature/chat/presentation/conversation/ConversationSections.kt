@@ -47,7 +47,8 @@ internal fun ConversationHeaderSection(
         onBack = onBack,
         onOpenDetails = onOpenDetails,
         onCall = { video ->
-            permissions.request(setOf(MediaPermission.Microphone)) { granted ->
+            val perms = if (video) setOf(MediaPermission.Microphone, MediaPermission.Camera) else setOf(MediaPermission.Microphone)
+            permissions.request(perms) { granted ->
                 if (granted) onCall(video) else snackBar.showError(CallStrings.microphonePermissionRequired)
             }
         },
