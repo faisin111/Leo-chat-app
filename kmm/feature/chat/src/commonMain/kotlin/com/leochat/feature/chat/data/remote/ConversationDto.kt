@@ -81,16 +81,40 @@ data class ConversationDto(
             isMuted = c.isMuted,
         )
 
-        fun fromJson(json: JsonObject): ConversationDto {
+        fun fromJson(json: JsonObject, currentUserId: String? = null): ConversationDto {
             val nestedTarget = targetKeys.firstNotNullOfOrNull { json[it] as? JsonObject }
-            val nestedMember = (json["members"] ?: json["participants"] ?: json["users"]).let { (it as? JsonArray).objects().firstOrNull() }
+            val membersArray = (json["members"] ?: json["participants"] ?: json["users"]) as? JsonArray
+            // In direct chats, select the participant that is NOT the current logged-in user
+            val nestedMember = membersArray?.objects()?.firstOrNull { m ->
+                val mId = m.firstString("id", "userId")
+                currentUserId == null || (mId != null && mId != currentUserId)
+            } ?: membersArray?.objects()?.firstOrNull()
+
             val target = nestedTarget ?: nestedMember
             fun t(vararg keys: String) = target?.firstString(*keys)
             val lastMessage = json["lastMessage"] as? JsonObject
+            val type = json.string("type") ?: "DIRECT"
+            val rawTitle = json.firstString("title", "name")
+            val targetDisplayName = json.firstString("targetDisplayName", "displayName") ?: t("displayName", "name")
+            val targetUsername = json.firstString("targetUsername", "username") ?: t("username", "userName")
+            val targetUserId = json.firstString("targetUserId") ?: t("id", "userId")
+            val targetAvatarUrl = json.firstString("targetAvatarUrl")
+                ?: t("avatarUrl", "avatar", "profileImageUrl", "profileImage", "imageUrl", "photoUrl")
+
+            // For DIRECT conversations, prefer the target user's name as the title
+            val resolvedTitle = when {
+                type.equals("GROUP", ignoreCase = true) -> rawTitle.orEmpty()
+                type.equals("AI", ignoreCase = true) -> rawTitle ?: "LeoChat AI"
+                !targetDisplayName.isNullOrBlank() -> targetDisplayName
+                !targetUsername.isNullOrBlank() -> targetUsername
+                !rawTitle.isNullOrBlank() -> rawTitle
+                else -> t("displayName", "name", "username").orEmpty()
+            }
+
             return ConversationDto(
                 id = json.string("id").orEmpty(),
-                type = json.string("type") ?: "DIRECT",
-                title = json.firstString("title", "name") ?: t("displayName", "name", "username").orEmpty(),
+                type = type,
+                title = resolvedTitle,
                 avatarUrl = json.firstString("avatarUrl", "avatar", "imageUrl", "profileImageUrl", "profileImage"),
                 directKey = json.string("directKey"),
                 createdBy = json.string("createdBy"),
@@ -98,11 +122,10 @@ data class ConversationDto(
                 lastMessageAt = json.string("lastMessageAt"),
                 createdAt = json.string("createdAt"),
                 status = json.string("status") ?: "ACTIVE",
-                targetUserId = json.firstString("targetUserId") ?: t("id", "userId"),
-                targetUsername = json.firstString("targetUsername", "username") ?: t("username", "userName"),
-                targetDisplayName = json.firstString("targetDisplayName", "displayName") ?: t("displayName", "name"),
-                targetAvatarUrl = json.firstString("targetAvatarUrl")
-                    ?: t("avatarUrl", "avatar", "profileImageUrl", "profileImage", "imageUrl", "photoUrl"),
+                targetUserId = targetUserId,
+                targetUsername = targetUsername,
+                targetDisplayName = targetDisplayName,
+                targetAvatarUrl = targetAvatarUrl,
                 unreadCount = json.int("unreadCount") ?: 0,
                 lastMessageSnippet = json.firstString("lastMessageSnippet", "snippet") ?: lastMessage?.firstString("content"),
                 isPinned = json.string("pinnedAt") != null,
@@ -110,9 +133,14 @@ data class ConversationDto(
             )
         }
 
+        fun listFromJson(element: kotlinx.serialization.json.JsonElement, currentUserId: String? = null): List<ConversationDto> = when (element) {
+            is JsonArray -> element.objects().map { fromJson(it, currentUserId) }
+            is JsonObject -> (element.array("items") ?: element.array("content") ?: element.array("data")).objects().map { fromJson(it, currentUserId) }
+            else -> emptyList()
+        }
+
         /** Accepts `items`, `content`, or `data` page envelopes. */
-        fun pageFromJson(json: JsonObject): List<ConversationDto> =
-            (json.array("items") ?: json.array("content") ?: json.array("data")).objects().map(::fromJson)
+        fun pageFromJson(json: JsonObject): List<ConversationDto> = listFromJson(json)
     }
 }
 

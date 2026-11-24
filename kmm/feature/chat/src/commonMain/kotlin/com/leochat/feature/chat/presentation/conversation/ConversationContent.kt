@@ -131,6 +131,7 @@ fun ConversationContent(
                     else -> MessageList(
                         state = state,
                         avatarUrl = conversation.preferredAvatarUrl,
+                        fallbackSenderName = conversation.effectiveTitle,
                         onRetry = onRetry,
                         onMessageLongClick = { actionMessage = it },
                         onReactionClick = { messageId, emoji -> onToggleReaction(messageId, emoji) },
@@ -217,6 +218,7 @@ fun ConversationContent(
 private fun MessageList(
     state: ChatUiState,
     avatarUrl: String?,
+    fallbackSenderName: String? = null,
     onRetry: (Message) -> Unit,
     onMessageLongClick: (Message) -> Unit = {},
     onReactionClick: (messageId: String, emoji: String) -> Unit = { _, _ -> },
@@ -252,6 +254,7 @@ private fun MessageList(
             items(messages, key = { it.id.ifEmpty { it.clientMessageId } }) { message ->
                 MessageBubble(
                     message = message,
+                    fallbackSenderName = fallbackSenderName,
                     onRetry = { onRetry(message) },
                     onLongClick = { onMessageLongClick(message) },
                     onReactionClick = { emoji -> onReactionClick(message.id, emoji) },

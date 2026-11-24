@@ -51,10 +51,19 @@ fun MessageReply.toQuoteUi(): ReplyQuoteUi =
     ReplyQuoteUi(senderName = senderDisplayName ?: senderUsername ?: ReplySenderFallback, content = content.orEmpty())
 
 /** Bubble model; reply quote and reactions are dropped for deleted messages. */
-fun Message.toBubbleUi(zone: TimeZone = TimeZone.currentSystemDefault()): ChatBubbleUi = ChatBubbleUi(
+fun Message.toBubbleUi(
+    zone: TimeZone = TimeZone.currentSystemDefault(),
+    fallbackSenderName: String? = null,
+): ChatBubbleUi = ChatBubbleUi(
     id = id,
     isOwn = isOwn,
-    senderName = effectiveSenderName,
+    senderName = when {
+        aiGenerated -> AppStrings.aiAssistant
+        senderDisplayName?.isNotEmpty() == true -> senderDisplayName
+        senderUsername.isNotEmpty() -> senderUsername
+        fallbackSenderName?.isNotEmpty() == true -> fallbackSenderName
+        else -> "User"
+    },
     isAiGenerated = aiGenerated,
     time = TimeFormat.clock(createdAt, zone),
     body = toBubbleBody(),

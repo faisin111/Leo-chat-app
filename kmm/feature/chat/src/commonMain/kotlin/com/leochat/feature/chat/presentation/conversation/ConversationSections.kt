@@ -90,12 +90,13 @@ internal fun ConversationHeaderSection(
 @Composable
 internal fun MessageBubble(
     message: Message,
+    fallbackSenderName: String? = null,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
 ) {
-    val bubble = remember(message) { message.toBubbleUi() }
+    val bubble = remember(message, fallbackSenderName) { message.toBubbleUi(fallbackSenderName = fallbackSenderName) }
     ChatBubble(
         bubble = bubble,
         onRetry = onRetry,

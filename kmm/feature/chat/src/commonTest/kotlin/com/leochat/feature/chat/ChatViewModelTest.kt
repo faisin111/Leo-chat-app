@@ -179,6 +179,24 @@ class ChatControllerTest {
     }
 
     @Test
+    fun switchingConversationCancelsPreviousLoadAndIsolatesMessages() = runTest {
+        repo.messages = Either.Right(listOf(Message("m1", "c1", content = "ai message", aiGenerated = true)))
+        val c = controller()
+        advanceUntilIdle()
+        assertEquals("c1", c.state.value.selectedConversationId)
+        assertEquals(listOf("ai message"), c.state.value.messages.map { it.content })
+
+        // Switch to c2 with different messages
+        repo.messages = Either.Right(listOf(Message("m2", "c2", content = "user message", senderUsername = "maya")))
+        c.selectConversation(Conversation("c2", title = "Team"))
+        advanceUntilIdle()
+
+        assertEquals("c2", c.state.value.selectedConversationId)
+        assertEquals(listOf("user message"), c.state.value.messages.map { it.content })
+        assertFalse(c.state.value.messages.any { it.conversationId == "c1" })
+    }
+
+    @Test
     fun signOutDisconnectsAndLogsOut() = runTest {
         val c = controller()
         advanceUntilIdle()

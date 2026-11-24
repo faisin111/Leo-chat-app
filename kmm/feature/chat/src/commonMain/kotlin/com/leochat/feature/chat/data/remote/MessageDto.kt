@@ -4,6 +4,7 @@ import com.leochat.core.network.objects
 import com.leochat.core.common.util.parseInstant
 import com.leochat.core.network.array
 import com.leochat.core.network.bool
+import com.leochat.core.network.firstString
 import com.leochat.core.network.int
 import com.leochat.core.network.long
 import com.leochat.core.network.obj
@@ -80,10 +81,11 @@ data class MessageDto(
     val aiGenerated: Boolean = false,
     val sendStatus: String = "Sent",
 ) {
-    /** `isOwn` matches by id first, then username. */
+    /** `isOwn` matches by id first, then username. AI messages are never own. */
     fun toDomain(identity: CurrentIdentity): Message {
-        val isOwn = (identity.userId.isNotEmpty() && senderId == identity.userId) ||
-            (identity.username.isNotEmpty() && senderUsername == identity.username)
+        val isAi = aiGenerated || senderUsername.equals("ai", ignoreCase = true) || senderUsername.equals("LeoChat AI", ignoreCase = true)
+        val isOwn = !isAi && ((identity.userId.isNotEmpty() && senderId == identity.userId) ||
+            (identity.username.isNotEmpty() && senderUsername == identity.username))
         return Message(
             id = id,
             conversationId = conversationId,
@@ -103,33 +105,48 @@ data class MessageDto(
             deleted = deleted,
             isOwn = isOwn,
             sendStatus = MessageSendStatus.entries.firstOrNull { it.name == sendStatus } ?: MessageSendStatus.Sent,
-            aiGenerated = aiGenerated,
+            aiGenerated = isAi,
         )
     }
 
     companion object {
-        fun fromJson(json: JsonObject) = MessageDto(
-            id = json.string("id").orEmpty(),
-            conversationId = json.string("conversationId").orEmpty(),
-            senderId = json.string("senderId").orEmpty(),
-            senderUsername = json.string("senderUsername").orEmpty(),
-            senderDisplayName = json.string("senderDisplayName"),
-            seq = json.long("seq") ?: 0,
-            clientMessageId = json.string("clientMessageId").orEmpty(),
-            type = json.string("type") ?: "TEXT",
-            content = json.string("content"),
-            replyToId = json.string("replyToId"),
-            replyTo = json.obj("replyTo")?.let(MessageReplyDto::fromJson),
-            reactions = json.array("reactions").objects().map(MessageReactionDto::fromJson),
-            createdAt = json.string("createdAt"),
-            editedAt = json.string("editedAt"),
-            deletedAt = json.string("deletedAt"),
-            deleted = json.bool("deleted") ?: false,
-            aiGenerated = json.bool("aiGenerated") ?: false,
-        )
+        fun fromJson(json: JsonObject): MessageDto {
+            val nestedSender = (json["sender"] ?: json["user"]) as? JsonObject
+            val senderId = json.string("senderId") ?: nestedSender?.string("id").orEmpty()
+            val senderUsername = json.string("senderUsername") ?: nestedSender?.firstString("username", "userName").orEmpty()
+            val senderDisplayName = json.string("senderDisplayName") ?: nestedSender?.firstString("displayName", "name")
+            val isAi = json.bool("aiGenerated") == true ||
+                senderUsername.equals("ai", ignoreCase = true) ||
+                senderUsername.equals("LeoChat AI", ignoreCase = true)
 
-        fun pageFromJson(json: JsonObject): List<MessageDto> =
-            (json.array("items") ?: json.array("content")).objects().map(::fromJson)
+            return MessageDto(
+                id = json.string("id").orEmpty(),
+                conversationId = json.string("conversationId").orEmpty(),
+                senderId = senderId,
+                senderUsername = senderUsername,
+                senderDisplayName = senderDisplayName,
+                seq = json.long("seq") ?: 0,
+                clientMessageId = json.string("clientMessageId").orEmpty(),
+                type = json.string("type") ?: "TEXT",
+                content = json.string("content"),
+                replyToId = json.string("replyToId"),
+                replyTo = json.obj("replyTo")?.let(MessageReplyDto::fromJson),
+                reactions = json.array("reactions").objects().map(MessageReactionDto::fromJson),
+                createdAt = json.string("createdAt"),
+                editedAt = json.string("editedAt"),
+                deletedAt = json.string("deletedAt"),
+                deleted = json.bool("deleted") ?: false,
+                aiGenerated = isAi,
+            )
+        }
+
+        fun listFromJson(element: kotlinx.serialization.json.JsonElement): List<MessageDto> = when (element) {
+            is kotlinx.serialization.json.JsonArray -> element.objects().map(::fromJson)
+            is JsonObject -> (element.array("items") ?: element.array("content") ?: element.array("data") ?: element.array("messages")).objects().map(::fromJson)
+            else -> emptyList()
+        }
+
+        fun pageFromJson(json: JsonObject): List<MessageDto> = listFromJson(json)
 
         /** Cache keeps local send state so failed messages survive restarts. */
         fun fromDomain(m: Message) = MessageDto(

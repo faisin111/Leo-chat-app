@@ -85,6 +85,16 @@ class ChatUiMappersTest {
     }
 
     @Test
+    fun bubbleSenderUsesFallbackWhenSenderEmpty() {
+        val fallbackUi = Message("m", "c", content = "hello").toBubbleUi(fallbackSenderName = "Azad")
+        assertEquals("Azad", fallbackUi.senderName)
+
+        val aiUi = Message("m", "c", content = "ai text", aiGenerated = true).toBubbleUi(fallbackSenderName = "Azad")
+        assertEquals(AppStrings.aiAssistant, aiUi.senderName)
+        assertTrue(aiUi.isAiGenerated)
+    }
+
+    @Test
     fun tileUsesTypingSnippetInitialsAndBadges() {
         val typing = Conversation("1", targetDisplayName = "Maya Chen", isTyping = true, isOnline = true, unreadCount = 3).toTileUi()
         assertEquals("Maya Chen", typing.title)

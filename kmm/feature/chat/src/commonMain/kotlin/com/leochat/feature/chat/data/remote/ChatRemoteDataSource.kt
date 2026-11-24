@@ -56,14 +56,14 @@ interface ChatRemoteDataSource {
 
 class ChatRemoteDataSourceImpl(private val http: HttpClient) : ChatRemoteDataSource {
 
-    override suspend fun getConversations(cursor: Int?, limit: Int, query: String?): List<ConversationDto> =
-        ConversationDto.pageFromJson(
-            http.get("conversations") {
-                parameter("limit", limit)
-                cursor?.let { parameter("cursor", it) }
-                query?.trim()?.takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
-            }.body<JsonObject>(),
-        )
+    override suspend fun getConversations(cursor: Int?, limit: Int, query: String?): List<ConversationDto> {
+        val element = http.get("conversations") {
+            parameter("limit", limit)
+            cursor?.let { parameter("cursor", it) }
+            query?.trim()?.takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
+        }.body<JsonElement>()
+        return ConversationDto.listFromJson(element)
+    }
 
     override suspend fun getConversation(conversationId: String) =
         ConversationDto.fromJson(http.get("conversations/$conversationId").body<JsonObject>())
@@ -129,14 +129,14 @@ class ChatRemoteDataSourceImpl(private val http: HttpClient) : ChatRemoteDataSou
         http.delete("conversations/$conversationId/archive")
     }
 
-    override suspend fun getMessages(conversationId: String, beforeSeq: Long?, afterSeq: Long?, limit: Int): List<MessageDto> =
-        MessageDto.pageFromJson(
-            http.get("conversations/$conversationId/messages") {
-                parameter("limit", limit)
-                beforeSeq?.let { parameter("beforeSeq", it) }
-                afterSeq?.let { parameter("afterSeq", it) }
-            }.body<JsonObject>(),
-        )
+    override suspend fun getMessages(conversationId: String, beforeSeq: Long?, afterSeq: Long?, limit: Int): List<MessageDto> {
+        val element = http.get("conversations/$conversationId/messages") {
+            parameter("limit", limit)
+            beforeSeq?.let { parameter("beforeSeq", it) }
+            afterSeq?.let { parameter("afterSeq", it) }
+        }.body<JsonElement>()
+        return MessageDto.listFromJson(element)
+    }
 
     override suspend fun sendMessage(request: SendMessageRequestDto) = MessageDto.fromJson(
         http.post("conversations/${request.conversationId}/messages") {

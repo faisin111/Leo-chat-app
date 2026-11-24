@@ -49,6 +49,7 @@ class ChatViewModel(
 
     private var identity = CurrentIdentity("", "", "")
     private var conversationJobs: List<Job> = emptyList()
+    private var selectJob: Job? = null
     private var typingClearJob: Job? = null
     private var loadConversationsJob: Job? = null
     private var isLocalUserTyping = false
@@ -60,7 +61,14 @@ class ChatViewModel(
             realtime.connect()
             launch { realtime.status.collect { s -> mutableState.update { it.copy(realtimeStatus = s) } } }
             launch { realtime.acks().collect(::onAck) }
-            launch { getCurrentUser().onRight { user -> mutableState.update { it.copy(currentUser = user) } } }
+            launch {
+                getCurrentUser().onRight { user ->
+                    mutableState.update { it.copy(currentUser = user) }
+                    if (user != null) {
+                        identity = CurrentIdentity(user.id, user.username, user.displayName)
+                    }
+                }
+            }
             loadConversations()
             loadUnreadCount()
         }
@@ -244,14 +252,28 @@ class ChatViewModel(
         if (current.selectedConversationId == conversation.id && current.messages.isNotEmpty()) return
         current.selectedConversationId?.takeIf { it != conversation.id }?.let { realtime.unsubscribe(it) }
         conversationJobs.forEach { it.cancel() }
-        // Select synchronously so a pushed conversation page never sees an empty selection.
+        conversationJobs = emptyList()
+        selectJob?.cancel()
+
+        // Select synchronously so a pushed conversation page never sees an empty selection or stale messages.
         mutableState.update {
-            it.copy(selectedConversation = conversation, isLoadingMessages = true, messages = emptyList(), typingStatusText = null)
+            it.copy(
+                selectedConversation = conversation,
+                isLoadingMessages = true,
+                messages = emptyList(),
+                typingStatusText = null,
+                errorMessage = null,
+            )
         }
 
-        viewModelScope.launch {
+        selectJob = viewModelScope.launch {
             val cached = useCases.getCachedMessages(conversation.id)
-            mutableState.update { it.copy(isLoadingMessages = cached.isEmpty(), messages = cached) }
+            if (state.value.selectedConversationId != conversation.id) return@launch
+            mutableState.update { s ->
+                if (s.selectedConversationId == conversation.id) {
+                    s.copy(isLoadingMessages = cached.isEmpty(), messages = cached)
+                } else s
+            }
             conversationJobs = listOf(
                 launch { realtime.messages(conversation.id, identity).collect(::onRealtimeMessage) },
                 launch { realtime.typing(conversation.id).collect(::onTyping) },
@@ -261,6 +283,8 @@ class ChatViewModel(
     }
 
     fun clearSelection() {
+        selectJob?.cancel()
+        selectJob = null
         conversationJobs.forEach { it.cancel() }
         conversationJobs = emptyList()
         state.value.selectedConversationId?.let { realtime.unsubscribe(it) }
@@ -268,25 +292,33 @@ class ChatViewModel(
     }
 
     private suspend fun loadMessages(conversationId: String, preserveCurrentOnError: Boolean) {
+        if (state.value.selectedConversationId != conversationId) return
         useCases.getMessages(conversationId).fold(
             ifLeft = { failure ->
-                mutableState.update {
-                    it.copy(
-                        messages = if (preserveCurrentOnError) it.messages else emptyList(),
-                        isLoadingMessages = false,
-                        errorMessage = failure.message,
-                    )
+                mutableState.update { s ->
+                    if (s.selectedConversationId == conversationId) {
+                        s.copy(
+                            messages = if (preserveCurrentOnError) s.messages else emptyList(),
+                            isLoadingMessages = false,
+                            errorMessage = failure.message,
+                        )
+                    } else s
                 }
             },
             ifRight = { remote ->
-                // Keep optimistic messages that the server has not returned yet.
+                if (state.value.selectedConversationId != conversationId) return@fold
+                // Keep optimistic messages that the server has not returned yet, strictly for this conversation.
                 val pending = state.value.messages.filter { m ->
                     m.conversationId == conversationId &&
                         (m.sendStatus != MessageSendStatus.Sent ||
                             (m.clientMessageId.isNotEmpty() && remote.none { it.clientMessageId == m.clientMessageId }))
                 }
                 val merged = (remote + pending).sortedBy { it.seq }
-                mutableState.update { it.copy(messages = merged, isLoadingMessages = false) }
+                mutableState.update { s ->
+                    if (s.selectedConversationId == conversationId) {
+                        s.copy(messages = merged, isLoadingMessages = false)
+                    } else s
+                }
                 useCases.saveMessages(conversationId, merged)
                 merged.lastOrNull { !it.isOwn }?.let { markRead(conversationId, it.seq) }
             },
@@ -346,7 +378,11 @@ class ChatViewModel(
                 val list = state.value.messages.map {
                     if (it.clientMessageId == clientMessageId) persisted.copy(isOwn = true, sendStatus = MessageSendStatus.Sent) else it
                 }.sortedBy { it.seq }
-                mutableState.update { it.copy(messages = list, errorMessage = null) }
+                mutableState.update { s ->
+                    if (s.selectedConversationId == conv.id) {
+                        s.copy(messages = list, errorMessage = null)
+                    } else s
+                }
                 useCases.saveMessages(conv.id, list)
                 updateConversationPreview(conv.id, persisted.content ?: content, persisted.seq, persisted.createdAt)
             },
@@ -366,6 +402,7 @@ class ChatViewModel(
 
     private fun sendAiPrompt(conversationId: String, prompt: String) {
         val conv = state.value.selectedConversation ?: return
+        if (conv.id != conversationId) return
         val clientMessageId = ClientIds.next("ai-client")
         insertOptimistic(conv, clientMessageId, prompt, "TEXT", null)
         viewModelScope.launch {
@@ -374,10 +411,12 @@ class ChatViewModel(
                 ifLeft = { failure -> markFailed(clientMessageId, failure.message) },
                 ifRight = { aiMessage ->
                     mutableState.update { s ->
-                        val sent = s.messages.map {
-                            if (it.clientMessageId == clientMessageId) it.copy(sendStatus = MessageSendStatus.Sent) else it
-                        }
-                        s.copy(messages = if (sent.any { it.id == aiMessage.id }) sent else mergeMessages(sent, listOf(aiMessage)))
+                        if (s.selectedConversationId == conversationId) {
+                            val sent = s.messages.map {
+                                if (it.clientMessageId == clientMessageId) it.copy(sendStatus = MessageSendStatus.Sent) else it
+                            }
+                            s.copy(messages = if (sent.any { it.id == aiMessage.id }) sent else mergeMessages(sent, listOf(aiMessage)))
+                        } else s
                     }
                 },
             )
@@ -385,6 +424,7 @@ class ChatViewModel(
     }
 
     private fun insertOptimistic(conv: Conversation, clientMessageId: String, content: String, type: String, replyToId: String?) {
+        if (state.value.selectedConversationId != conv.id) return
         val messages = state.value.messages
         val optimistic = Message(
             id = clientMessageId,
@@ -400,7 +440,11 @@ class ChatViewModel(
             seq = (messages.lastOrNull()?.seq ?: conv.lastSeq) + 1,
             sendStatus = MessageSendStatus.Sending,
         )
-        mutableState.update { it.copy(messages = messages + optimistic, errorMessage = null) }
+        mutableState.update { s ->
+            if (s.selectedConversationId == conv.id) {
+                s.copy(messages = messages + optimistic, errorMessage = null)
+            } else s
+        }
     }
 
     private fun markFailed(clientMessageId: String, error: String) {
@@ -450,9 +494,13 @@ class ChatViewModel(
     private suspend fun onRealtimeMessage(incoming: Message) {
         val selectedId = state.value.selectedConversationId
         if (selectedId == incoming.conversationId) {
-            val merged = mergeMessages(state.value.messages, listOf(incoming))
-            mutableState.update { it.copy(messages = merged) }
-            useCases.saveMessages(incoming.conversationId, merged)
+            mutableState.update { s ->
+                if (s.selectedConversationId == incoming.conversationId) {
+                    val merged = mergeMessages(s.messages, listOf(incoming))
+                    s.copy(messages = merged)
+                } else s
+            }
+            useCases.saveMessages(incoming.conversationId, state.value.messages)
             if (!incoming.isOwn) markRead(incoming.conversationId, incoming.seq)
         }
         updateConversationPreview(incoming.conversationId, incoming.content ?: "Sent an attachment", incoming.seq, incoming.createdAt)
@@ -461,16 +509,18 @@ class ChatViewModel(
     private fun onAck(ack: MessageAck) {
         if (state.value.selectedConversationId != ack.conversationId) return
         mutableState.update { s ->
-            s.copy(
-                messages = s.messages.map {
-                    // A socket ack means the server stored it, even if the REST call failed.
-                    if (it.clientMessageId == ack.clientMessageId) {
-                        it.copy(id = ack.id.ifEmpty { it.id }, seq = if (ack.seq > 0) ack.seq else it.seq, sendStatus = MessageSendStatus.Sent)
-                    } else {
-                        it
-                    }
-                }.sortedBy { it.seq },
-            )
+            if (s.selectedConversationId == ack.conversationId) {
+                s.copy(
+                    messages = s.messages.map {
+                        // A socket ack means the server stored it, even if the REST call failed.
+                        if (it.clientMessageId == ack.clientMessageId) {
+                            it.copy(id = ack.id.ifEmpty { it.id }, seq = if (ack.seq > 0) ack.seq else it.seq, sendStatus = MessageSendStatus.Sent)
+                        } else {
+                            it
+                        }
+                    }.sortedBy { it.seq },
+                )
+            } else s
         }
     }
 
@@ -526,7 +576,10 @@ class ChatViewModel(
         if (state.value.isSigningOut) return
         mutableState.update { it.copy(isSigningOut = true) }
         viewModelScope.launch {
+            selectJob?.cancel()
+            selectJob = null
             conversationJobs.forEach { it.cancel() }
+            conversationJobs = emptyList()
             realtime.disconnect()
             logout()
             mutableState.update { it.copy(isSigningOut = false, signedOut = true) }
@@ -534,6 +587,10 @@ class ChatViewModel(
     }
 
     override fun onCleared() {
+        selectJob?.cancel()
+        selectJob = null
+        conversationJobs.forEach { it.cancel() }
+        conversationJobs = emptyList()
         realtime.disconnect()
         super.onCleared()
     }
