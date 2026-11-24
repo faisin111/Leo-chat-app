@@ -44,6 +44,7 @@ app.*.map.json
 
 # KMM local tooling and build outputs
 kmm/local.properties
-kmm/.gradle/
+kmm/**/.gradle/
+kmm/**/.kotlin/
 kmm/**/build/
 kmm/.kotlin/
