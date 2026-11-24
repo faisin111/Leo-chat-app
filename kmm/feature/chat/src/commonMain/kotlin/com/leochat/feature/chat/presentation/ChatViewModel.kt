@@ -133,6 +133,108 @@ class ChatViewModel(
         }
     }
 
+    fun deleteConversation(conversationId: String) = leaveConversation(conversationId)
+
+    fun togglePin(conversationId: String) {
+        val conv = state.value.conversations.firstOrNull { it.id == conversationId } ?: return
+        val newPinned = !conv.isPinned
+        val updated = state.value.conversations.map {
+            if (it.id == conversationId) it.copy(isPinned = newPinned) else it
+        }
+        mutableState.update { s ->
+            s.copy(
+                conversations = updated,
+                selectedConversation = if (s.selectedConversation?.id == conversationId) s.selectedConversation.copy(isPinned = newPinned) else s.selectedConversation,
+            )
+        }
+        viewModelScope.launch {
+            useCases.pinConversation(conversationId, newPinned).fold(
+                ifLeft = { failure ->
+                    val rolledBack = state.value.conversations.map {
+                        if (it.id == conversationId) it.copy(isPinned = !newPinned) else it
+                    }
+                    mutableState.update { s ->
+                        s.copy(
+                            conversations = rolledBack,
+                            errorMessage = failure.message,
+                            selectedConversation = if (s.selectedConversation?.id == conversationId) s.selectedConversation.copy(isPinned = !newPinned) else s.selectedConversation,
+                        )
+                    }
+                },
+                ifRight = {
+                    useCases.saveConversations(state.value.conversations)
+                },
+            )
+        }
+    }
+
+    fun toggleMute(conversationId: String) {
+        val conv = state.value.conversations.firstOrNull { it.id == conversationId } ?: return
+        val newMuted = !conv.isMuted
+        val updated = state.value.conversations.map {
+            if (it.id == conversationId) it.copy(isMuted = newMuted) else it
+        }
+        mutableState.update { s ->
+            s.copy(
+                conversations = updated,
+                selectedConversation = if (s.selectedConversation?.id == conversationId) s.selectedConversation.copy(isMuted = newMuted) else s.selectedConversation,
+            )
+        }
+        viewModelScope.launch {
+            useCases.setConversationMuted(conversationId, newMuted).fold(
+                ifLeft = { failure ->
+                    val rolledBack = state.value.conversations.map {
+                        if (it.id == conversationId) it.copy(isMuted = !newMuted) else it
+                    }
+                    mutableState.update { s ->
+                        s.copy(
+                            conversations = rolledBack,
+                            errorMessage = failure.message,
+                            selectedConversation = if (s.selectedConversation?.id == conversationId) s.selectedConversation.copy(isMuted = !newMuted) else s.selectedConversation,
+                        )
+                    }
+                },
+                ifRight = {
+                    useCases.saveConversations(state.value.conversations)
+                },
+            )
+        }
+    }
+
+    fun toggleArchive(conversationId: String) {
+        val conv = state.value.conversations.firstOrNull { it.id == conversationId } ?: return
+        val isArchived = conv.status.equals("ARCHIVED", ignoreCase = true)
+        val newStatus = if (isArchived) "ACTIVE" else "ARCHIVED"
+        val updated = state.value.conversations.map {
+            if (it.id == conversationId) it.copy(status = newStatus) else it
+        }
+        mutableState.update { s ->
+            s.copy(
+                conversations = updated,
+                selectedConversation = if (s.selectedConversation?.id == conversationId) s.selectedConversation.copy(status = newStatus) else s.selectedConversation,
+            )
+        }
+        viewModelScope.launch {
+            useCases.archiveConversation(conversationId, !isArchived).fold(
+                ifLeft = { failure ->
+                    val rolledBack = state.value.conversations.map {
+                        if (it.id == conversationId) it.copy(status = conv.status) else it
+                    }
+                    mutableState.update { s ->
+                        s.copy(
+                            conversations = rolledBack,
+                            errorMessage = failure.message,
+                            selectedConversation = if (s.selectedConversation?.id == conversationId) s.selectedConversation.copy(status = conv.status) else s.selectedConversation,
+                        )
+                    }
+                },
+                ifRight = {
+                    useCases.saveConversations(state.value.conversations)
+                },
+            )
+        }
+    }
+
     // endregion
 
     // region Selection and messages

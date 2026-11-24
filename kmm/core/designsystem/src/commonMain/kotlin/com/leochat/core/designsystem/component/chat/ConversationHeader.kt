@@ -18,11 +18,16 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -66,6 +71,9 @@ fun ConversationHeader(
     onOpenDetails: () -> Unit,
     onCall: (video: Boolean) -> Unit,
     onLeave: () -> Unit,
+    onTogglePin: (() -> Unit)? = null,
+    onToggleMute: (() -> Unit)? = null,
+    onToggleArchive: (() -> Unit)? = null,
 ) {
     val palette = LocalLeoPalette.current
     val isAi = header.isAi
@@ -133,6 +141,73 @@ fun ConversationHeader(
             Box {
                 IconButton(onClick = { menuOpen = true }) { Icon(Icons.Rounded.MoreVert, null, tint = secondaryText) }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    onTogglePin?.let { togglePin ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (header.isPinned) AppStrings.unpinChat else AppStrings.pinChat,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Rounded.PushPin,
+                                    null,
+                                    tint = if (header.isPinned) LeoColors.primary else secondaryText,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            },
+                            onClick = {
+                                menuOpen = false
+                                togglePin()
+                            },
+                        )
+                    }
+                    onToggleMute?.let { toggleMute ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (header.isMuted) AppStrings.unmuteChat else AppStrings.muteChat,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (header.isMuted) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff,
+                                    null,
+                                    tint = secondaryText,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            },
+                            onClick = {
+                                menuOpen = false
+                                toggleMute()
+                            },
+                        )
+                    }
+                    onToggleArchive?.let { toggleArchive ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (header.isArchived) AppStrings.unarchiveChat else AppStrings.archiveChat,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Rounded.Archive,
+                                    null,
+                                    tint = secondaryText,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            },
+                            onClick = {
+                                menuOpen = false
+                                toggleArchive()
+                            },
+                        )
+                    }
+                    HorizontalDivider()
                     DropdownMenuItem(
                         text = {
                             Text(

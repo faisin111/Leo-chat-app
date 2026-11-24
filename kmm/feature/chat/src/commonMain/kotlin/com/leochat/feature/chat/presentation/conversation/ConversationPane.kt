@@ -29,7 +29,7 @@ fun ConversationPane(
         state = state,
         showBackButton = showBackButton,
         onBack = onBack,
-        onSend = { controller.sendMessage(it) },
+        onSend = { text, replyToId -> controller.sendMessage(text, replyToId = replyToId) },
         onTyping = controller::sendTyping,
         onRetry = controller::retry,
         onLeave = controller::leaveConversation,
@@ -38,5 +38,11 @@ fun ConversationPane(
         onOpenDetails = { c -> if (c.isGroup) nav.onGroupDetails(c.id) else nav.onSharedMedia(c.id) },
         onCall = nav.onStartCall,
         onVoiceRecorded = controller::sendVoice,
+        onTogglePin = controller::togglePin,
+        onToggleMute = controller::toggleMute,
+        onToggleArchive = controller::toggleArchive,
+        onEditMessage = controller::editMessage,
+        onDeleteMessage = controller::deleteMessage,
+        onToggleReaction = controller::toggleReaction,
     )
 }

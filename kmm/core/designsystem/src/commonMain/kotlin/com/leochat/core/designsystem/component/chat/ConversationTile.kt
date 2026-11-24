@@ -1,7 +1,8 @@
 package com.leochat.core.designsystem.component.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.designsystem.component.branding.LeoAvatar
 import com.leochat.core.designsystem.component.chat.model.ConversationTileUi
 import com.leochat.core.designsystem.theme.ChatTokens
@@ -34,12 +37,14 @@ import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /** Conversation list row. Mirrors `LeoConversationTile`. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConversationTile(
     tile: ConversationTileUi,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val palette = LeoThemeTokens.palette
     val shape = RoundedCornerShape(16.dp)
@@ -49,7 +54,10 @@ fun ConversationTile(
             .fillMaxWidth()
             .clip(shape)
             .background(if (isSelected) palette.input else Color.Transparent)
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
             .padding(horizontal = 10.dp, vertical = 10.dp),
     ) {
         if (tile.showsGroupIcon) {
@@ -66,7 +74,38 @@ fun ConversationTile(
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(tile.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    tile.title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = palette.textPrimary,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (tile.isPinned) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        Icons.Rounded.PushPin,
+                        contentDescription = AppStrings.pinChat,
+                        tint = LeoColors.primary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                if (tile.isArchived) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        AppStrings.archived,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = palette.textMuted,
+                        modifier = Modifier
+                            .background(palette.input, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 4.dp, vertical = 1.dp),
+                    )
+                }
+            }
             Spacer(Modifier.height(3.dp))
             Text(
                 tile.snippet,

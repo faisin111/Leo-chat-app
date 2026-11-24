@@ -44,6 +44,8 @@ data class ConversationTileUi(
     val time: String,
     val unreadCount: Int,
     val isMuted: Boolean,
+    val isPinned: Boolean = false,
+    val isArchived: Boolean = false,
 ) {
     val hasUnread: Boolean get() = unreadCount > 0
     val showsGroupIcon: Boolean get() = isGroup && avatarUrl == null
@@ -58,6 +60,9 @@ data class ConversationHeaderUi(
     val isOnline: Boolean,
     val isAi: Boolean,
     val isGroup: Boolean,
+    val isPinned: Boolean = false,
+    val isMuted: Boolean = false,
+    val isArchived: Boolean = false,
 )
 
 /** A person in search results, chips, or pickers. [handle] is already formatted (`@name`). */

@@ -68,6 +68,10 @@ fun HomeScreen(controller: ChatViewModel, nav: ShellNavigator) {
             onSearch = controller::search,
             onFilter = controller::setFilter,
             onRefresh = { controller.refresh().join() },
+            onTogglePin = controller::togglePin,
+            onToggleMute = controller::toggleMute,
+            onToggleArchive = controller::toggleArchive,
+            onDeleteConversation = controller::deleteConversation,
             modifier = modifier,
         )
     }

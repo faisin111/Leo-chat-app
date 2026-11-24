@@ -3,9 +3,11 @@ package com.leochat.core.designsystem.component.chat
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,12 +64,15 @@ private val White70 = Color.White.copy(alpha = 0.7f)
  * One message: outgoing (brand) or incoming (white) bubble. Mirrors `LeoChatBubble`.
  * [voiceContent] draws a [ChatBubbleBody.Voice] body (the voice player lives in the media feature).
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatBubble(
     bubble: ChatBubbleUi,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     voiceContent: @Composable () -> Unit = {},
+    onLongClick: (() -> Unit)? = null,
+    onReactionClick: ((String) -> Unit)? = null,
 ) {
     val appear = remember(bubble.id) { Animatable(0f) }
     LaunchedEffect(bubble.id) { appear.animateTo(1f, tween(220, easing = EaseOutCubic)) }
@@ -80,18 +85,37 @@ fun ChatBubble(
             transformOrigin = if (bubble.isOwn) TransformOrigin(1f, 1f) else TransformOrigin(0f, 1f)
         },
     ) {
-        if (bubble.isOwn) OutgoingBubble(bubble, onRetry, voiceContent) else IncomingBubble(bubble, voiceContent)
+        if (bubble.isOwn) {
+            OutgoingBubble(bubble, onRetry, voiceContent, onLongClick, onReactionClick)
+        } else {
+            IncomingBubble(bubble, voiceContent, onLongClick, onReactionClick)
+        }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun OutgoingBubble(bubble: ChatBubbleUi, onRetry: () -> Unit, voiceContent: @Composable () -> Unit) {
+private fun OutgoingBubble(
+    bubble: ChatBubbleUi,
+    onRetry: () -> Unit,
+    voiceContent: @Composable () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    onReactionClick: ((String) -> Unit)? = null,
+) {
     val isFailed = bubble.sendStatus == BubbleSendStatus.Failed
     val isSending = bubble.sendStatus == BubbleSendStatus.Sending
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalAlignment = Alignment.End) {
         Column(
             horizontalAlignment = Alignment.End,
-            modifier = Modifier.widthIn(max = 520.dp).background(LeoColors.primary, BubbleShape).padding(start = 18.dp, top = 14.dp, end = 18.dp, bottom = 12.dp),
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .clip(BubbleShape)
+                .background(LeoColors.primary, BubbleShape)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongClick,
+                )
+                .padding(start = 18.dp, top = 14.dp, end = 18.dp, bottom = 12.dp),
         ) {
             bubble.replyTo?.let { ReplyQuote(it, isOwn = true) }
             MessageBody(bubble.body, isOwn = true, voiceContent)
@@ -119,12 +143,18 @@ private fun OutgoingBubble(bubble: ChatBubbleUi, onRetry: () -> Unit, voiceConte
                 modifier = Modifier.padding(top = 6.dp).clickable(onClick = onRetry),
             )
         }
-        if (bubble.reactions.isNotEmpty()) ReactionsRow(bubble.reactions)
+        if (bubble.reactions.isNotEmpty()) ReactionsRow(bubble.reactions, onReactionClick)
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun IncomingBubble(bubble: ChatBubbleUi, voiceContent: @Composable () -> Unit) {
+private fun IncomingBubble(
+    bubble: ChatBubbleUi,
+    voiceContent: @Composable () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    onReactionClick: ((String) -> Unit)? = null,
+) {
     val palette = LocalLeoPalette.current
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalAlignment = Alignment.Start) {
         Row(Modifier.padding(start = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -149,7 +179,12 @@ private fun IncomingBubble(bubble: ChatBubbleUi, voiceContent: @Composable () ->
         Column(
             modifier = Modifier
                 .widthIn(max = 520.dp)
+                .clip(BubbleShape)
                 .background(palette.incomingBubble, BubbleShape)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongClick,
+                )
                 .padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 12.dp),
         ) {
             bubble.replyTo?.let { ReplyQuote(it, isOwn = false) }
@@ -163,7 +198,7 @@ private fun IncomingBubble(bubble: ChatBubbleUi, voiceContent: @Composable () ->
                 modifier = Modifier.align(Alignment.End),
             )
         }
-        if (bubble.reactions.isNotEmpty()) ReactionsRow(bubble.reactions)
+        if (bubble.reactions.isNotEmpty()) ReactionsRow(bubble.reactions, onReactionClick)
     }
 }
 
@@ -244,7 +279,10 @@ private fun ReplyQuote(reply: ReplyQuoteUi, isOwn: Boolean) {
 }
 
 @Composable
-private fun ReactionsRow(reactions: List<ReactionUi>) {
+private fun ReactionsRow(
+    reactions: List<ReactionUi>,
+    onReactionClick: ((String) -> Unit)? = null,
+) {
     val palette = LocalLeoPalette.current
     Row(Modifier.padding(top = 4.dp, start = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         reactions.forEach { r ->
@@ -254,8 +292,10 @@ private fun ReactionsRow(reactions: List<ReactionUi>) {
                 fontWeight = FontWeight.Bold,
                 color = palette.textPrimary,
                 modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
                     .background(if (palette.isDark) palette.surfaceElevated else Color.White, RoundedCornerShape(12.dp))
                     .border(1.dp, if (palette.isDark) palette.border else ChatTokens.reactionBorder, RoundedCornerShape(12.dp))
+                    .clickable(enabled = onReactionClick != null) { onReactionClick?.invoke(r.emoji) }
                     .padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }

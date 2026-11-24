@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.EditNote
@@ -44,9 +46,15 @@ import com.leochat.core.designsystem.theme.ChatTokens
 import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.core.designsystem.theme.LeoThemeTokens
 
-/** Logo + profile avatar row, then the "Your chats" title with the compose button. */
+/** Logo + profile avatar row, then the "Your chats" title with connection status and the compose button. */
 @Composable
-fun ChatsListHeader(userName: String?, avatarUrl: String?, onOpenSettings: () -> Unit, onCompose: () -> Unit) {
+fun ChatsListHeader(
+    userName: String?,
+    avatarUrl: String?,
+    onOpenSettings: () -> Unit,
+    onCompose: () -> Unit,
+    isConnected: Boolean = true,
+) {
     val palette = LeoThemeTokens.palette
     Row(verticalAlignment = Alignment.CenterVertically) {
         LeoLogo()
@@ -71,7 +79,23 @@ fun ChatsListHeader(userName: String?, avatarUrl: String?, onOpenSettings: () ->
                 color = palette.textPrimary,
             )
             Spacer(Modifier.height(4.dp))
-            Text(AppStrings.yourChatsSubtitle, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = palette.textSecondary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .background(
+                            if (isConnected) LeoColors.success else LeoColors.warning,
+                            CircleShape,
+                        ),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    if (isConnected) AppStrings.connected else AppStrings.connecting,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isConnected) LeoColors.success else LeoColors.warning,
+                )
+            }
         }
         ChatsComposeButton(onCompose)
     }
@@ -136,6 +160,53 @@ fun ChatsEmptyState(message: String) {
         Icon(Icons.Rounded.ChatBubbleOutline, null, tint = palette.textMuted, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(12.dp))
         Text(message, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.textSecondary)
+    }
+}
+
+/** "Archived conversations" section toggle. Mirrors Web's bottom archived bar in `ChatLayout.tsx`. */
+@Composable
+fun ArchivedConversationsBar(
+    isActive: Boolean,
+    onClick: () -> Unit,
+) {
+    val palette = LeoThemeTokens.palette
+    val shape = RoundedCornerShape(14.dp)
+    val background = if (isActive) palette.primarySoft else palette.input
+    val contentColor = if (isActive) LeoColors.primary else palette.textPrimary
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Rounded.Archive,
+                contentDescription = null,
+                tint = if (isActive) LeoColors.primary else palette.textMuted,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                AppStrings.archivedConversations,
+                fontSize = 13.sp,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                color = contentColor,
+            )
+        }
+        if (isActive) {
+            Text(
+                AppStrings.active,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = LeoColors.primary,
+            )
+        }
     }
 }
 

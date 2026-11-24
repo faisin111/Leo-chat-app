@@ -138,6 +138,16 @@ class SetConversationMutedUseCase(
     }
 }
 
+class PinConversationUseCase(private val repository: ChatRepository) {
+    suspend operator fun invoke(conversationId: String, pin: Boolean): AppResult<Unit> =
+        if (pin) repository.pinConversation(conversationId) else repository.unpinConversation(conversationId)
+}
+
+class ArchiveConversationUseCase(private val repository: ChatRepository) {
+    suspend operator fun invoke(conversationId: String, archive: Boolean): AppResult<Unit> =
+        if (archive) repository.archiveConversation(conversationId) else repository.unarchiveConversation(conversationId)
+}
+
 /** The use cases the chat controller coordinates, injected as one unit. */
 class ChatUseCaseBundle(
     val getIdentity: GetCurrentIdentityUseCase,
@@ -155,6 +165,9 @@ class ChatUseCaseBundle(
     val markRead: MarkConversationReadUseCase,
     val getUnreadCount: GetUnreadCountUseCase,
     val leaveConversation: LeaveConversationUseCase,
+    val setConversationMuted: SetConversationMutedUseCase,
+    val pinConversation: PinConversationUseCase,
+    val archiveConversation: ArchiveConversationUseCase,
 ) {
     companion object {
         fun from(repository: ChatRepository) = ChatUseCaseBundle(
@@ -173,6 +186,9 @@ class ChatUseCaseBundle(
             MarkConversationReadUseCase(repository),
             GetUnreadCountUseCase(repository),
             LeaveConversationUseCase(repository),
+            SetConversationMutedUseCase(repository),
+            PinConversationUseCase(repository),
+            ArchiveConversationUseCase(repository),
         )
     }
 }

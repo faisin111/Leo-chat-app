@@ -90,6 +90,8 @@ fun Conversation.toTileUi(): ConversationTileUi {
         time = TimeFormat.relative(lastMessageAt ?: createdAt, yesterday = AppStrings.yesterday),
         unreadCount = unreadCount,
         isMuted = isMuted,
+        isPinned = isPinned,
+        isArchived = status.equals("ARCHIVED", ignoreCase = true),
     )
 }
 
@@ -105,6 +107,9 @@ fun Conversation.toHeaderUi(): ConversationHeaderUi = ConversationHeaderUi(
     isOnline = isOnline,
     isAi = isAi,
     isGroup = isGroup,
+    isPinned = isPinned,
+    isMuted = isMuted,
+    isArchived = status.equals("ARCHIVED", ignoreCase = true),
 )
 
 fun Conversation.toRecentContactUi(): RecentContactUi = RecentContactUi(
@@ -115,11 +120,12 @@ fun Conversation.toRecentContactUi(): RecentContactUi = RecentContactUi(
     snippet = lastMessageSnippet,
 )
 
-/** All / Unread (with unread badge) / Groups. */
+/** All / Unread (with unread badge) / Groups / Archived. */
 fun chatFilterOptions(unreadCount: Int): List<FilterOption<ChatFilter>> = listOf(
     FilterOption(ChatFilter.All, AppStrings.allChats),
     FilterOption(ChatFilter.Unread, AppStrings.unread, badge = unreadCount.takeIf { it > 0 }?.toString()),
     FilterOption(ChatFilter.Groups, AppStrings.groups),
+    FilterOption(ChatFilter.Archived, AppStrings.archived),
 )
 
 /** Empty conversation list text, quoting the search when there is one. */

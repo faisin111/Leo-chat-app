@@ -5,7 +5,7 @@ import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.domain.model.RealtimeStatus
 
-enum class ChatFilter { All, Unread, Groups }
+enum class ChatFilter { All, Unread, Groups, Archived }
 
 /** Immutable chat screen state. Mirrors `ChatUiState` in Flutter. */
 data class ChatUiState(
@@ -32,9 +32,10 @@ data class ChatUiState(
     val displayedConversations: List<Conversation>
         get() {
             var list = when (filter) {
-                ChatFilter.All -> conversations
-                ChatFilter.Unread -> conversations.filter { it.unreadCount > 0 }
-                ChatFilter.Groups -> conversations.filter { it.isGroup }
+                ChatFilter.All -> conversations.filter { !it.status.equals("ARCHIVED", ignoreCase = true) }
+                ChatFilter.Unread -> conversations.filter { it.unreadCount > 0 && !it.status.equals("ARCHIVED", ignoreCase = true) }
+                ChatFilter.Groups -> conversations.filter { it.isGroup && !it.status.equals("ARCHIVED", ignoreCase = true) }
+                ChatFilter.Archived -> conversations.filter { it.status.equals("ARCHIVED", ignoreCase = true) }
             }
             val q = searchQuery.trim().lowercase()
             if (q.isNotEmpty()) {
@@ -42,7 +43,11 @@ data class ChatUiState(
                     it.effectiveTitle.lowercase().contains(q) || it.lastMessageSnippet.orEmpty().lowercase().contains(q)
                 }
             }
-            return list
+            // Pinned conversations stay at top, then newest message first (matches web)
+            return list.sortedWith(
+                compareByDescending<Conversation> { it.isPinned }
+                    .thenByDescending { it.lastMessageAt ?: it.createdAt }
+            )
         }
 
     val userDisplayName: String

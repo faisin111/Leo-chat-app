@@ -146,7 +146,7 @@ class ChatUiMappersTest {
     @Test
     fun filterOptionsCarryLabelsAndUnreadBadge() {
         val options = chatFilterOptions(unreadCount = 4)
-        assertEquals(listOf(ChatFilter.All, ChatFilter.Unread, ChatFilter.Groups), options.map { it.value })
+        assertEquals(listOf(ChatFilter.All, ChatFilter.Unread, ChatFilter.Groups, ChatFilter.Archived), options.map { it.value })
         assertEquals("4", options[1].badge)
         assertNull(chatFilterOptions(0)[1].badge)
 
