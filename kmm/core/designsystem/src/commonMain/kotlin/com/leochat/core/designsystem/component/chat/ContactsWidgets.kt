@@ -159,7 +159,7 @@ fun ContactsCard(
         modifier = modifier
             .fillMaxWidth()
             .then(if (withShadow) Modifier.shadow(3.dp, shape, ambientColor = ChatTokens.cardShadow, spotColor = ChatTokens.cardShadow) else Modifier)
-            .background(palette.surface, shape)
+            .background(if (palette.isDark) palette.surfaceElevated else palette.surface, shape)
             .border(1.dp, palette.border, shape),
         content = content,
     )

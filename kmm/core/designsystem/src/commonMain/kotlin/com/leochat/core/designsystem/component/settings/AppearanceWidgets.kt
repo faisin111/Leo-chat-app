@@ -56,7 +56,7 @@ fun ThemeModeSelector(selected: LeoThemeMode, accent: Color, onSelect: (LeoTheme
                     .weight(1f)
                     .padding(horizontal = 4.dp)
                     .settingsPressable { onSelect(option.mode) }
-                    .background(palette.surface, shape)
+                    .background(if (palette.isDark) palette.surfaceElevated else palette.surface, shape)
                     .border(if (isSelected) 2.dp else 1.dp, if (isSelected) accent else palette.border, shape)
                     .padding(vertical = 18.dp),
             ) {

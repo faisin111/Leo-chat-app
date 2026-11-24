@@ -102,7 +102,7 @@ private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
             .padding(vertical = 8.dp)
             .fillMaxWidth()
             .shadow(3.dp, shape, ambientColor = AiTokens.cardShadow, spotColor = AiTokens.cardShadow)
-            .background(palette.surface, shape)
+            .background(if (palette.isDark) palette.surfaceElevated else palette.surface, shape)
             .border(1.dp, palette.border, shape)
             .drawBehind {
                 drawRoundRect(

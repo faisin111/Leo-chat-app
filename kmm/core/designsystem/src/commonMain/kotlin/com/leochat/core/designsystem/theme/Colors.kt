@@ -25,18 +25,19 @@ object LeoColors {
     val input = Color(0xFFF3ECE5)
     val incomingBubble = Color(0xFFF3ECE5)
 
-    // Dark theme (deep zinc aesthetic)
-    val darkBackground = Color(0xFF09090B)
-    val darkSurface = Color(0xFF121215)
-    val darkSurfaceElevated = Color(0xFF1C1C21)
+    // Dark theme (pure OLED black aesthetic)
+    val darkBackground = Color(0xFF000000)
+    val darkSurface = Color(0xFF000000)
+    val darkSurfaceSubtle = Color(0xFF08080A)
+    val darkSurfaceElevated = Color(0xFF101014)
     val darkRail = Color(0xFF000000)
-    val darkTextPrimary = Color(0xFFF4F4F5)
+    val darkTextPrimary = Color(0xFFFFFFFF)
     val darkTextSecondary = Color(0xFFA1A1AA)
     val darkTextMuted = Color(0xFF71717A)
-    val darkBorder = Color(0xFF27272A)
-    val darkBorderSubtle = Color(0xFF1E1E24)
-    val darkInput = Color(0xFF18181B)
-    val darkIncomingBubble = Color(0xFF1E1E24)
+    val darkBorder = Color(0xFF1E1E22)
+    val darkBorderSubtle = Color(0xFF141417)
+    val darkInput = Color(0xFF0D0D10)
+    val darkIncomingBubble = Color(0xFF121216)
 
     // Status and utility
     val success = Color(0xFF10B981)
@@ -99,7 +100,7 @@ data class LeoPalette(
             isDark = true,
             background = LeoColors.darkBackground,
             surface = LeoColors.darkSurface,
-            surfaceSubtle = LeoColors.darkSurface,
+            surfaceSubtle = LeoColors.darkSurfaceSubtle,
             surfaceElevated = LeoColors.darkSurfaceElevated,
             rail = LeoColors.darkRail,
             textPrimary = LeoColors.darkTextPrimary,

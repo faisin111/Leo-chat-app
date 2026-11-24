@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Persists the selected theme mode. Mirrors `ThemeModeNotifier`. Defaults to light. */
+/** Persists the selected theme mode. Mirrors `ThemeModeNotifier`. Defaults to dark (pure OLED). */
 class ThemeModeStore(private val storage: KeyValueStorage) {
     private val mutableMode = MutableStateFlow(read())
     val mode: StateFlow<LeoThemeMode> = mutableMode.asStateFlow()
@@ -24,8 +24,8 @@ class ThemeModeStore(private val storage: KeyValueStorage) {
     }
 
     private fun read(): LeoThemeMode = when (storage.getString(StorageKeys.themeMode)) {
-        "dark" -> LeoThemeMode.Dark
+        "light" -> LeoThemeMode.Light
         "system" -> LeoThemeMode.System
-        else -> LeoThemeMode.Light
+        else -> LeoThemeMode.Dark
     }
 }

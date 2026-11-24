@@ -115,12 +115,13 @@ fun SettingsCard(
     padding: Dp = 0.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
     val shape = RoundedCornerShape(radius)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(LeoThemeTokens.palette.surface, shape)
+            .background(if (palette.isDark) palette.surfaceElevated else palette.surface, shape)
             .border(1.dp, borderColor, shape)
             .padding(padding),
         content = content,

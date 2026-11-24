@@ -21,18 +21,18 @@ abstract final class LeoColors {
   static const input = Color(0xFFF3ECE5);
   static const incomingBubble = Color(0xFFF3ECE5);
 
-  // Dark Theme Tokens (Matches Web Deep Zinc/Black Aesthetic)
-  static const darkBackground = Color(0xFF09090B);
-  static const darkSurface = Color(0xFF121215);
-  static const darkSurfaceElevated = Color(0xFF1C1C21);
+  // Dark Theme Tokens (Matches Web Pure OLED Black Aesthetic)
+  static const darkBackground = Color(0xFF000000);
+  static const darkSurface = Color(0xFF000000);
+  static const darkSurfaceElevated = Color(0xFF101014);
   static const darkRail = Color(0xFF000000);
-  static const darkTextPrimary = Color(0xFFF4F4F5);
+  static const darkTextPrimary = Color(0xFFFFFFFF);
   static const darkTextSecondary = Color(0xFFA1A1AA);
   static const darkTextMuted = Color(0xFF71717A);
-  static const darkBorder = Color(0xFF27272A);
-  static const darkBorderSubtle = Color(0xFF1E1E24);
-  static const darkInput = Color(0xFF18181B);
-  static const darkIncomingBubble = Color(0xFF1E1E24);
+  static const darkBorder = Color(0xFF1E1E22);
+  static const darkBorderSubtle = Color(0xFF141417);
+  static const darkInput = Color(0xFF0D0D10);
+  static const darkIncomingBubble = Color(0xFF121216);
 
   // Status & Utility
   static const success = Color(0xFF10B981);

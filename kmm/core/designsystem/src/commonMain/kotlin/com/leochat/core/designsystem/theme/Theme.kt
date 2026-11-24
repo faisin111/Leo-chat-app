@@ -51,7 +51,7 @@ private val DarkScheme = darkColorScheme(
 /** App-wide theme: Material 3 + Poppins + LeoChat palette. Mirrors `LeoTheme` in Flutter. */
 @Composable
 fun LeoTheme(
-    mode: LeoThemeMode = LeoThemeMode.Light,
+    mode: LeoThemeMode = LeoThemeMode.Dark,
     content: @Composable () -> Unit,
 ) {
     val dark = when (mode) {
