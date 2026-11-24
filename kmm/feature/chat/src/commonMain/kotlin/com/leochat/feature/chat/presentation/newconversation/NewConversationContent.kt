@@ -42,6 +42,7 @@ import com.leochat.core.designsystem.component.chat.CreateGroupCard
 import com.leochat.core.designsystem.component.chat.RecentContactsSection
 import com.leochat.core.designsystem.component.chat.UserResultRow
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.presentation.NewConversationUiState
 import com.leochat.feature.chat.presentation.mapper.toPersonRowUi
@@ -63,10 +64,11 @@ fun NewConversationContent(
     onOpenExisting: (Conversation) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LeoThemeTokens.palette
     val insets = if (onBack != null) Modifier.safeDrawingPadding() else Modifier.imePadding()
 
-    Box(modifier.fillMaxSize().background(LeoColors.background)) {
-        Column(Modifier.fillMaxSize().then(insets)) {
+    Box(modifier.fillMaxSize().background(palette.background)) {
+        Column(Modifier.fillMaxSize().background(palette.background).then(insets)) {
             ContactsTopBar(
                 onBack = onBack,
                 actions = {
@@ -86,7 +88,7 @@ fun NewConversationContent(
             if (state.isStartingChat) {
                 LinearProgressIndicator(color = LeoColors.primary, trackColor = Color.Transparent, modifier = Modifier.fillMaxWidth().height(2.dp))
             }
-            Box(Modifier.weight(1f)) {
+            Box(Modifier.weight(1f).background(palette.background)) {
                 if (state.search.isActive) {
                     SearchResults(state, onStartChat)
                 } else {
@@ -99,6 +101,7 @@ fun NewConversationContent(
 
 @Composable
 private fun SearchResults(state: NewConversationUiState, onStartChat: (UserSearchItem) -> Unit) {
+    val palette = LeoThemeTokens.palette
     val search = state.search
     when {
         search.isLoading -> ContactsCenteredPane { ContactsLoader() }
@@ -106,13 +109,13 @@ private fun SearchResults(state: NewConversationUiState, onStartChat: (UserSearc
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Rounded.ErrorOutline, contentDescription = null, tint = LeoColors.destructive, modifier = Modifier.size(40.dp))
                 Spacer(Modifier.height(12.dp))
-                Text(ContactsStrings.searchFailed(search.errorMessage), textAlign = TextAlign.Center, color = LeoColors.textSecondary, fontSize = 14.sp)
+                Text(ContactsStrings.searchFailed(search.errorMessage), textAlign = TextAlign.Center, color = palette.textSecondary, fontSize = 14.sp)
             }
         }
         search.results.isEmpty() -> ContactsCenteredPane {
             ContactsEmptyState(Icons.Rounded.PersonSearch, ContactsStrings.noPeopleFound, ContactsStrings.noPeopleFoundHint)
         }
-        else -> LazyColumn(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp), modifier = Modifier.fillMaxSize()) {
+        else -> LazyColumn(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp), modifier = Modifier.fillMaxSize().background(palette.background)) {
             itemsIndexed(search.results, key = { _, u -> u.id }) { index, user ->
                 if (index > 0) ContactsDivider(64.dp)
                 UserResultRow(user.toPersonRowUi(), onClick = { onStartChat(user) })
@@ -123,8 +126,9 @@ private fun SearchResults(state: NewConversationUiState, onStartChat: (UserSearc
 
 @Composable
 private fun DefaultContent(state: NewConversationUiState, onNewGroup: () -> Unit, onOpen: (Conversation) -> Unit) {
+    val palette = LeoThemeTokens.palette
     val chats = state.recentDirectChats
-    LazyColumn(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp), modifier = Modifier.fillMaxSize()) {
+    LazyColumn(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp), modifier = Modifier.fillMaxSize().background(palette.background)) {
         item { CreateGroupCard(onNewGroup) }
         item { Spacer(Modifier.height(24.dp)) }
         item {

@@ -41,6 +41,7 @@ import com.leochat.core.designsystem.component.chat.GroupInputField
 import com.leochat.core.designsystem.component.chat.SelectableUserRow
 import com.leochat.core.designsystem.component.chat.SelectedMemberChip
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.feature.chat.presentation.NewGroupUiState
 import com.leochat.feature.chat.presentation.mapper.toPersonRowUi
 import com.leochat.feature.users.domain.model.UserSearchItem
@@ -56,7 +57,8 @@ fun NewGroupContent(
     onCreate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.fillMaxSize().background(LeoColors.background)) {
+    val palette = LeoThemeTokens.palette
+    Box(modifier.fillMaxSize().background(palette.background)) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             ContactsTopBar(onBack = onBack) {
                 ContactsTitle(ContactsStrings.newGroup, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.sp)

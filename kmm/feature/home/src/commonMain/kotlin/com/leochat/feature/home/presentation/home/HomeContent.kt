@@ -41,10 +41,10 @@ fun HomeContent(
 ) {
     val palette = LeoThemeTokens.palette
     val isImeVisible = WindowInsets.isImeVisible
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(palette.background)) {
         if (isMobile) {
             Column(Modifier.fillMaxSize().background(palette.background)) {
-                Box(Modifier.weight(1f).statusBarsPadding()) {
+                Box(Modifier.weight(1f).statusBarsPadding().background(palette.background)) {
                     if (selectedTab == ShellTab.Chats) chatsList(Modifier) else otherTab(selectedTab)
                 }
                 if (!isImeVisible) {
@@ -55,11 +55,13 @@ fun HomeContent(
             Row(Modifier.fillMaxSize().background(palette.background).systemBarsPadding().imePadding()) {
                 ShellRail(selectedTab, onSelectTab)
                 if (selectedTab == ShellTab.Chats) {
-                    chatsList(Modifier.width(360.dp).fillMaxHeight())
+                    chatsList(Modifier.width(360.dp).fillMaxHeight().background(palette.background))
                     VerticalDivider(color = palette.border)
-                    conversationPane()
+                    Box(Modifier.weight(1f).fillMaxHeight().background(palette.background)) {
+                        conversationPane()
+                    }
                 } else {
-                    Box(Modifier.weight(1f)) { otherTab(selectedTab) }
+                    Box(Modifier.weight(1f).background(palette.background)) { otherTab(selectedTab) }
                 }
             }
         }

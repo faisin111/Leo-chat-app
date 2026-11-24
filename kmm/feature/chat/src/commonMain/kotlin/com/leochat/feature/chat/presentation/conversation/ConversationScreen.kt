@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leochat.core.designsystem.responsive.LeoLayout
 import com.leochat.core.designsystem.responsive.LocalLeoLayout
-import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.component.feedback.LocalLeoSnackBar
 import com.leochat.feature.chat.presentation.ChatViewModel
 
@@ -21,11 +21,12 @@ fun ConversationScreen(controller: ChatViewModel, nav: ConversationNavigator, on
     val state by controller.state.collectAsStateWithLifecycle()
     val snackBar = LocalLeoSnackBar.current
     val layout = LocalLeoLayout.current
+    val palette = LeoThemeTokens.palette
     // Leaving the conversation (or resizing to tablet) returns to the shell's split view.
     LaunchedEffect(state.selectedConversation == null, layout) {
         if (state.selectedConversation == null || layout != LeoLayout.Mobile) onBack()
     }
-    Box(Modifier.fillMaxSize().background(LeoColors.background).safeDrawingPadding()) {
+    Box(Modifier.fillMaxSize().background(palette.background).safeDrawingPadding()) {
         ConversationPane(state, controller, nav, showBackButton = true, onBack = onBack, onComingSoon = { snackBar.showInfo(it) })
     }
 }

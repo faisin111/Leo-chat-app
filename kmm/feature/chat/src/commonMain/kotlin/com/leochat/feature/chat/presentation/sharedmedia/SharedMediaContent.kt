@@ -27,6 +27,7 @@ import com.leochat.core.designsystem.component.chat.SharedFilesList
 import com.leochat.core.designsystem.component.chat.SharedLinksList
 import com.leochat.core.designsystem.component.chat.SharedMediaGrid
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.feature.chat.presentation.SharedMediaFilter
 import com.leochat.feature.chat.presentation.SharedMediaUiState
 import com.leochat.feature.chat.presentation.mapper.sharedMediaFilterOptions
@@ -42,23 +43,24 @@ fun SharedMediaContent(
     onSelectFilter: (SharedMediaFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LeoThemeTokens.palette
     val buckets = state.buckets
 
-    Box(modifier.fillMaxSize().background(LeoColors.background)) {
+    Box(modifier.fillMaxSize().background(palette.background)) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             ContactsTopBar(onBack = onBack) {
                 Column {
                     Text(
                         ContactsStrings.sharedIn(state.title),
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
+                        fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp,
-                        color = LeoColors.textPrimary,
+                        color = palette.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(Modifier.height(2.dp))
-                    Text(ContactsStrings.everythingInOnePlace, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = LeoColors.textSecondary)
+                    Text(ContactsStrings.everythingInOnePlace, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = palette.textSecondary)
                 }
             }
             SegmentedFilterPills(

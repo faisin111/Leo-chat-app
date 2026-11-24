@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +33,7 @@ import com.leochat.core.designsystem.component.chat.ConversationSkeletonList
 import com.leochat.core.designsystem.component.chat.ConversationTile
 import com.leochat.core.designsystem.component.chat.FilterBubbleBar
 import com.leochat.core.designsystem.component.chat.MadeForConnectionFooter
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.presentation.ChatFilter
 import com.leochat.feature.chat.presentation.ChatUiState
@@ -53,6 +55,7 @@ fun ChatsListPane(
     onRefresh: suspend () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LeoThemeTokens.palette
     val scope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(false) }
     PullToRefreshBox(
@@ -64,10 +67,14 @@ fun ChatsListPane(
                 refreshing = false
             }
         },
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().background(palette.background),
     ) {
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, top = 16.dp, end = 20.dp, bottom = 24.dp),
+            Modifier
+                .fillMaxSize()
+                .background(palette.background)
+                .verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, top = 16.dp, end = 20.dp, bottom = 24.dp),
         ) {
             ChatsListHeader(
                 userName = state.userDisplayName,

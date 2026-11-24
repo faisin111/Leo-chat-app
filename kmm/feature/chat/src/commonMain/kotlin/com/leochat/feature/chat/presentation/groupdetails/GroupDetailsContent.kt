@@ -42,6 +42,7 @@ import com.leochat.core.designsystem.component.chat.GroupMemberRow
 import com.leochat.core.designsystem.component.chat.GroupQuickActionButton
 import com.leochat.core.designsystem.component.chat.contactsTap
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.feature.chat.domain.model.ConversationMember
 import com.leochat.feature.chat.presentation.GroupDetailsUiState
 import com.leochat.feature.chat.presentation.mapper.toMemberRowUi
@@ -62,7 +63,8 @@ fun GroupDetailsContent(
     onCloseAddSheet: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.fillMaxSize().background(LeoColors.background)) {
+    val palette = LeoThemeTokens.palette
+    Box(modifier.fillMaxSize().background(palette.background)) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             ContactsTopBar(onBack = onBack) { ContactsTitle(ContactsStrings.groupDetails) }
             Column(
