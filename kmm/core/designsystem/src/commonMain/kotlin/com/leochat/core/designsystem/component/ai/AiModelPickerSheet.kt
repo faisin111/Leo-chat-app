@@ -60,8 +60,8 @@ fun AiModelPickerSheet(
             Spacer(Modifier.height(16.dp))
             Text(
                 AiStrings.selectModelTitle,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
                 color = palette.textPrimary,
             )
             Spacer(Modifier.height(4.dp))

@@ -26,7 +26,7 @@ fun LeoTextLink(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = true,
-    fontWeight: FontWeight = FontWeight.ExtraBold,
+    fontWeight: FontWeight = FontWeight.SemiBold,
 ) {
     if (!compact) {
         TextButton(onClick = onClick, modifier = modifier) {

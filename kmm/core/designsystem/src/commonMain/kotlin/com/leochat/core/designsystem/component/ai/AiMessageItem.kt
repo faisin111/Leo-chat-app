@@ -78,7 +78,7 @@ private fun AssistantCard(message: AiMessageUi, modifier: Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AiGradientBadge(size = 28, cornerRadius = 8, iconSize = 16)
             Spacer(Modifier.width(10.dp))
-            Text(AiStrings.assistantName, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary)
+            Text(AiStrings.assistantName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
             Spacer(Modifier.width(8.dp))
             Text(
                 message.modelLabel,

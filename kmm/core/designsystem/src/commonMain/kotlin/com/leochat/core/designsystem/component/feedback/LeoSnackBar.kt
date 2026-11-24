@@ -106,7 +106,7 @@ private fun LeoSnackBarCard(data: SnackbarData) {
         }
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(visuals.title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.2).sp)
+            Text(visuals.title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.2).sp)
             Spacer(Modifier.height(2.dp))
             Text(
                 visuals.message,

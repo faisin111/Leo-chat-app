@@ -66,14 +66,14 @@ fun ConversationTile(
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(tile.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary)
+            Text(tile.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
             Spacer(Modifier.height(3.dp))
             Text(
                 tile.snippet,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 14.sp,
-                fontWeight = if (tile.isTyping) FontWeight.Bold else FontWeight.Medium,
+                fontWeight = if (tile.isTyping) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (tile.isTyping) LeoColors.primary else palette.textSecondary,
             )
         }
@@ -82,13 +82,13 @@ fun ConversationTile(
             Text(
                 tile.time,
                 fontSize = 12.sp,
-                fontWeight = if (tile.hasUnread) FontWeight.Bold else FontWeight.SemiBold,
+                fontWeight = if (tile.hasUnread) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (tile.hasUnread) LeoColors.primary else palette.textSecondary,
             )
             Spacer(Modifier.height(4.dp))
             when {
                 tile.hasUnread -> Box(Modifier.size(20.dp).background(LeoColors.primary, CircleShape), contentAlignment = Alignment.Center) {
-                    Text("${tile.unreadCount}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("${tile.unreadCount}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 }
                 tile.isMuted -> Icon(Icons.AutoMirrored.Rounded.VolumeOff, null, tint = palette.textMuted, modifier = Modifier.size(16.dp))
                 else -> Spacer(Modifier.height(20.dp))

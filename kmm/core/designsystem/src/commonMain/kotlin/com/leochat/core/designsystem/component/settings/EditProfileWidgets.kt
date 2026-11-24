@@ -45,6 +45,7 @@ import com.leochat.core.designsystem.component.branding.LeoAvatar
 /** 54dp-radius avatar with the brand camera badge. */
 @Composable
 fun EditableAvatar(name: String, imageUrl: String?) {
+    val palette = LeoThemeTokens.palette
     Box {
         LeoAvatar(radius = 54.dp, name = name, imageUrl = imageUrl)
         Box(
@@ -54,7 +55,7 @@ fun EditableAvatar(name: String, imageUrl: String?) {
                 .shadow(6.dp, CircleShape, ambientColor = SettingsTokens.avatarBadgeShadow, spotColor = SettingsTokens.avatarBadgeShadow)
                 .size(32.dp)
                 .background(LeoColors.primary, CircleShape)
-                .border(2.5.dp, Color.White, CircleShape),
+                .border(2.5.dp, if (palette.isDark) palette.surface else Color.White, CircleShape),
         ) {
             Icon(Icons.Rounded.CameraAlt, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
         }
@@ -64,18 +65,24 @@ fun EditableAvatar(name: String, imageUrl: String?) {
 /** Green "photo checked" banner shown above the form. */
 @Composable
 fun PhotoStatusBanner() {
+    val palette = LeoThemeTokens.palette
     val shape = RoundedCornerShape(16.dp)
+    val background = if (palette.isDark) Color(0xFF064E3B).copy(alpha = 0.35f) else SettingsTokens.bannerBackground
+    val border = if (palette.isDark) Color(0xFF047857).copy(alpha = 0.5f) else SettingsTokens.bannerBorder
+    val titleColor = if (palette.isDark) Color(0xFF6EE7B7) else SettingsTokens.bannerTitle
+    val bodyColor = if (palette.isDark) Color(0xFFA7F3D0) else SettingsTokens.bannerBody
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SettingsTokens.bannerBackground, shape)
-            .border(1.dp, SettingsTokens.bannerBorder, shape)
+            .background(background, shape)
+            .border(1.dp, border, shape)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
         Icon(
             Icons.Rounded.CheckCircleOutline,
             contentDescription = null,
-            tint = SettingsTokens.bannerTitle,
+            tint = titleColor,
             modifier = Modifier.size(22.dp),
         )
         Spacer(Modifier.width(12.dp))
@@ -83,15 +90,15 @@ fun PhotoStatusBanner() {
             Text(
                 SettingsStrings.photoCheckedTitle,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = SettingsTokens.bannerTitle,
+                fontWeight = FontWeight.SemiBold,
+                color = titleColor,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 SettingsStrings.photoCheckedBody,
                 fontSize = 12.5.sp,
-                fontWeight = FontWeight.Medium,
-                color = SettingsTokens.bannerBody,
+                fontWeight = FontWeight.Normal,
+                color = bodyColor,
             )
         }
     }
@@ -106,7 +113,7 @@ fun ProfileFieldWrapper(label: String, content: @Composable () -> Unit) {
         Text(
             label,
             fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = if (palette.isDark) palette.textSecondary else SettingsTokens.fieldLabel,
         )
         Spacer(Modifier.height(7.dp))

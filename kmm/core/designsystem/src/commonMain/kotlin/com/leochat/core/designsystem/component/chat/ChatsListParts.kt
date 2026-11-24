@@ -64,14 +64,14 @@ fun ChatsListHeader(userName: String?, avatarUrl: String?, onOpenSettings: () ->
         Column(Modifier.weight(1f)) {
             Text(
                 AppStrings.yourChats,
-                fontSize = 34.sp,
-                lineHeight = (34 * 1.1).sp,
-                letterSpacing = (-1.2).sp,
-                fontWeight = FontWeight.Black,
+                fontSize = 32.sp,
+                lineHeight = (32 * 1.15).sp,
+                letterSpacing = (-0.8).sp,
+                fontWeight = FontWeight.Bold,
                 color = palette.textPrimary,
             )
             Spacer(Modifier.height(4.dp))
-            Text(AppStrings.yourChatsSubtitle, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = palette.textSecondary)
+            Text(AppStrings.yourChatsSubtitle, fontSize = 14.sp, fontWeight = FontWeight.Normal, color = palette.textSecondary)
         }
         ChatsComposeButton(onCompose)
     }

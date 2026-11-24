@@ -47,7 +47,7 @@ fun LeoPrimaryButton(
                     Icon(icon, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
                     Spacer(Modifier.width(ButtonDefaults.IconSpacing))
                 }
-                Text(label, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                Text(label, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             }
         }
     }

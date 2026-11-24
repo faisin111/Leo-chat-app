@@ -55,7 +55,7 @@ fun AiPendingActionBanner(
             Text(
                 AiStrings.actionConfirmationRequired,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 color = if (isDark) Color.White else AiTokens.actionTitleLight,
             )
         }

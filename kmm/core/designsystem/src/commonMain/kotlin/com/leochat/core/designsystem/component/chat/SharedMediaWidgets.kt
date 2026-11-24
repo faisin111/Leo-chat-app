@@ -85,7 +85,7 @@ private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit, 
             label,
             textAlign = TextAlign.Center,
             fontSize = 13.sp,
-            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
             color = if (isSelected) LeoColors.primary else palette.textSecondary,
             maxLines = 1,
         )

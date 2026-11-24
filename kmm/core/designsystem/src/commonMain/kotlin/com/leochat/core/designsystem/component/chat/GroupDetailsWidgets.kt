@@ -108,7 +108,7 @@ fun GroupMemberRow(member: MemberRowUi, onRemove: () -> Unit) {
             Text(
                 member.name,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.SemiBold,
                 color = palette.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -125,7 +125,7 @@ fun GroupMemberRow(member: MemberRowUi, onRemove: () -> Unit) {
             Text(
                 ContactsStrings.remove,
                 fontSize = 13.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.SemiBold,
                 color = ChatTokens.removeText,
                 modifier = Modifier.contactsTap(onClick = onRemove).padding(4.dp),
             )
@@ -138,7 +138,7 @@ private fun RoleBadge(isOwner: Boolean) {
     Text(
         if (isOwner) ContactsStrings.owner else ContactsStrings.admin,
         fontSize = 11.sp,
-        fontWeight = FontWeight.ExtraBold,
+        fontWeight = FontWeight.SemiBold,
         color = if (isOwner) ChatTokens.ownerBadgeText else ChatTokens.adminBadgeText,
         modifier = Modifier
             .background(if (isOwner) ChatTokens.ownerBadgeBackground else ChatTokens.adminBadgeBackground, RoundedCornerShape(10.dp))
@@ -174,7 +174,7 @@ fun AddMemberSheet(
                     .background(ChatTokens.chevronMuted, RoundedCornerShape(2.dp)),
             )
             Spacer(Modifier.height(16.dp))
-            Text(ContactsStrings.addGroupMember, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary)
+            Text(ContactsStrings.addGroupMember, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
             Spacer(Modifier.height(12.dp))
             ContactsSearchPill(
                 value = query,

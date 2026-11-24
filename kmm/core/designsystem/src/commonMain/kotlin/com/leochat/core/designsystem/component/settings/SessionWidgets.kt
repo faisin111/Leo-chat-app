@@ -135,7 +135,7 @@ fun SessionTile(
                         Text(
                             SettingsStrings.thisDevice,
                             fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.Bold,
                             color = LeoColors.success,
                             modifier = Modifier
                                 .background(LeoColors.success.copy(alpha = 0.15f), RoundedCornerShape(6.dp))

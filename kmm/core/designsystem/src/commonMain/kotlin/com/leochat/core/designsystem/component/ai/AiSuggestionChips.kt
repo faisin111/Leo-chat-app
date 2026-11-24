@@ -31,8 +31,8 @@ fun AiSuggestionChips(
     prompts: List<String> = AiStrings.suggestionPrompts,
 ) {
     LazyRow(
-        modifier = modifier.fillMaxWidth().height(38.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

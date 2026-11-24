@@ -223,7 +223,7 @@ private fun RecordingPill(elapsedSeconds: Int, label: String, isDark: Boolean, o
         Spacer(Modifier.width(10.dp))
         Box(Modifier.size(8.dp).background(ChatTokens.recordingRed, CircleShape))
         Spacer(Modifier.width(8.dp))
-        Text(label, color = LeoColors.primary, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+        Text(label, color = LeoColors.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.width(12.dp))
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
             repeat(14) { i ->

@@ -51,7 +51,7 @@ fun IncomingCallBanner(call: IncomingCallUi, onDecline: () -> Unit, onAccept: ()
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 color = Color.White,
             )
             Spacer(Modifier.height(2.dp))

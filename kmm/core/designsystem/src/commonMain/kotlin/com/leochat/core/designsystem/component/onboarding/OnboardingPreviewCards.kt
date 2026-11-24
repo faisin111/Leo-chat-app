@@ -95,7 +95,7 @@ fun ChatPreviewCard() {
                 OnboardingStrings.chatTransportBadge,
                 fontSize = 9.sp,
                 color = LeoColors.primary,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.background(palette.primarySoft, RoundedCornerShape(12.dp)).padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }

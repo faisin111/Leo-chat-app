@@ -36,45 +36,45 @@ fun leoTypography(): Typography {
     return Typography(
         displayLarge = TextStyle(
             fontFamily = family,
-            fontSize = 38.sp,
-            lineHeight = (38 * 1.08).sp,
-            letterSpacing = (-1.4).sp,
-            fontWeight = FontWeight.Black,
+            fontSize = 34.sp,
+            lineHeight = (34 * 1.15).sp,
+            letterSpacing = (-1.0).sp,
+            fontWeight = FontWeight.Bold,
         ),
         displayMedium = TextStyle(
             fontFamily = family,
             fontSize = 28.sp,
             lineHeight = (28 * 1.15).sp,
-            letterSpacing = (-0.8).sp,
-            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = (-0.6).sp,
+            fontWeight = FontWeight.Bold,
         ),
         displaySmall = TextStyle(
             fontFamily = family,
             fontSize = 24.sp,
             lineHeight = 32.sp,
-            letterSpacing = (-0.48).sp,
-            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.4).sp,
+            fontWeight = FontWeight.SemiBold,
         ),
         headlineLarge = TextStyle(
             fontFamily = family,
             fontSize = 22.sp,
             lineHeight = 28.sp,
-            letterSpacing = (-0.6).sp,
-            fontWeight = FontWeight.Black,
+            letterSpacing = (-0.4).sp,
+            fontWeight = FontWeight.Bold,
         ),
         headlineMedium = TextStyle(
             fontFamily = family,
             fontSize = 20.sp,
             lineHeight = 26.sp,
-            letterSpacing = (-0.3).sp,
-            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.2).sp,
+            fontWeight = FontWeight.SemiBold,
         ),
         headlineSmall = TextStyle(
             fontFamily = family,
             fontSize = 18.sp,
             lineHeight = 24.sp,
-            letterSpacing = (-0.18).sp,
-            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.15).sp,
+            fontWeight = FontWeight.SemiBold,
         ),
         titleLarge = TextStyle(
             fontFamily = family,
@@ -92,7 +92,7 @@ fun leoTypography(): Typography {
             fontFamily = family,
             fontSize = 14.sp,
             lineHeight = 20.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
         ),
         bodyLarge = TextStyle(
             fontFamily = family,
@@ -116,59 +116,59 @@ fun leoTypography(): Typography {
             fontFamily = family,
             fontSize = 14.sp,
             lineHeight = 20.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
         ),
         labelMedium = TextStyle(
             fontFamily = family,
             fontSize = 12.sp,
             lineHeight = 16.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
         ),
         labelSmall = TextStyle(
             fontFamily = family,
             fontSize = 11.sp,
             lineHeight = 14.sp,
-            letterSpacing = 0.55.sp,
-            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.4.sp,
+            fontWeight = FontWeight.SemiBold,
         ),
     )
 }
 
 /** Shared named styles. Mirrors `lib/core/theme/typography.dart` and frontend guide. */
 object LeoTypography {
-    /** Extra-bold display heading used for primary page titles. */
+    /** Bold display heading used for primary page titles. */
     val mainHeading: TextStyle
         @Composable
         get() = TextStyle(
             fontFamily = poppinsFontFamily(),
-            fontSize = 38.sp,
-            lineHeight = (38 * 1.08).sp,
-            letterSpacing = (-1.4).sp,
-            fontWeight = FontWeight.Black,
+            fontSize = 32.sp,
+            lineHeight = (32 * 1.15).sp,
+            letterSpacing = (-0.8).sp,
+            fontWeight = FontWeight.Bold,
             color = LeoThemeTokens.palette.textPrimary,
         )
 
-    /** Display header (24px, Bold, 32px line height). */
+    /** Display header (24px, SemiBold, 32px line height). */
     val displayHeader: TextStyle
         @Composable
         get() = TextStyle(
             fontFamily = poppinsFontFamily(),
             fontSize = 24.sp,
             lineHeight = 32.sp,
-            letterSpacing = (-0.48).sp,
-            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.4).sp,
+            fontWeight = FontWeight.SemiBold,
             color = LeoThemeTokens.palette.textPrimary,
         )
 
-    /** Section header (18px, Bold, 24px line height). */
+    /** Section header (18px, SemiBold, 24px line height). */
     val sectionHeader: TextStyle
         @Composable
         get() = TextStyle(
             fontFamily = poppinsFontFamily(),
             fontSize = 18.sp,
             lineHeight = 24.sp,
-            letterSpacing = (-0.18).sp,
-            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.15).sp,
+            fontWeight = FontWeight.SemiBold,
             color = LeoThemeTokens.palette.textPrimary,
         )
 
@@ -217,15 +217,15 @@ object LeoTypography {
             color = LeoThemeTokens.palette.textSecondary,
         )
 
-    /** Label / category (11px, Bold, 14px line height, uppercase tracking). */
+    /** Label / category (11px, SemiBold, 14px line height, uppercase tracking). */
     val categoryLabel: TextStyle
         @Composable
         get() = TextStyle(
             fontFamily = poppinsFontFamily(),
             fontSize = 11.sp,
             lineHeight = 14.sp,
-            letterSpacing = 0.55.sp,
-            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.4.sp,
+            fontWeight = FontWeight.SemiBold,
             color = LeoThemeTokens.palette.textSecondary,
         )
 }

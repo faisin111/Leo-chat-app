@@ -16,7 +16,7 @@ class EditProfileViewModel(
     private val getMyProfile: GetMyProfileUseCase,
     private val getCurrentUser: GetCurrentUserUseCase,
     private val updateProfile: UpdateProfileUseCase,
-) : SettingsEffectViewModel<EditProfileUiState>(EditProfileUiState()) {
+) : SettingsEffectViewModel<EditProfileUiState>(EditProfileUiState(isLoading = true)) {
 
     init {
         viewModelScope.launch {
@@ -30,6 +30,7 @@ class EditProfileViewModel(
                     email = s.email.ifEmpty { profile?.email ?: user?.email.orEmpty() },
                     bio = s.bio.ifEmpty { profile?.bio.orEmpty().take(SettingsStrings.bioMaxLength) },
                     avatarUrl = profile?.profilePictureUrl ?: user?.avatarUrl,
+                    isLoading = false,
                 )
             }
         }

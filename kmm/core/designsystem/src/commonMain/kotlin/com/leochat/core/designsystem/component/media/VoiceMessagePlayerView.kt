@@ -165,7 +165,7 @@ fun VoiceSpeedChip(isOwn: Boolean, label: String, onClick: () -> Unit) {
     Text(
         label,
         fontSize = 11.sp,
-        fontWeight = FontWeight.ExtraBold,
+        fontWeight = FontWeight.SemiBold,
         color = if (isOwn) Color.White else LeoColors.primary,
         modifier = Modifier
             .leoPressable(interaction)

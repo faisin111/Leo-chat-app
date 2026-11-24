@@ -4,10 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
@@ -25,6 +28,7 @@ import com.leochat.core.designsystem.theme.LeoThemeTokens
  * [chatsList] + [conversationPane] on the Chats tab. [otherTab] draws every non-Chats tab;
  * [overlay] draws on top of the shell (incoming-call banner).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeContent(
     selectedTab: ShellTab,
@@ -36,13 +40,16 @@ fun HomeContent(
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val palette = LeoThemeTokens.palette
+    val isImeVisible = WindowInsets.isImeVisible
     Box(Modifier.fillMaxSize()) {
         if (isMobile) {
             Column(Modifier.fillMaxSize().background(palette.background)) {
                 Box(Modifier.weight(1f).statusBarsPadding()) {
                     if (selectedTab == ShellTab.Chats) chatsList(Modifier) else otherTab(selectedTab)
                 }
-                ShellBottomNav(selectedTab, onSelectTab)
+                if (!isImeVisible) {
+                    ShellBottomNav(selectedTab, onSelectTab)
+                }
             }
         } else {
             Row(Modifier.fillMaxSize().background(palette.background).systemBarsPadding().imePadding()) {

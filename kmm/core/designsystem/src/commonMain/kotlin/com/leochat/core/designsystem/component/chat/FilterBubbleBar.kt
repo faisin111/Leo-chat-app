@@ -74,13 +74,13 @@ private fun BubblePill(label: String, isSelected: Boolean, badge: String? = null
             .clickable(interactionSource = interaction, indication = ripple(color = LeoColors.primary), onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 8.5.dp),
     ) {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.2).sp, color = textColor)
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.2).sp, color = textColor)
         if (badge != null) {
             Spacer(Modifier.width(6.dp))
             Text(
                 badge,
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
+                fontWeight = FontWeight.Bold,
                 color = if (isSelected) LeoColors.primary else Color.White,
                 modifier = Modifier
                     .background(if (isSelected) Color.White else LeoColors.primary, RoundedCornerShape(12.dp))

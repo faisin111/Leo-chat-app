@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /** Warm pulsing placeholder block. Mirrors `LeoSkeleton`. */
 @Composable
@@ -26,6 +27,9 @@ fun LeoSkeleton(
     cornerRadius: Dp = 8.dp,
     isCircle: Boolean = false,
 ) {
+    val palette = LeoThemeTokens.palette
+    val from = if (palette.isDark) palette.surfaceElevated else LeoColors.skeletonFrom
+    val to = if (palette.isDark) palette.border else LeoColors.skeletonTo
     val transition = rememberInfiniteTransition(label = "leoSkeleton")
     val t by transition.animateFloat(
         initialValue = 0.45f,
@@ -34,7 +38,7 @@ fun LeoSkeleton(
         label = "leoSkeletonPulse",
     )
     val shape = if (isCircle) CircleShape else RoundedCornerShape(cornerRadius)
-    Box(modifier.background(lerp(LeoColors.skeletonFrom, LeoColors.skeletonTo, t), shape))
+    Box(modifier.background(lerp(from, to, t), shape))
 }
 
 @Composable

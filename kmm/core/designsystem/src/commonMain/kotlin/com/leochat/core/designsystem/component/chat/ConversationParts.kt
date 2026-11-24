@@ -63,7 +63,7 @@ fun ChatEmptyPane(icon: ImageVector, circle: Int, iconSize: Int, title: String, 
             Icon(icon, null, tint = palette.textMuted, modifier = Modifier.size(iconSize.dp))
         }
         Spacer(Modifier.height(if (circle > 60) 16.dp else 12.dp))
-        Text(title, fontSize = if (circle > 60) 18.sp else 16.sp, fontWeight = if (circle > 60) FontWeight.ExtraBold else FontWeight.Bold, color = palette.textPrimary)
+        Text(title, fontSize = if (circle > 60) 18.sp else 16.sp, fontWeight = if (circle > 60) FontWeight.Bold else FontWeight.SemiBold, color = palette.textPrimary)
         Spacer(Modifier.height(if (circle > 60) 6.dp else 4.dp))
         Text(body, textAlign = TextAlign.Center, fontSize = if (circle > 60) 14.sp else 13.sp, fontWeight = FontWeight.Medium, color = palette.textSecondary)
     }
@@ -98,6 +98,6 @@ fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
     ) {
         Icon(Icons.Rounded.ArrowDownward, null, tint = LeoColors.primary, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(5.dp))
-        Text(AppStrings.latest, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = LeoColors.primary)
+        Text(AppStrings.latest, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LeoColors.primary)
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,15 +60,19 @@ fun LeoAvatar(
                     model = imageUrl,
                     contentDescription = name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(diameter),
-                    loading = { fallback() },
-                    error = { fallback() },
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { fallback() }
+                    },
+                    error = {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { fallback() }
+                    },
                 )
                 drawable != null -> Image(
                     painter = painterResource(drawable),
                     contentDescription = name,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(diameter),
+                    modifier = Modifier.fillMaxSize(),
                 )
                 else -> fallback()
             }
@@ -95,10 +101,22 @@ private fun AvatarFallback(
     iconColor: Color,
 ) {
     val text = fallbackText?.trim() ?: initialsFor(name)
-    if (!text.isNullOrEmpty()) {
-        Text(text = text, color = iconColor, fontSize = (radius.value * 0.62f).sp, fontWeight = FontWeight.ExtraBold)
-    } else {
-        Icon(fallbackIcon, contentDescription = null, tint = iconColor, modifier = Modifier.size(radius * 1.1f))
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (!text.isNullOrEmpty()) {
+            Text(
+                text = text,
+                color = iconColor,
+                fontSize = (radius.value * 0.54f).sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        } else {
+            Icon(fallbackIcon, contentDescription = null, tint = iconColor, modifier = Modifier.size(radius * 1.1f))
+        }
     }
 }
 

@@ -44,8 +44,8 @@ fun AiEmptyState(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(20.dp))
             Text(
                 AiStrings.emptyTitle,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
                 color = palette.textPrimary,
             )
             Spacer(Modifier.height(8.dp))

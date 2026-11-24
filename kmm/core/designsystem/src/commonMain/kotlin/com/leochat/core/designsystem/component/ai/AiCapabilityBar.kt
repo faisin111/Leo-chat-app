@@ -2,12 +2,14 @@ package com.leochat.core.designsystem.component.ai
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Psychology
@@ -42,6 +44,7 @@ fun AiCapabilityBar(
         modifier = modifier
             .fillMaxWidth()
             .background(if (isDark) LeoColors.darkSurface.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.5f))
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         AiCapabilityChip(Icons.Rounded.Psychology, AiStrings.reasoning, isDeepThinkEnabled, isDark, onToggleDeepThink)

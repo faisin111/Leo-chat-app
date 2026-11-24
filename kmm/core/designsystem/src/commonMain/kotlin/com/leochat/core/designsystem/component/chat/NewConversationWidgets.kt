@@ -70,7 +70,7 @@ fun CreateGroupCard(onClick: () -> Unit) {
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(ContactsStrings.createAGroup, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary)
+                Text(ContactsStrings.createAGroup, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
                 Spacer(Modifier.height(2.dp))
                 Text(ContactsStrings.createAGroupSubtitle, fontSize = 13.sp, color = palette.textSecondary)
             }
@@ -86,7 +86,7 @@ fun RecentContactsSection(contacts: List<RecentContactUi>, isLoading: Boolean, o
     when {
         contacts.isNotEmpty() -> Column {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(ContactsStrings.recentContacts, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.6.sp, color = palette.textSecondary)
+                Text(ContactsStrings.recentContacts, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp, color = palette.textSecondary)
                 Text(ContactsStrings.peopleCount(contacts.size), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = palette.textSecondary)
             }
             Spacer(Modifier.height(12.dp))

@@ -132,7 +132,7 @@ private fun IncomingBubble(bubble: ChatBubbleUi, voiceContent: @Composable () ->
                 if (bubble.isAiGenerated) AppStrings.aiAssistant else bubble.senderName,
                 color = LeoColors.primary,
                 fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.SemiBold,
             )
             if (bubble.isAiGenerated) {
                 Spacer(Modifier.width(6.dp))
@@ -142,7 +142,7 @@ private fun IncomingBubble(bubble: ChatBubbleUi, voiceContent: @Composable () ->
                 ) {
                     Icon(Icons.Filled.AutoAwesome, null, tint = LeoColors.primary, modifier = Modifier.size(10.dp))
                     Spacer(Modifier.width(3.dp))
-                    Text(AppStrings.aiBadge, color = LeoColors.primary, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(AppStrings.aiBadge, color = LeoColors.primary, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -228,7 +228,7 @@ private fun ReplyQuote(reply: ReplyQuoteUi, isOwn: Boolean) {
         Text(
             reply.senderName,
             fontSize = 12.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.SemiBold,
             color = if (isOwn) Color.White else LeoColors.primary,
         )
         Spacer(Modifier.height(2.dp))

@@ -41,9 +41,9 @@ fun SettingsHeader(onSearch: () -> Unit) {
     ) {
         Text(
             SettingsStrings.title,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = (-0.8).sp,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.4).sp,
             color = palette.textPrimary,
         )
         IconButton(onClick = onSearch) {
@@ -78,8 +78,8 @@ fun SettingsProfileCard(
             Column(Modifier.weight(1f)) {
                 Text(
                     displayName,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = palette.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -121,7 +121,7 @@ fun SettingsFooterLinks(onHelp: () -> Unit, onSignOut: () -> Unit, signingOut: B
         Text(
             SettingsStrings.signOut,
             fontSize = 14.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.Bold,
             color = SettingsTokens.signOut,
             modifier = Modifier.settingsPressable(enabled = !signingOut, onClick = onSignOut),
         )

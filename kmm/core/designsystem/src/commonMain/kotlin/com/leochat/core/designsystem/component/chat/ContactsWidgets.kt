@@ -91,7 +91,7 @@ fun ContactsIconButton(icon: ImageVector, contentDescription: String?, onClick: 
 }
 
 @Composable
-fun ContactsTitle(text: String, fontSize: TextUnit = 22.sp, fontWeight: FontWeight = FontWeight.Black, letterSpacing: TextUnit = (-0.5).sp) {
+fun ContactsTitle(text: String, fontSize: TextUnit = 21.sp, fontWeight: FontWeight = FontWeight.Bold, letterSpacing: TextUnit = (-0.3).sp) {
     val palette = LeoThemeTokens.palette
     Text(text, fontSize = fontSize, fontWeight = fontWeight, letterSpacing = letterSpacing, color = palette.textPrimary, maxLines = 1)
 }
@@ -199,7 +199,7 @@ fun ContactsEmptyState(
             Icon(icon, contentDescription = null, tint = effectiveIconColor, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(16.dp))
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = palette.textPrimary, textAlign = TextAlign.Center)
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = palette.textPrimary, textAlign = TextAlign.Center)
         Spacer(Modifier.height(6.dp))
         Text(subtitle, fontSize = 13.sp, color = palette.textSecondary, textAlign = TextAlign.Center, lineHeight = subtitleLineHeight)
     }

@@ -74,7 +74,7 @@ fun SettingsAppBar(
     onBack: () -> Unit,
     background: Color,
     titleSize: TextUnit = 20.sp,
-    titleWeight: FontWeight = FontWeight.ExtraBold,
+    titleWeight: FontWeight = FontWeight.Bold,
     titleLetterSpacing: TextUnit = TextUnit.Unspecified,
     backContentDescription: String = SettingsStrings.back,
     actions: @Composable RowScope.() -> Unit = {},
@@ -149,8 +149,8 @@ fun SettingsSectionHeader(icon: ImageVector, title: String) {
         Text(
             title,
             fontSize = 12.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 0.6.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.5.sp,
             color = LeoThemeTokens.palette.textSecondary,
         )
     }
@@ -162,8 +162,8 @@ fun SettingsGroupLabel(text: String) {
     Text(
         text,
         fontSize = 12.sp,
-        fontWeight = FontWeight.ExtraBold,
-        letterSpacing = 0.6.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.5.sp,
         color = LeoThemeTokens.palette.textSecondary,
     )
 }
@@ -182,7 +182,7 @@ fun SettingsSwitchTile(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.textPrimary)
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.textPrimary)
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
                 Text(subtitle, fontSize = 12.5.sp, fontWeight = FontWeight.Medium, color = palette.textSecondary)
@@ -223,7 +223,7 @@ fun SettingsNavigationTile(
         Text(
             title,
             fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = palette.textPrimary,
             modifier = Modifier.weight(1f),
         )

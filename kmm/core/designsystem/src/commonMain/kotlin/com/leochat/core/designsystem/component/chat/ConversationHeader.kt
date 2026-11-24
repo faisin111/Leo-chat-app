@@ -104,14 +104,14 @@ fun ConversationHeader(
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(header.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 18.sp, fontWeight = FontWeight.Black, color = primaryText, modifier = Modifier.weight(1f, fill = false))
+                    Text(header.title, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = primaryText, modifier = Modifier.weight(1f, fill = false))
                     if (isAi) {
                         Spacer(Modifier.width(6.dp))
                         Text(
                             AppStrings.aiBadge,
                             color = LeoColors.primary,
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.background(LeoColors.primarySoft, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.5.dp),
                         )
                     }

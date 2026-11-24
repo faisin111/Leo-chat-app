@@ -49,9 +49,9 @@ fun LeoLogo(
             Spacer(Modifier.width(10.dp))
             Text(
                 text = AppStrings.appName,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = (-0.6).sp,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.4).sp,
                 color = if (onDark || palette.isDark) Color.White else palette.textPrimary,
             )
         }

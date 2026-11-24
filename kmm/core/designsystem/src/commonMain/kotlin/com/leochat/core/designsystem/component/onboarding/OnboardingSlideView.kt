@@ -56,17 +56,17 @@ fun OnboardingSlideView(slide: OnboardingSlideUi, modifier: Modifier = Modifier)
             color = LeoColors.primary,
             fontSize = 11.sp,
             letterSpacing = 0.6.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.background(palette.primarySoft, PillShape).padding(horizontal = 10.dp, vertical = 4.dp),
         )
         Spacer(Modifier.height(14.dp))
         Text(
             slide.title,
             textAlign = TextAlign.Center,
-            fontSize = 28.sp,
-            lineHeight = (28 * 1.15).sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = (-0.8).sp,
+            fontSize = 26.sp,
+            lineHeight = (26 * 1.15).sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.5).sp,
             color = palette.textPrimary,
         )
         Spacer(Modifier.height(12.dp))

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import com.leochat.core.designsystem.theme.LeoColors
+import com.leochat.core.designsystem.theme.LeoThemeTokens
 
 /**
  * Sweeping specular beam over its content (skeletons, avatars, bubbles).
@@ -25,12 +26,18 @@ import com.leochat.core.designsystem.theme.LeoColors
 @Composable
 fun LeoShimmer(
     modifier: Modifier = Modifier,
-    baseColor: Color = LeoColors.shimmerBase,
-    highlightColor: Color = LeoColors.shimmerHighlight,
-    lightningColor: Color = Color.White,
+    baseColor: Color = Color.Unspecified,
+    highlightColor: Color = Color.Unspecified,
+    lightningColor: Color = Color.Unspecified,
     durationMillis: Int = 1400,
     content: @Composable () -> Unit,
 ) {
+    val palette = LeoThemeTokens.palette
+    val resolvedBase = if (baseColor != Color.Unspecified) baseColor else if (palette.isDark) palette.surfaceElevated else LeoColors.shimmerBase
+    val resolvedHighlight = if (highlightColor != Color.Unspecified) highlightColor else if (palette.isDark) palette.border else LeoColors.shimmerHighlight
+    val resolvedLightning = if (lightningColor != Color.Unspecified) lightningColor else if (palette.isDark) Color(0xFF3F3F46) else Color.White
+    val resolvedCore = if (palette.isDark) Color(0xFF52525B) else LeoColors.shimmerCore
+
     val transition = rememberInfiniteTransition(label = "leoShimmer")
     val progress by transition.animateFloat(
         initialValue = 0f,
@@ -39,15 +46,15 @@ fun LeoShimmer(
         label = "leoShimmerSweep",
     )
     val stops = arrayOf(
-        0.0f to baseColor,
-        0.28f to baseColor,
-        0.42f to highlightColor,
-        0.48f to lightningColor,
-        0.50f to LeoColors.shimmerCore,
-        0.52f to lightningColor,
-        0.58f to highlightColor,
-        0.72f to baseColor,
-        1.0f to baseColor,
+        0.0f to resolvedBase,
+        0.28f to resolvedBase,
+        0.42f to resolvedHighlight,
+        0.48f to resolvedLightning,
+        0.50f to resolvedCore,
+        0.52f to resolvedLightning,
+        0.58f to resolvedHighlight,
+        0.72f to resolvedBase,
+        1.0f to resolvedBase,
     )
     Box(
         modifier = modifier

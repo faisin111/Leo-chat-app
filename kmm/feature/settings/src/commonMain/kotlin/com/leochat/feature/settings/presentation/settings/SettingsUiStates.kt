@@ -45,6 +45,7 @@ data class EditProfileUiState(
     val bio: String = "",
     val avatarUrl: String? = null,
     val isSaving: Boolean = false,
+    val isLoading: Boolean = false,
 ) {
     val avatarName: String get() = displayName.ifEmpty { SettingsStrings.userFallback }
     val bioCounter: String get() = "${bio.length} / ${SettingsStrings.bioMaxLength}"

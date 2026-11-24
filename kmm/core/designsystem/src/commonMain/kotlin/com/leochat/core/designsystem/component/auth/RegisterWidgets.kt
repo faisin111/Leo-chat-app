@@ -54,7 +54,7 @@ fun ProfilePhotoPrompt(
         }
         Spacer(Modifier.width(16.dp))
         Column {
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Black, color = palette.textPrimary)
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.textPrimary)
             Spacer(Modifier.height(4.dp))
             Text(subtitle, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textSecondary)
         }

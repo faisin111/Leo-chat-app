@@ -79,7 +79,7 @@ fun ShellBottomNav(selected: ShellTab, onSelect: (ShellTab) -> Unit) {
                 val color = if (active) LeoColors.primary else palette.textSecondary
                 Icon(if (active) tab.activeIcon else tab.icon, tab.label, tint = color, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.height(3.dp))
-                Text(tab.label, fontSize = 11.sp, fontWeight = if (active) FontWeight.ExtraBold else FontWeight.SemiBold, color = color)
+                Text(tab.label, fontSize = 11.sp, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium, color = color)
             }
         }
     }
