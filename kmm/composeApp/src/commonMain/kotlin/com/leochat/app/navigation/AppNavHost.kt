@@ -82,9 +82,10 @@ fun AppNavHost(navController: NavHostController) {
             HomeScreen(controller = koinViewModel(viewModelStoreOwner = entry), nav = shellNav)
         }
         composable<AppRoutes.Conversation> {
+            val chatController = homeChatController(navController, it)
             ConversationScreen(
-                controller = homeChatController(navController, it),
-                nav = rememberConversationNavigator(shellNav),
+                controller = chatController,
+                nav = rememberConversationNavigator(shellNav, chatController = chatController),
                 onBack = { navController.popBackStack(AppRoutes.Home, inclusive = false) },
             )
         }

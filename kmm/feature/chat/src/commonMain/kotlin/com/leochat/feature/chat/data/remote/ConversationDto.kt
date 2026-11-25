@@ -82,22 +82,33 @@ data class ConversationDto(
         )
 
         fun fromJson(json: JsonObject, currentUserId: String? = null): ConversationDto {
+            val selfId = currentUserId?.trim()?.takeIf { it.isNotEmpty() }
             val nestedTarget = targetKeys.firstNotNullOfOrNull { json[it] as? JsonObject }
             val membersArray = (json["members"] ?: json["participants"] ?: json["users"]) as? JsonArray
             // In direct chats, select the participant that is NOT the current logged-in user
             val nestedMember = membersArray?.objects()?.firstOrNull { m ->
                 val mId = m.firstString("id", "userId")
-                currentUserId == null || (mId != null && mId != currentUserId)
-            } ?: membersArray?.objects()?.firstOrNull()
+                selfId == null || (mId != null && !mId.equals(selfId, ignoreCase = true))
+            } ?: membersArray?.objects()?.firstOrNull()?.takeIf { m ->
+                val mId = m.firstString("id", "userId")
+                selfId == null || mId == null || !mId.equals(selfId, ignoreCase = true)
+            }
 
             val target = nestedTarget ?: nestedMember
             fun t(vararg keys: String) = target?.firstString(*keys)
             val lastMessage = json["lastMessage"] as? JsonObject
             val type = json.string("type") ?: "DIRECT"
+            val directKey = json.string("directKey")
+            val createdBy = json.string("createdBy")
             val rawTitle = json.firstString("title", "name")
             val targetDisplayName = json.firstString("targetDisplayName", "displayName") ?: t("displayName", "name")
             val targetUsername = json.firstString("targetUsername", "username") ?: t("username", "userName")
-            val targetUserId = json.firstString("targetUserId") ?: t("id", "userId")
+            val rawTargetUserId = json.firstString("targetUserId") ?: t("id", "userId")
+            val targetUserId = rawTargetUserId?.takeIf { selfId == null || !it.equals(selfId, ignoreCase = true) }
+                ?: if (type.equals("DIRECT", ignoreCase = true)) {
+                    Conversation.extractOtherUserFromDirectKey(directKey, selfId)
+                        ?: createdBy?.takeIf { selfId != null && !it.equals(selfId, ignoreCase = true) }
+                } else null
             val targetAvatarUrl = json.firstString("targetAvatarUrl")
                 ?: t("avatarUrl", "avatar", "profileImageUrl", "profileImage", "imageUrl", "photoUrl")
 
@@ -116,8 +127,8 @@ data class ConversationDto(
                 type = type,
                 title = resolvedTitle,
                 avatarUrl = json.firstString("avatarUrl", "avatar", "imageUrl", "profileImageUrl", "profileImage"),
-                directKey = json.string("directKey"),
-                createdBy = json.string("createdBy"),
+                directKey = directKey,
+                createdBy = createdBy,
                 lastSeq = json.long("lastSeq") ?: 0,
                 lastMessageAt = json.string("lastMessageAt"),
                 createdAt = json.string("createdAt"),

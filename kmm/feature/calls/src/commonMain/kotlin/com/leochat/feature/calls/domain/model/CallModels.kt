@@ -13,7 +13,7 @@ enum class CallType {
     }
 }
 
-enum class CallStatus { IDLE, OUTGOING, INCOMING, CONNECTING, CONNECTED, ENDED }
+enum class CallStatus { IDLE, OUTGOING, RINGING, INCOMING, CONNECTING, CONNECTED, ENDED }
 
 /** Actions exchanged over `/app/call.signal` and `/user/queue/calls`. Mirrors `CallSignalAction`. */
 object CallSignalAction {
@@ -66,6 +66,18 @@ data class IceServer(val urls: List<String>, val username: String? = null, val c
 /** STUN/TURN servers handed to the media engine. Production should add a TURN server. */
 data class CallIceConfig(val servers: List<IceServer>) {
     companion object {
-        val Default = CallIceConfig(listOf(IceServer(listOf("stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"))))
+        val Default = CallIceConfig(
+            listOf(
+                IceServer(
+                    listOf(
+                        "stun:stun.l.google.com:19302",
+                        "stun:stun1.l.google.com:19302",
+                        "stun:stun2.l.google.com:19302",
+                        "stun:stun3.l.google.com:19302",
+                        "stun:stun4.l.google.com:19302",
+                    ),
+                ),
+            ),
+        )
     }
 }

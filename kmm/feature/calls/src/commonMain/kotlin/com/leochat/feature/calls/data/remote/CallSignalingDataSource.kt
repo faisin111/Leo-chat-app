@@ -16,5 +16,8 @@ interface CallSignalingDataSource {
 class StompCallSignalingDataSource(private val stomp: StompClient) : CallSignalingDataSource {
     override fun subscribe(): Flow<String> = stomp.subscribe(CallsQueue).map { it.body }
 
-    override suspend fun send(jsonBody: String): Boolean = stomp.send(CallSignalDestination, jsonBody)
+    override suspend fun send(jsonBody: String): Boolean {
+        if (!stomp.awaitConnected()) return false
+        return stomp.send(CallSignalDestination, jsonBody)
+    }
 }

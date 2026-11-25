@@ -62,4 +62,17 @@ class ChatDomainTest {
         assertEquals("T", conversationInitials("team"))
         assertEquals("?", conversationInitials(" "))
     }
+
+    @Test
+    fun resolvesDirectTargetUserIdFromTargetDirectKeyAndCreatedBy() {
+        val meId = "11111111-1111-1111-1111-111111111111"
+        val peerId = "22222222-2222-2222-2222-222222222222"
+
+        assertEquals(peerId, Conversation("c1", directKey = "$meId:$peerId").resolveDirectTargetUserId(meId))
+        assertEquals(peerId, Conversation("c1", targetUserId = meId, directKey = "${peerId}_$meId").resolveDirectTargetUserId(meId))
+        assertEquals(peerId, Conversation("c1", createdBy = peerId).resolveDirectTargetUserId(meId))
+        assertEquals(null, Conversation("c1", createdBy = meId).resolveDirectTargetUserId(meId))
+        assertEquals(null, Conversation("g1", type = "GROUP", targetUserId = peerId).resolveDirectTargetUserId(meId))
+        assertEquals(null, Conversation("ai", type = "AI", targetUserId = peerId).resolveDirectTargetUserId(meId))
+    }
 }

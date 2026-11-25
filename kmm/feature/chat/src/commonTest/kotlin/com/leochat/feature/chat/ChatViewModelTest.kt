@@ -6,6 +6,7 @@ import com.leochat.feature.auth.FakeAuthRepository
 import com.leochat.feature.auth.domain.usecase.GetCurrentUserUseCase
 import com.leochat.feature.auth.domain.usecase.LogoutUseCase
 import com.leochat.feature.chat.domain.model.Conversation
+import com.leochat.feature.chat.domain.model.ConversationMember
 import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.domain.model.MessageAck
 import com.leochat.feature.chat.domain.model.MessageSendStatus
@@ -194,6 +195,32 @@ class ChatControllerTest {
         assertEquals("c2", c.state.value.selectedConversationId)
         assertEquals(listOf("user message"), c.state.value.messages.map { it.content })
         assertFalse(c.state.value.messages.any { it.conversationId == "c1" })
+    }
+
+    @Test
+    fun resolveCallTargetUserIdFallsBackToMessagesAndMembers() = runTest {
+        // FakeAuthRepository.sampleSession.user.id is "1".
+        repo.membersResult = Either.Right(
+            listOf(
+                ConversationMember("c-mem", "1", "OWNER"),
+                ConversationMember("c-mem", "u9", "MEMBER", username = "azad"),
+            ),
+        )
+        val c = controller()
+        advanceUntilIdle()
+
+        // Resolves from directKey
+        assertEquals("u2", c.resolveCallTargetUserId(Conversation("c-dk", directKey = "1_u2")))
+
+        // Resolves from loaded messages when targetUserId/directKey missing
+        repo.messages = Either.Right(listOf(Message("m1", "c1", senderId = "u7", content = "hey")))
+        c.selectConversation(Conversation("c1", title = "Maya"))
+        advanceUntilIdle()
+        assertEquals("u7", c.resolveCallTargetUserId(Conversation("c1", title = "Maya")))
+
+        // Resolves from /members API fallback and refuses groups
+        assertEquals("u9", c.resolveCallTargetUserId(Conversation("c-mem", title = "Azad")))
+        assertNull(c.resolveCallTargetUserId(Conversation("c-grp", type = "GROUP", targetUserId = "u9")))
     }
 
     @Test

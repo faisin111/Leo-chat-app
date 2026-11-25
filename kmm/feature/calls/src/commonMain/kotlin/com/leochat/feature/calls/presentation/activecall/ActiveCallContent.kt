@@ -1,5 +1,11 @@
 package com.leochat.feature.calls.presentation.activecall
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,8 +31,10 @@ import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,6 +48,7 @@ import com.leochat.core.designsystem.component.call.CallStatusChip
 import com.leochat.core.designsystem.theme.CallTokens
 import com.leochat.core.designsystem.theme.LeoColors
 import com.leochat.feature.calls.domain.model.CallSession
+import com.leochat.feature.calls.domain.model.CallStatus
 import com.leochat.feature.calls.presentation.CallUiState
 import com.leochat.feature.calls.presentation.mapper.statusText
 import com.leochat.feature.calls.presentation.mapper.timerText
@@ -133,8 +142,31 @@ private fun CallTopBar(call: CallSession, modifier: Modifier) {
 
 @Composable
 private fun CallerInfo(call: CallSession, statusText: String, modifier: Modifier) {
+    val isWaiting = call.status == CallStatus.OUTGOING || call.status == CallStatus.RINGING
+    val pulseTransition = rememberInfiniteTransition(label = "callRingPulse")
+    val pulseScale by pulseTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = if (isWaiting) 1.38f else 1.0f,
+        animationSpec = infiniteRepeatable(tween(1_400, easing = LinearEasing), RepeatMode.Restart),
+        label = "pulseScale",
+    )
+    val pulseAlpha by pulseTransition.animateFloat(
+        initialValue = if (isWaiting) 0.45f else 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(1_400, easing = LinearEasing), RepeatMode.Restart),
+        label = "pulseAlpha",
+    )
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.Center) {
+            if (isWaiting) {
+                val ringColor = if (call.status == CallStatus.RINGING) LeoColors.success else CallTokens.ringing
+                Box(
+                    Modifier
+                        .size(128.dp)
+                        .scale(pulseScale)
+                        .background(ringColor.copy(alpha = pulseAlpha), CircleShape),
+                )
+            }
             if (call.isConnected) Box(Modifier.size(140.dp).background(LeoColors.primary.copy(alpha = 0.15f), CircleShape))
             Box(Modifier.background(Color.White, CircleShape).padding(4.dp)) {
                 LeoAvatar(radius = 54.dp, name = call.targetUserName, imageUrl = call.targetAvatarUrl)

@@ -37,6 +37,7 @@ class CallUiMapperTest {
     @Test
     fun statusTextFollowsCallProgress() {
         assertEquals(CallStrings.connected, session(CallStatus.CONNECTED).statusText())
+        assertEquals(CallStrings.ringing, session(CallStatus.RINGING).statusText())
         assertEquals(CallStrings.calling, session(CallStatus.OUTGOING).statusText())
         assertEquals(CallStrings.connecting, session(CallStatus.CONNECTING).statusText())
     }
@@ -44,6 +45,7 @@ class CallUiMapperTest {
     @Test
     fun timerTextShowsDurationOnlyOnceConnected() {
         assertEquals("01:05", session(CallStatus.CONNECTED, seconds = 65).timerText())
+        assertEquals(CallStrings.ringing, session(CallStatus.RINGING, seconds = 65).timerText())
         assertEquals(CallStrings.calling, session(CallStatus.OUTGOING, seconds = 65).timerText())
         assertEquals(CallStrings.connecting, session(CallStatus.INCOMING).timerText())
     }

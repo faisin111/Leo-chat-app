@@ -17,12 +17,11 @@ import org.koin.compose.koinInject
 @Composable
 fun ActiveCallScreen(onEnded: () -> Unit, controller: CallController = koinInject()) {
     val state by controller.state.collectAsStateWithLifecycle()
-    var hadActiveCall by remember { mutableStateOf(state.activeCall != null) }
+    var closed by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.activeCall) {
-        if (state.activeCall != null) {
-            hadActiveCall = true
-        } else if (hadActiveCall) {
+        if (state.activeCall == null && !closed) {
+            closed = true
             onEnded()
         }
     }

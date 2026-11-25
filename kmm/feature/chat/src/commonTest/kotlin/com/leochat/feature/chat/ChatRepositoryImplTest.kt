@@ -4,6 +4,9 @@ import com.leochat.core.datastore.cache.KeyValueCacheStore
 import com.leochat.core.network.config.AppConfig
 import com.leochat.core.common.constants.StorageKeys
 import com.leochat.core.common.result.Either
+import com.leochat.core.common.serialization.LeoJson
+import com.leochat.feature.chat.data.remote.ConversationDto
+import kotlinx.serialization.json.JsonObject
 import com.leochat.core.network.createHttpClient
 import com.leochat.core.network.auth.SessionEvents
 import com.leochat.core.network.auth.TokenStore
@@ -89,5 +92,23 @@ class ChatRepositoryImplTest {
         val sent = repo.sendMessage("c1", "k1", "sent")
         assertIs<Either.Right<*>>(sent)
         assertEquals(listOf("m1", "m2", "m3"), repo.getCachedMessages("c1").map { it.id })
+    }
+
+    @Test
+    fun conversationDtoExcludesCurrentUserAndParsesDirectKey() {
+        val withMembers = LeoJson.parseToJsonElement(
+            """{"id":"c1","type":"DIRECT","members":[{"userId":"u1","displayName":"Alex"},{"userId":"u2","displayName":"Azad"}]}""",
+        ) as JsonObject
+        val dtoFromMembers = ConversationDto.fromJson(withMembers, currentUserId = "u1")
+        assertEquals("u2", dtoFromMembers.targetUserId)
+        assertEquals("Azad", dtoFromMembers.title)
+
+        val meId = "11111111-1111-1111-1111-111111111111"
+        val peerId = "22222222-2222-2222-2222-222222222222"
+        val withDirectKey = LeoJson.parseToJsonElement(
+            """{"id":"c2","type":"DIRECT","directKey":"$meId:$peerId"}""",
+        ) as JsonObject
+        val dtoFromDirectKey = ConversationDto.fromJson(withDirectKey, currentUserId = meId)
+        assertEquals(peerId, dtoFromDirectKey.targetUserId)
     }
 }

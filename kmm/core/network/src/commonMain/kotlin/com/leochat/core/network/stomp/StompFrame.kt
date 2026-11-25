@@ -20,7 +20,13 @@ object StompCodec {
     fun decode(raw: String): StompFrame? {
         val text = raw.trimStart('\n', '\r')
         if (text.isEmpty()) return null
-        val headerEnd = text.indexOf("\n\n")
+        val crlfEnd = text.indexOf("\r\n\r\n")
+        val lfEnd = text.indexOf("\n\n")
+        val (headerEnd, separatorLen) = when {
+            lfEnd >= 0 && (crlfEnd < 0 || lfEnd < crlfEnd) -> lfEnd to 2
+            crlfEnd >= 0 -> crlfEnd to 4
+            else -> -1 to 0
+        }
         val head = if (headerEnd >= 0) text.substring(0, headerEnd) else text.substringBefore(NULL)
         val lines = head.split('\n').map { it.trimEnd('\r') }
         val command = lines.firstOrNull()?.takeIf { it.isNotBlank() } ?: return null
@@ -28,7 +34,7 @@ object StompCodec {
             val index = line.indexOf(':')
             if (index <= 0) null else line.substring(0, index) to line.substring(index + 1)
         }.toMap()
-        val body = if (headerEnd >= 0) text.substring(headerEnd + 2).substringBefore(NULL) else ""
+        val body = if (headerEnd >= 0) text.substring(headerEnd + separatorLen).substringBefore(NULL) else ""
         return StompFrame(command, headers, body)
     }
 }

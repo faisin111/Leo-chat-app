@@ -1,18 +1,14 @@
 package com.leochat.feature.home.presentation.home
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leochat.core.common.constants.CallStrings
 import com.leochat.core.designsystem.component.feedback.LocalLeoSnackBar
@@ -22,7 +18,6 @@ import com.leochat.core.designsystem.responsive.LocalLeoLayout
 import com.leochat.feature.ai.presentation.ai.AiScreen
 import com.leochat.feature.calls.domain.model.CallType
 import com.leochat.feature.calls.presentation.CallController
-import com.leochat.feature.calls.presentation.incomingcall.IncomingCallDialog
 import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.presentation.ChatViewModel
 import com.leochat.feature.chat.presentation.chats.ChatsListPane
@@ -30,6 +25,7 @@ import com.leochat.feature.chat.presentation.conversation.ConversationNavigator
 import com.leochat.feature.chat.presentation.conversation.ConversationPane
 import com.leochat.feature.chat.presentation.newconversation.NewConversationScreen
 import com.leochat.feature.settings.presentation.settings.SettingsScreen
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 /** Routes the shell and its conversation pane can open. Wired in `AppNavHost`. */
@@ -52,7 +48,7 @@ class ShellNavigator(
  */
 @Composable
 fun HomeScreen(controller: ChatViewModel, nav: ShellNavigator) {
-    val conversationNav = rememberConversationNavigator(nav)
+    val conversationNav = rememberConversationNavigator(nav, chatController = controller)
     val state by controller.state.collectAsStateWithLifecycle()
     val snackBar = LocalLeoSnackBar.current
     var tab by rememberSaveable { mutableStateOf(ShellTab.Chats) }
@@ -118,35 +114,43 @@ fun HomeScreen(controller: ChatViewModel, nav: ShellNavigator) {
             ConversationPane(state, controller, conversationNav, showBackButton = false, onBack = {}, onComingSoon = { snackBar.showInfo(it) })
         },
         otherTab = otherTab,
-        overlay = {
-            // Flutter overlays the incoming-call banner on the shell: full width on mobile, inset on desktop.
-            IncomingCallDialog(
-                onAccepted = nav.onCall,
-                onPermissionDenied = { snackBar.showInfo(CallStrings.microphonePermissionRequired) },
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .then(if (isMobile) Modifier.statusBarsPadding() else Modifier.systemBarsPadding().padding(start = 80.dp, end = 20.dp, top = 10.dp)),
-            )
-        },
     )
 }
 
-/** Conversation header actions for the shell: details routes plus starting a call through [CallController]. */
+/** Conversation header actions for the shell: details routes plus 1-on-1 call start through [CallController]. */
 @Composable
-fun rememberConversationNavigator(nav: ShellNavigator, callController: CallController = koinInject()): ConversationNavigator =
-    remember(nav, callController) {
+fun rememberConversationNavigator(
+    nav: ShellNavigator,
+    chatController: ChatViewModel,
+    callController: CallController = koinInject(),
+): ConversationNavigator {
+    val scope = rememberCoroutineScope()
+    val snackBar = LocalLeoSnackBar.current
+    return remember(nav, chatController, callController, snackBar) {
         ConversationNavigator(
             onGroupDetails = nav.onGroupDetails,
             onSharedMedia = nav.onSharedMedia,
             onStartCall = { c, video ->
-                callController.startCall(
-                    conversationId = c.id,
-                    targetUserId = c.targetUserId ?: c.id,
-                    targetUserName = c.effectiveTitle,
-                    callType = if (video) CallType.VIDEO else CallType.AUDIO,
-                    targetAvatarUrl = c.preferredAvatarUrl,
-                )
-                nav.onCall()
+                if (c.isGroup || c.isAi) {
+                    snackBar.showInfo(CallStrings.groupCallsUnsupported)
+                } else {
+                    scope.launch {
+                        val targetId = chatController.resolveCallTargetUserId(c)
+                        if (targetId.isNullOrBlank()) {
+                            snackBar.showError(CallStrings.participantNotFound)
+                            return@launch
+                        }
+                        callController.startCall(
+                            conversationId = c.id,
+                            targetUserId = targetId,
+                            targetUserName = c.effectiveTitle,
+                            callType = if (video) CallType.VIDEO else CallType.AUDIO,
+                            targetAvatarUrl = c.preferredAvatarUrl,
+                        )
+                        nav.onCall()
+                    }
+                }
             },
         )
     }
+}

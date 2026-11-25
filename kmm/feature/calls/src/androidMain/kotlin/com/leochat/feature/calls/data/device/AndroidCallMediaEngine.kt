@@ -93,11 +93,13 @@ class AndroidCallMediaEngine(
     private var audioTrack: AudioTrack? = null
     private var remoteDescriptionSet = false
     private var previousAudioMode = AudioManager.MODE_NORMAL
+    private var isVideoCall = false
 
     override val localIceCandidates: Flow<String> = candidates.receiveAsFlow()
 
     override suspend fun start(video: Boolean) {
         if (connection != null) return
+        isVideoCall = video
         runCatching {
             previousAudioMode = audioManager.mode
             audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
@@ -137,25 +139,25 @@ class AndroidCallMediaEngine(
 
     override suspend fun createOffer(): String? {
         val peer = connection ?: return null
-        val offer = peer.awaitCreate(isOffer = true)
+        val offer = peer.awaitCreate(isOffer = true, includeVideo = isVideoCall)
         peer.awaitSet(local = true, offer)
         return SdpPayload("offer", offer.description).encode()
     }
 
     override suspend fun acceptOffer(offer: String): String? {
         val peer = connection ?: return null
-        val remote = SdpPayload.decode(offer) ?: return null
-        peer.awaitSet(local = false, SessionDescription(SessionDescription.Type.OFFER, remote.sdp))
+        val sdp = SdpPayload.decode(offer)?.sdp ?: offer.takeIf { it.isNotBlank() } ?: return null
+        peer.awaitSet(local = false, SessionDescription(SessionDescription.Type.OFFER, sdp))
         onRemoteDescriptionSet(peer)
-        val answer = peer.awaitCreate(isOffer = false)
+        val answer = peer.awaitCreate(isOffer = false, includeVideo = isVideoCall)
         peer.awaitSet(local = true, answer)
         return SdpPayload("answer", answer.description).encode()
     }
 
     override suspend fun applyAnswer(answer: String) {
         val peer = connection ?: return
-        val remote = SdpPayload.decode(answer) ?: return
-        peer.awaitSet(local = false, SessionDescription(SessionDescription.Type.ANSWER, remote.sdp))
+        val sdp = SdpPayload.decode(answer)?.sdp ?: answer.takeIf { it.isNotBlank() } ?: return
+        peer.awaitSet(local = false, SessionDescription(SessionDescription.Type.ANSWER, sdp))
         onRemoteDescriptionSet(peer)
     }
 
@@ -218,7 +220,7 @@ class AndroidCallMediaEngine(
     }
 }
 
-private suspend fun PeerConnection.awaitCreate(isOffer: Boolean): SessionDescription = suspendCancellableCoroutine { cont ->
+private suspend fun PeerConnection.awaitCreate(isOffer: Boolean, includeVideo: Boolean): SessionDescription = suspendCancellableCoroutine { cont ->
     val observer = object : SdpObserver {
         override fun onCreateSuccess(description: SessionDescription) = cont.resume(description)
         override fun onCreateFailure(error: String?) = cont.resumeWithException(IllegalStateException(error))
@@ -227,6 +229,9 @@ private suspend fun PeerConnection.awaitCreate(isOffer: Boolean): SessionDescrip
     }
     val constraints = MediaConstraints().apply {
         mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
+        if (includeVideo) {
+            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
+        }
     }
     if (isOffer) createOffer(observer, constraints) else createAnswer(observer, constraints)
 }

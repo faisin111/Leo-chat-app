@@ -28,7 +28,8 @@ class ChatRepositoryImpl(
 
     override suspend fun getConversations(query: String?, cursor: Int?, limit: Int): AppResult<List<Conversation>> {
         val userId = local.identity().userId
-        return when (val result = safeApiCall { remote.getConversations(cursor, limit, query) }) {
+        val selfId = userId.takeIf { it.isNotBlank() }
+        return when (val result = safeApiCall { remote.getConversations(cursor, limit, query, selfId) }) {
             is Either.Right -> {
                 if (cursor == null && query == null) local.saveConversations(userId, result.value)
                 Either.Right(result.value.map { it.toDomain() })
@@ -40,7 +41,8 @@ class ChatRepositoryImpl(
         }
     }
 
-    override suspend fun getConversation(conversationId: String) = safeApiCall { remote.getConversation(conversationId).toDomain() }
+    override suspend fun getConversation(conversationId: String) =
+        safeApiCall { remote.getConversation(conversationId, local.identity().userId.takeIf { it.isNotBlank() }).toDomain() }
 
     override suspend fun getMessages(conversationId: String, beforeSeq: Long?, afterSeq: Long?, limit: Int): AppResult<List<Message>> {
         val identity = local.identity()
@@ -89,7 +91,11 @@ class ChatRepositoryImpl(
         safeApiCall { remote.markConversationRead(conversationId, upToSeq) }
     override suspend fun getUnreadCount() = safeApiCall { remote.getUnreadCount() }
 
-    override suspend fun startDirectMessage(targetUserId: String) = safeApiCall { remote.startDirectMessage(targetUserId).toDomain() }
+    override suspend fun startDirectMessage(targetUserId: String) = safeApiCall {
+        val selfId = local.identity().userId.takeIf { it.isNotBlank() }
+        val domain = remote.startDirectMessage(targetUserId, selfId).toDomain()
+        if (domain.targetUserId.isNullOrBlank()) domain.copy(targetUserId = targetUserId) else domain
+    }
     override suspend fun createGroup(title: String, memberIds: List<String>) = safeApiCall { remote.createGroup(title, memberIds).toDomain() }
     override suspend fun updateConversation(conversationId: String, title: String?, avatarUrl: String?) =
         safeApiCall { remote.updateConversation(conversationId, title, avatarUrl).toDomain() }

@@ -1,9 +1,16 @@
 package com.leochat.core.network.stomp
 
+import com.leochat.core.common.serialization.LeoJson
 import com.leochat.core.network.config.AppConfig
 import com.leochat.core.network.auth.TokenStore
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketSession
 import io.ktor.websocket.readText
@@ -17,9 +24,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 enum class StompConnectionState { Disconnected, Connecting, Connected }
 
@@ -42,6 +57,8 @@ class StompClient(
 
     private val destinations = MutableStateFlow<Map<String, String>>(emptyMap()) // destination -> subscription id
     private val incoming = MutableSharedFlow<StompFrame>(extraBufferCapacity = 128)
+    private val subscribeMutex = Mutex()
+    private val sentSubscriptionIds = mutableSetOf<String>()
     private var connectionJob: Job? = null
     private var session: WebSocketSession? = null
     private var nextSubscriptionId = 0
@@ -57,9 +74,13 @@ class StompClient(
                     return@launch
                 }
                 mutableState.value = StompConnectionState.Connecting
+                var forceQuickRetry = false
                 runCatching {
                     httpClient.webSocket(urlString = config.wsBaseUrl) {
-                        session = this
+                        subscribeMutex.withLock {
+                            session = this
+                            sentSubscriptionIds.clear()
+                        }
                         sendFrame(
                             StompFrame(
                                 "CONNECT",
@@ -84,19 +105,40 @@ class StompClient(
                                 "CONNECTED" -> {
                                     mutableState.value = StompConnectionState.Connected
                                     backoff = InitialReconnectDelayMs
-                                    destinations.value.forEach { (destination, id) -> sendSubscribe(destination, id) }
+                                    subscribeMutex.withLock {
+                                        destinations.value.forEach { (destination, id) ->
+                                            if (sentSubscriptionIds.add(id)) sendSubscribe(destination, id)
+                                        }
+                                    }
                                 }
                                 "MESSAGE" -> this@StompClient.incoming.emit(stomp)
-                                "ERROR" -> close()
+                                "ERROR" -> {
+                                    val msg = (stomp.headers["message"].orEmpty() + " " + stomp.body).lowercase()
+                                    val isAuthErr = state.value != StompConnectionState.Connected ||
+                                        msg.contains("unauth") || msg.contains("forbidden") ||
+                                        msg.contains("token") || msg.contains("expired")
+                                    if (isAuthErr && refreshTokenIfNeeded()) {
+                                        forceQuickRetry = true
+                                    }
+                                    close()
+                                }
                             }
                         }
                         heartbeat.cancel()
                     }
                 }
-                session = null
+                subscribeMutex.withLock {
+                    session = null
+                    sentSubscriptionIds.clear()
+                }
                 mutableState.value = StompConnectionState.Disconnected
-                delay(backoff)
-                backoff = (backoff * 2).coerceAtMost(MaxReconnectDelayMs)
+                if (forceQuickRetry) {
+                    delay(250L)
+                    backoff = InitialReconnectDelayMs
+                } else {
+                    delay(backoff)
+                    backoff = (backoff * 2).coerceAtMost(MaxReconnectDelayMs)
+                }
             }
         }
     }
@@ -106,6 +148,16 @@ class StompClient(
         connectionJob = null
         session = null
         mutableState.value = StompConnectionState.Disconnected
+    }
+
+    /** Ensures STOMP is connected, waiting up to [timeoutMs] when currently connecting/reconnecting. */
+    suspend fun awaitConnected(timeoutMs: Long = 4_000L): Boolean {
+        if (state.value == StompConnectionState.Connected && session != null) return true
+        if (tokens.accessToken() == null) return false
+        connect()
+        return withTimeoutOrNull(timeoutMs) {
+            state.first { it == StompConnectionState.Connected && session != null }
+        } != null
     }
 
     /** Registers [destination] (idempotent) and returns frames delivered to it. */
@@ -121,7 +173,16 @@ class StompClient(
         }
         // Before CONNECTED, the CONNECTED handler subscribes everything in `destinations`.
         if (state.value == StompConnectionState.Connected) {
-            created?.let { id -> session?.let { scope.launch { it.sendSubscribe(destination, id) } } }
+            created?.let { id ->
+                scope.launch {
+                    subscribeMutex.withLock {
+                        val active = session
+                        if (active != null && state.value == StompConnectionState.Connected && sentSubscriptionIds.add(id)) {
+                            runCatching { active.sendSubscribe(destination, id) }
+                        }
+                    }
+                }
+            }
         }
         // Spring rewrites `/user/...` destinations, so match on subscription id as well.
         return incoming.filter { frame ->
@@ -133,7 +194,14 @@ class StompClient(
     fun unsubscribe(destination: String) {
         val id = destinations.value[destination] ?: return
         destinations.update { it - destination }
-        session?.let { scope.launch { it.sendFrame(StompFrame("UNSUBSCRIBE", mapOf("id" to id))) } }
+        session?.let { active ->
+            scope.launch {
+                subscribeMutex.withLock {
+                    sentSubscriptionIds.remove(id)
+                }
+                runCatching { active.sendFrame(StompFrame("UNSUBSCRIBE", mapOf("id" to id))) }
+            }
+        }
     }
 
     /** Publishes a JSON body. Returns false when there is no live connection. */
@@ -149,6 +217,21 @@ class StompClient(
                 ),
             )
         }.isSuccess
+    }
+
+    private suspend fun refreshTokenIfNeeded(): Boolean {
+        val refresh = tokens.refreshToken() ?: return false
+        return runCatching {
+            val response = httpClient.post(config.apiBaseUrl.trimEnd('/') + "/auth/refresh") {
+                setBody(TextContent(buildJsonObject { put("refreshToken", refresh) }.toString(), ContentType.Application.Json))
+            }
+            if (response.status != HttpStatusCode.OK) return false
+            val body = LeoJson.parseToJsonElement(response.bodyAsText()) as? JsonObject ?: return false
+            val newAccess = body["accessToken"]?.jsonPrimitive?.content ?: return false
+            val newRefresh = body["refreshToken"]?.jsonPrimitive?.content
+            tokens.saveTokens(newAccess, newRefresh)
+            true
+        }.getOrDefault(false)
     }
 
     private suspend fun WebSocketSession.sendSubscribe(destination: String, id: String) {

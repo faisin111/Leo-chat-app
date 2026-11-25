@@ -243,6 +243,71 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Resolves the callee's user ID for 1-on-1 calls (mirrors Web `ConversationPage.tsx`):
+     * `targetUserId`, `directKey`, `createdBy`, loaded/cached message senders, or `/conversations/{id}/members`.
+     */
+    suspend fun resolveCallTargetUserId(conversation: Conversation): String? {
+        if (conversation.isGroup || conversation.isAi) return null
+        val myId = identity.userId.ifBlank { state.value.currentUser?.id.orEmpty() }
+            .ifBlank { useCases.getIdentity().userId }
+            .trim()
+        val self = myId.takeIf { it.isNotEmpty() }
+
+        conversation.resolveDirectTargetUserId(self)?.let { return it }
+
+        state.value.messages.firstOrNull { m ->
+            m.conversationId == conversation.id &&
+                !m.aiGenerated &&
+                m.senderId.isNotBlank() &&
+                (self == null || !m.senderId.equals(self, ignoreCase = true))
+        }?.senderId?.let { return cacheResolvedTarget(conversation.id, it) }
+
+        useCases.getCachedMessages(conversation.id).firstOrNull { m ->
+            !m.aiGenerated &&
+                m.senderId.isNotBlank() &&
+                (self == null || !m.senderId.equals(self, ignoreCase = true))
+        }?.senderId?.let { return cacheResolvedTarget(conversation.id, it) }
+
+        val members = useCases.getMembers(conversation.id).getOrNull().orEmpty()
+        members.firstOrNull { member ->
+            member.userId.isNotBlank() && (self == null || !member.userId.equals(self, ignoreCase = true))
+        }?.let { member ->
+            return cacheResolvedTarget(
+                conversationId = conversation.id,
+                targetUserId = member.userId,
+                username = member.username,
+                displayName = member.displayName,
+                avatarUrl = member.avatarUrl,
+            )
+        }
+        return null
+    }
+
+    private suspend fun cacheResolvedTarget(
+        conversationId: String,
+        targetUserId: String,
+        username: String? = null,
+        displayName: String? = null,
+        avatarUrl: String? = null,
+    ): String {
+        fun Conversation.withTarget() = copy(
+            targetUserId = targetUserId,
+            targetUsername = targetUsername ?: username,
+            targetDisplayName = targetDisplayName ?: displayName,
+            targetAvatarUrl = targetAvatarUrl ?: avatarUrl,
+        )
+        val updatedList = state.value.conversations.map { if (it.id == conversationId) it.withTarget() else it }
+        mutableState.update { s ->
+            s.copy(
+                conversations = updatedList,
+                selectedConversation = s.selectedConversation?.let { sel -> if (sel.id == conversationId) sel.withTarget() else sel },
+            )
+        }
+        useCases.saveConversations(updatedList)
+        return targetUserId
+    }
+
     // endregion
 
     // region Selection and messages

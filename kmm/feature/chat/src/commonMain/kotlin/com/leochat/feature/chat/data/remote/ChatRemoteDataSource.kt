@@ -27,9 +27,9 @@ import kotlinx.serialization.json.put
 
 /** Chat REST endpoints. Mirrors `ChatRemoteDataSourceImpl`. Throws; repository maps errors. */
 interface ChatRemoteDataSource {
-    suspend fun getConversations(cursor: Int?, limit: Int, query: String?): List<ConversationDto>
-    suspend fun getConversation(conversationId: String): ConversationDto
-    suspend fun startDirectMessage(targetUserId: String): ConversationDto
+    suspend fun getConversations(cursor: Int?, limit: Int, query: String?, currentUserId: String? = null): List<ConversationDto>
+    suspend fun getConversation(conversationId: String, currentUserId: String? = null): ConversationDto
+    suspend fun startDirectMessage(targetUserId: String, currentUserId: String? = null): ConversationDto
     suspend fun createGroup(title: String, memberIds: List<String>): ConversationDto
     suspend fun updateConversation(conversationId: String, title: String?, avatarUrl: String?): ConversationDto
     suspend fun leaveConversation(conversationId: String)
@@ -56,20 +56,21 @@ interface ChatRemoteDataSource {
 
 class ChatRemoteDataSourceImpl(private val http: HttpClient) : ChatRemoteDataSource {
 
-    override suspend fun getConversations(cursor: Int?, limit: Int, query: String?): List<ConversationDto> {
+    override suspend fun getConversations(cursor: Int?, limit: Int, query: String?, currentUserId: String?): List<ConversationDto> {
         val element = http.get("conversations") {
             parameter("limit", limit)
             cursor?.let { parameter("cursor", it) }
             query?.trim()?.takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
         }.body<JsonElement>()
-        return ConversationDto.listFromJson(element)
+        return ConversationDto.listFromJson(element, currentUserId)
     }
 
-    override suspend fun getConversation(conversationId: String) =
-        ConversationDto.fromJson(http.get("conversations/$conversationId").body<JsonObject>())
+    override suspend fun getConversation(conversationId: String, currentUserId: String?) =
+        ConversationDto.fromJson(http.get("conversations/$conversationId").body<JsonObject>(), currentUserId)
 
-    override suspend fun startDirectMessage(targetUserId: String) = ConversationDto.fromJson(
+    override suspend fun startDirectMessage(targetUserId: String, currentUserId: String?) = ConversationDto.fromJson(
         http.post("conversations/direct") { json(buildJsonObject { put("targetUserId", targetUserId) }) }.body<JsonObject>(),
+        currentUserId,
     )
 
     override suspend fun createGroup(title: String, memberIds: List<String>) = ConversationDto.fromJson(

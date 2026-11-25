@@ -45,3 +45,18 @@ interface CallMediaEngine {
 fun interface CallMediaEngineFactory {
     fun create(config: CallIceConfig): CallMediaEngine
 }
+
+/** Platform audio feedback for outgoing ringback, incoming ringtone, and call-end tone. */
+interface CallSoundPlayer {
+    fun startOutgoingRing()
+    fun startIncomingRing()
+    fun stopRing()
+    fun playCallEnd()
+}
+
+object NoOpCallSoundPlayer : CallSoundPlayer {
+    override fun startOutgoingRing() = Unit
+    override fun startIncomingRing() = Unit
+    override fun stopRing() = Unit
+    override fun playCallEnd() = Unit
+}

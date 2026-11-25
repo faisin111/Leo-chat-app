@@ -8,6 +8,8 @@ import com.leochat.feature.calls.data.repository.CallSignalingRepositoryImpl
 import com.leochat.feature.calls.domain.model.CallIceConfig
 import com.leochat.feature.calls.domain.repository.CallMediaEngineFactory
 import com.leochat.feature.calls.domain.repository.CallSignalingRepository
+import com.leochat.feature.calls.domain.repository.CallSoundPlayer
+import com.leochat.feature.calls.domain.repository.NoOpCallSoundPlayer
 import com.leochat.feature.calls.domain.usecase.ObserveCallSignalsUseCase
 import com.leochat.feature.calls.domain.usecase.SendCallSignalUseCase
 import com.leochat.feature.calls.presentation.CallController
@@ -33,6 +35,7 @@ val callsModule = module {
             mediaFactory = getOrNull<CallMediaEngineFactory>() ?: NoOpCallMediaEngineFactory,
             iceConfig = get(),
             scope = get(ApplicationScope),
+            soundPlayer = getOrNull<CallSoundPlayer>() ?: NoOpCallSoundPlayer,
         )
     }
 }

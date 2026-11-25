@@ -1,10 +1,12 @@
 package com.leochat.feature.calls.di
 
 import com.leochat.feature.calls.data.device.AndroidCallMediaEngineFactory
+import com.leochat.feature.calls.data.device.AndroidCallSoundPlayer
 import com.leochat.feature.calls.data.device.NoOpCallMediaEngineFactory
 import com.leochat.feature.calls.domain.model.CallIceConfig
 import com.leochat.feature.calls.domain.repository.CallMediaEngine
 import com.leochat.feature.calls.domain.repository.CallMediaEngineFactory
+import com.leochat.feature.calls.domain.repository.CallSoundPlayer
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -20,4 +22,5 @@ actual val callsPlatformModule: Module = module {
             }
         }
     }
+    single<CallSoundPlayer> { AndroidCallSoundPlayer(androidContext()) }
 }

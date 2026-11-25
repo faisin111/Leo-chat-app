@@ -1,5 +1,6 @@
 package com.leochat.feature.calls
 
+import com.leochat.core.common.constants.CallStrings
 import com.leochat.feature.calls.data.remote.CallSignalDto
 import com.leochat.feature.calls.data.remote.IceCandidatePayload
 import com.leochat.feature.calls.data.remote.SdpPayload
@@ -11,10 +12,13 @@ import com.leochat.feature.calls.domain.model.CallStatus
 import com.leochat.feature.calls.domain.model.CallType
 import com.leochat.feature.calls.domain.repository.CallMediaEngine
 import com.leochat.feature.calls.domain.repository.CallSignalingRepository
+import com.leochat.feature.calls.domain.repository.CallSoundPlayer
 import com.leochat.feature.calls.domain.usecase.ObserveCallSignalsUseCase
 import com.leochat.feature.calls.domain.usecase.SendCallSignalUseCase
 import com.leochat.feature.calls.presentation.CallController
+import com.leochat.feature.calls.presentation.CallNotice
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -36,11 +40,23 @@ import kotlin.test.assertTrue
 private class FakeSignaling : CallSignalingRepository {
     val incoming = MutableSharedFlow<CallSignal>(extraBufferCapacity = 16)
     val sent = mutableListOf<CallSignal>()
+    var sendSuccess = true
     override fun incomingSignals(): Flow<CallSignal> = incoming
     override suspend fun send(signal: CallSignal): Boolean {
         sent += signal
-        return true
+        return sendSuccess
     }
+}
+
+private class FakeSoundPlayer : CallSoundPlayer {
+    var outgoingCount = 0
+    var incomingCount = 0
+    var stopCount = 0
+    var endCount = 0
+    override fun startOutgoingRing() { outgoingCount++ }
+    override fun startIncomingRing() { incomingCount++ }
+    override fun stopRing() { stopCount++ }
+    override fun playCallEnd() { endCount++ }
 }
 
 private class FakeEngine : CallMediaEngine {
@@ -64,8 +80,13 @@ private class FakeEngine : CallMediaEngine {
     override fun close() { closed = true }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CallControllerTest {
-    private fun TestScope.controller(signaling: FakeSignaling, engine: FakeEngine = FakeEngine()): CallController {
+    private fun TestScope.controller(
+        signaling: FakeSignaling,
+        engine: FakeEngine = FakeEngine(),
+        soundPlayer: FakeSoundPlayer = FakeSoundPlayer(),
+    ): CallController {
         val scope: CoroutineScope = backgroundScope
         return CallController(
             ObserveCallSignalsUseCase(signaling),
@@ -73,6 +94,7 @@ class CallControllerTest {
             { engine },
             CallIceConfig.Default,
             scope,
+            soundPlayer,
         ).also { runCurrent() }
     }
 
@@ -225,6 +247,76 @@ class CallControllerTest {
         assertEquals("c1", controller.state.value.activeCall?.conversationId)
         assertEquals(1, signaling.sent.size)
     }
+
+    @Test
+    fun deliveredTransitionsOutgoingToRingingAndSoundStopsOnAnswer() = runTest {
+        val signaling = FakeSignaling()
+        val sound = FakeSoundPlayer()
+        val controller = controller(signaling, soundPlayer = sound)
+        controller.startCall("c1", "u1", "Ada", CallType.AUDIO)
+        runCurrent()
+        assertEquals(CallStatus.OUTGOING, controller.state.value.activeCall?.status)
+        assertEquals(1, sound.outgoingCount)
+
+        val callId = signaling.sent.single().callId
+        signaling.incoming.emit(CallSignal(callId, "c1", action = "DELIVERED"))
+        runCurrent()
+        assertEquals(CallStatus.RINGING, controller.state.value.activeCall?.status)
+
+        signaling.incoming.emit(CallSignal(callId, "c1", action = "ANSWER", payload = "sdp-answer"))
+        runCurrent()
+        assertEquals(CallStatus.CONNECTED, controller.state.value.activeCall?.status)
+        assertEquals(1, sound.stopCount)
+    }
+
+    @Test
+    fun sendFailureCancelsCallAndEmitsNotice() = runTest {
+        val signaling = FakeSignaling().apply { sendSuccess = false }
+        val sound = FakeSoundPlayer()
+        val controller = controller(signaling, soundPlayer = sound)
+        val notice = backgroundScope.async { controller.notices.first() }
+        runCurrent()
+
+        controller.startCall("c1", "u1", "Ada", CallType.AUDIO)
+        runCurrent()
+
+        assertNull(controller.state.value.activeCall)
+        assertEquals(CallNotice(CallStrings.connectionUnavailable, isError = true), notice.await())
+        assertTrue(sound.stopCount >= 1)
+    }
+
+    @Test
+    fun outgoingTimesOutAfter45SecondsAndEndsCall() = runTest {
+        val signaling = FakeSignaling()
+        val controller = controller(signaling)
+        val notice = backgroundScope.async { controller.notices.first() }
+        runCurrent()
+
+        controller.startCall("c1", "u1", "Ada", CallType.AUDIO)
+        runCurrent()
+        advanceTimeBy(45_100L)
+        runCurrent()
+
+        assertNull(controller.state.value.activeCall)
+        assertEquals("END", signaling.sent.last().action)
+        assertEquals(CallNotice(CallStrings.noAnswer), notice.await())
+    }
+
+    @Test
+    fun secondOfferWhileIncomingRepliesBusy() = runTest {
+        val signaling = FakeSignaling()
+        val sound = FakeSoundPlayer()
+        val controller = controller(signaling, soundPlayer = sound)
+        controller.handleSignal(CallSignal("call-1", "c1", fromUserId = "u1", fromUsername = "Ada", action = "OFFER"))
+        runCurrent()
+        assertEquals(1, sound.incomingCount)
+
+        controller.handleSignal(CallSignal("call-2", "c2", fromUserId = "u2", fromUsername = "Bob", action = "OFFER"))
+        runCurrent()
+        assertEquals("call-1", controller.state.value.incomingCall?.callId)
+        assertEquals("BUSY", signaling.sent.last().action)
+        assertEquals("u2", signaling.sent.last().targetUserId)
+    }
 }
 
 private class FakeDataSource : CallSignalingDataSource {
@@ -237,36 +329,58 @@ private class FakeDataSource : CallSignalingDataSource {
     }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CallSignalingRepositoryTest {
     @Test
-    fun parsesIncomingFramesAndDropsMalformed() = runTest {
+    fun parsesIncomingFramesAndWebTopLevelFields() = runTest {
         val source = FakeDataSource()
         val repository = CallSignalingRepositoryImpl(source)
-        val deferred = backgroundScope.async { repository.incomingSignals().take(2).toList() }
+        val deferred = backgroundScope.async { repository.incomingSignals().take(3).toList() }
         runCurrent()
         source.frames.emit("not json")
         source.frames.emit("""{"callId":"c1","conversationId":"conv","fromUserId":"u2","fromUsername":"Maya","action":"offer","callType":"VIDEO","payload":"sdp"}""")
-        source.frames.emit("""{"callId":"c1","conversationId":"conv","action":"ICE_CANDIDATE","payload":{"candidate":"x","sdpMLineIndex":0}}""")
+        source.frames.emit("""{"callId":"c2","conversationId":"conv","fromUserId":"u3","fromUsername":"Web","action":"OFFER","sdp":"v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96"}""")
+        source.frames.emit("""{"callId":"c2","conversationId":"conv","action":"ICE_CANDIDATE","candidate":"cand:x","sdpMid":"0","sdpMLineIndex":1}""")
         val received = deferred.await()
         assertEquals("OFFER", received[0].action)
         assertEquals(CallType.VIDEO, received[0].callType)
         assertEquals("Maya", received[0].fromUsername)
         assertEquals("sdp", received[0].payload)
-        assertEquals("x", IceCandidatePayload.decode(received[1].payload!!)?.candidate)
+
+        assertEquals(CallType.VIDEO, received[1].callType)
+        assertEquals("v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96", SdpPayload.decode(received[1].payload!!)?.sdp)
+
+        val ice = IceCandidatePayload.decode(received[2].payload!!)
+        assertEquals("cand:x", ice?.candidate)
+        assertEquals("0", ice?.sdpMid)
+        assertEquals(1, ice?.sdpMLineIndex)
     }
 
     @Test
-    fun sendEncodesFlutterFieldNames() = runTest {
+    fun sendEncodesWebTopLevelSignalFields() = runTest {
         val source = FakeDataSource()
+        val sdpJson = SdpPayload("offer", "v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\n").encode()
         CallSignalingRepositoryImpl(source).send(
-            CallSignal("c1", "conv", targetUserId = "u2", action = "OFFER", callType = CallType.AUDIO, payload = "sdp"),
+            CallSignal("c1", "conv", targetUserId = "u2", action = "OFFER", callType = CallType.AUDIO, payload = sdpJson),
         )
-        val json = source.sent.single()
-        assertTrue(json.contains("\"callId\":\"c1\""))
-        assertTrue(json.contains("\"targetUserId\":\"u2\""))
-        assertTrue(json.contains("\"action\":\"OFFER\""))
-        assertTrue(json.contains("\"callType\":\"audio\""))
-        assertEquals("sdp", CallSignalDto.fromJson(json)?.payload)
+        CallSignalingRepositoryImpl(source).send(
+            CallSignal("c1", "conv", targetUserId = "u2", action = "ICE_CANDIDATE", payload = IceCandidatePayload("cand:1", "audio", 0).encode()),
+        )
+
+        val offerJson = source.sent[0]
+        assertTrue(offerJson.contains("\"callId\":\"c1\""))
+        assertTrue(offerJson.contains("\"conversationId\":\"conv\""))
+        assertTrue(offerJson.contains("\"targetUserId\":\"u2\""))
+        assertTrue(offerJson.contains("\"action\":\"OFFER\""))
+        assertTrue(offerJson.contains("\"sdp\":\"v=0"))
+        assertTrue(!offerJson.contains("\"payload\""))
+        assertEquals("v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\n", SdpPayload.decode(CallSignalDto.fromJson(offerJson)?.payload!!)?.sdp)
+
+        val iceJson = source.sent[1]
+        assertTrue(iceJson.contains("\"candidate\":\"cand:1\""))
+        assertTrue(iceJson.contains("\"sdpMid\":\"audio\""))
+        assertTrue(iceJson.contains("\"sdpMLineIndex\":0"))
+        assertEquals("cand:1", IceCandidatePayload.decode(CallSignalDto.fromJson(iceJson)?.payload!!)?.candidate)
     }
 
     @Test

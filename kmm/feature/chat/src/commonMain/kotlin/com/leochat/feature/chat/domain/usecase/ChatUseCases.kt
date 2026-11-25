@@ -168,6 +168,7 @@ class ChatUseCaseBundle(
     val setConversationMuted: SetConversationMutedUseCase,
     val pinConversation: PinConversationUseCase,
     val archiveConversation: ArchiveConversationUseCase,
+    val getMembers: GetGroupMembersUseCase,
 ) {
     companion object {
         fun from(repository: ChatRepository) = ChatUseCaseBundle(
@@ -189,6 +190,7 @@ class ChatUseCaseBundle(
             SetConversationMutedUseCase(repository),
             PinConversationUseCase(repository),
             ArchiveConversationUseCase(repository),
+            GetGroupMembersUseCase(repository),
         )
     }
 }

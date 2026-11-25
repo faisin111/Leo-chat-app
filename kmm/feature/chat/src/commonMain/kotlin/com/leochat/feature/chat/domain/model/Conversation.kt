@@ -38,6 +38,39 @@ data class Conversation(
             title.isNotBlank() -> title
             else -> "Conversation"
         }
+
+    /**
+     * Resolves the peer user ID in a 1-on-1 direct chat using backend fields (`targetUserId`,
+     * `directKey`, `createdBy`) while avoiding [currentUserId]. Returns null for group/AI chats.
+     */
+    fun resolveDirectTargetUserId(currentUserId: String?): String? {
+        if (isGroup || isAi) return null
+        val self = currentUserId?.trim()?.takeIf { it.isNotEmpty() }
+        targetUserId?.trim()?.takeIf { it.isNotEmpty() && (self == null || !it.equals(self, ignoreCase = true)) }?.let { return it }
+        extractOtherUserFromDirectKey(directKey, self)?.let { return it }
+        if (self != null) {
+            createdBy?.trim()?.takeIf { it.isNotEmpty() && !it.equals(self, ignoreCase = true) }?.let { return it }
+        }
+        return null
+    }
+
+    companion object {
+        private val uuidRegex = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+        fun extractOtherUserFromDirectKey(directKey: String?, currentUserId: String?): String? {
+            if (directKey.isNullOrBlank()) return null
+            val self = currentUserId?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+            val uuids = uuidRegex.findAll(directKey).map { it.value }.toList()
+            if (uuids.isNotEmpty()) {
+                return uuids.firstOrNull { !it.equals(self, ignoreCase = true) }
+            }
+            val parts = directKey.split(':', '_', '|').map { it.trim() }.filter { it.isNotEmpty() }
+            if (parts.size == 2 && parts.any { it.equals(self, ignoreCase = true) }) {
+                return parts.firstOrNull { !it.equals(self, ignoreCase = true) }
+            }
+            return null
+        }
+    }
 }
 
 data class ConversationMember(

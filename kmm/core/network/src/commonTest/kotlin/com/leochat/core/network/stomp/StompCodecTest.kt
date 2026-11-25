@@ -21,6 +21,15 @@ class StompCodecTest {
     }
 
     @Test
+    fun decodesMessageWithCrlfHeaderSeparator() {
+        val raw = "MESSAGE\r\ndestination:/user/queue/calls\r\nsubscription:sub-0\r\n\r\n{\"action\":\"OFFER\"}\u0000"
+        val frame = StompCodec.decode(raw)!!
+        assertEquals("MESSAGE", frame.command)
+        assertEquals("sub-0", frame.headers["subscription"])
+        assertEquals("""{"action":"OFFER"}""", frame.body)
+    }
+
+    @Test
     fun heartbeatIsIgnored() {
         assertNull(StompCodec.decode("\n"))
     }

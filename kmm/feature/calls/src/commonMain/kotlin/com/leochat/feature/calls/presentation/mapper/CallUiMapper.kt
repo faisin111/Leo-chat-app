@@ -9,9 +9,10 @@ import com.leochat.feature.calls.domain.model.CallStatus
 fun CallSession.toIncomingCallUi(): IncomingCallUi =
     IncomingCallUi(callerName = targetUserName, callerAvatarUrl = targetAvatarUrl, isVideo = isVideo)
 
-/** Connected, calling (outgoing), or connecting. */
+/** Connected, ringing (delivered), calling (outgoing), or connecting. */
 fun CallSession.statusText(): String = when {
     isConnected -> CallStrings.connected
+    status == CallStatus.RINGING -> CallStrings.ringing
     status == CallStatus.OUTGOING -> CallStrings.calling
     else -> CallStrings.connecting
 }
@@ -19,6 +20,7 @@ fun CallSession.statusText(): String = when {
 /** Top-bar chip text: the running duration once connected, otherwise the progress label. */
 fun CallSession.timerText(): String = when {
     isConnected -> formatCallDuration(connectedSeconds)
+    status == CallStatus.RINGING -> CallStrings.ringing
     status == CallStatus.OUTGOING -> CallStrings.calling
     else -> CallStrings.connecting
 }

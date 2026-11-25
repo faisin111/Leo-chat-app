@@ -8,6 +8,7 @@ object CallStrings {
     const val leoVideo = "Leo Video"
     const val leoAudio = "Leo Audio"
     const val calling = "Calling..."
+    const val ringing = "Ringing..."
     const val connecting = "Connecting..."
     const val connected = "Connected"
     const val frontCameraActive = "Front camera active"
@@ -17,6 +18,16 @@ object CallStrings {
     const val speaker = "Speaker"
     const val flip = "Flip"
     const val endCall = "End call"
+
+    // Call feedback
+    const val userUnavailable = "is offline or unavailable"
+    const val callDeclined = "declined the call"
+    const val userBusy = "is busy on another call"
+    const val callEnded = "Call ended"
+    const val noAnswer = "No answer"
+    const val connectionUnavailable = "Real-time connection is not available"
+    const val participantNotFound = "Unable to initiate call: participant not found"
+    const val groupCallsUnsupported = "Calling is currently supported for direct 1-on-1 conversations"
 
     // Incoming call banner
     const val incomingVideoCall = "Incoming Video Call"
