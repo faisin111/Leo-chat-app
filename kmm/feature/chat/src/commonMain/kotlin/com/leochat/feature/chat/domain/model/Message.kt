@@ -1,5 +1,6 @@
 package com.leochat.feature.chat.domain.model
 
+import com.leochat.core.common.constants.AppStrings
 import kotlinx.datetime.Instant
 
 enum class MessageSendStatus { Sending, Sent, Failed }
@@ -49,8 +50,60 @@ data class Message(
         get() = type.trim().uppercase().let { it == "IMAGE" || it == "PHOTO" || it == "IMAGE_MESSAGE" } &&
             !content.isNullOrBlank()
 
+    val isFile: Boolean
+        get() = type.trim().uppercase().let { it == "FILE" || it == "DOCUMENT" } &&
+            !content.isNullOrBlank()
+
+    val isCall: Boolean
+        get() = type.trim().uppercase() == "CALL"
+
+    val isSystem: Boolean
+        get() = type.trim().uppercase() == "SYSTEM"
+
+    fun callSummary(): CallSummary = parseCallSummary(content)
+
+    fun previewSnippet(): String? = previewSnippet(type, content, deleted)
+
     fun hasUserReacted(emoji: String): Boolean = reactions.any { r ->
         r.emoji == emoji && (r.users.any { it.id == senderId } || (isOwn && r.count > 0))
+    }
+
+    data class CallSummary(val label: String, val isVideo: Boolean, val isMissed: Boolean)
+
+    companion object {
+        fun parseCallSummary(content: String?): CallSummary {
+            val raw = content?.trim().orEmpty()
+            val lower = raw.lowercase()
+            val isVideo = lower.contains("video")
+            val isMissed = lower.contains("missed") || lower.contains("declined") ||
+                lower.contains("unavailable") || lower.contains("unanswered")
+            val label = when {
+                raw.isBlank() || raw.startsWith("{") ->
+                    if (isVideo) AppStrings.videoCallLabel else AppStrings.voiceCallLabel
+                else -> raw
+            }
+            return CallSummary(label = label, isVideo = isVideo, isMissed = isMissed)
+        }
+
+        fun previewSnippet(type: String?, content: String?, deleted: Boolean): String? {
+            if (deleted) return AppStrings.messageDeleted
+            val normalizedType = type?.trim()?.uppercase().orEmpty()
+            val trimmed = content?.trim()?.takeIf { it.isNotEmpty() }
+            return when (normalizedType) {
+                "IMAGE", "PHOTO", "IMAGE_MESSAGE" -> AppStrings.photoPreview
+                "VOICE", "AUDIO" -> AppStrings.voicePreview
+                "FILE", "DOCUMENT" -> {
+                    val fileName = trimmed?.substringAfterLast('/')?.substringBefore('?')?.takeIf { it.isNotEmpty() }
+                    if (fileName != null && !fileName.startsWith("http")) "📎 $fileName" else AppStrings.filePreview
+                }
+                "CALL" -> {
+                    val summary = parseCallSummary(trimmed)
+                    if (summary.isVideo) "📹 ${summary.label}" else "📞 ${summary.label}"
+                }
+                "SYSTEM" -> trimmed
+                else -> trimmed
+            }
+        }
     }
 }
 

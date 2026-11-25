@@ -19,13 +19,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.CallMissed
+import androidx.compose.material.icons.rounded.InsertDriveFile
+import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -41,8 +47,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,10 +93,14 @@ fun ChatBubble(
             transformOrigin = if (bubble.isOwn) TransformOrigin(1f, 1f) else TransformOrigin(0f, 1f)
         },
     ) {
-        if (bubble.isOwn) {
-            OutgoingBubble(bubble, onRetry, voiceContent, onLongClick, onReactionClick)
-        } else {
-            IncomingBubble(bubble, voiceContent, onLongClick, onReactionClick)
+        when (bubble.body) {
+            is ChatBubbleBody.System -> SystemEventPill(bubble.body.text)
+            is ChatBubbleBody.Call -> CallEventPill(bubble, bubble.body)
+            else -> if (bubble.isOwn) {
+                OutgoingBubble(bubble, onRetry, voiceContent, onLongClick, onReactionClick)
+            } else {
+                IncomingBubble(bubble, voiceContent, onLongClick, onReactionClick)
+            }
         }
     }
 }
@@ -214,12 +226,147 @@ private fun MessageBody(body: ChatBubbleBody, isOwn: Boolean, voiceContent: @Com
         }
         ChatBubbleBody.Voice -> voiceContent()
         is ChatBubbleBody.Image -> ImageContent(body.url)
+        is ChatBubbleBody.File -> FileContent(body, isOwn)
+        is ChatBubbleBody.Call -> CallEventPillContent(body)
+        is ChatBubbleBody.System -> Text(
+            body.text,
+            color = if (isOwn) Color.White else palette.textSecondary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+        )
         is ChatBubbleBody.Text -> Text(
             body.text,
             color = if (isOwn) Color.White else palette.textPrimary,
             fontSize = 16.sp,
             lineHeight = (16 * 1.35).sp,
             fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun FileContent(file: ChatBubbleBody.File, isOwn: Boolean) {
+    val palette = LocalLeoPalette.current
+    val uriHandler = LocalUriHandler.current
+    val isRemote = file.url.startsWith("http://") || file.url.startsWith("https://")
+    val fg = if (isOwn) Color.White else palette.textPrimary
+    val bg = if (isOwn) Color.Black.copy(alpha = 0.16f) else palette.surfaceElevated
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(bg)
+            .clickable(enabled = isRemote) { runCatching { uriHandler.openUri(file.url) } }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(if (isOwn) Color.White.copy(alpha = 0.18f) else LeoColors.primary.copy(alpha = 0.14f)),
+        ) {
+            Icon(
+                Icons.Rounded.InsertDriveFile,
+                contentDescription = null,
+                tint = if (isOwn) Color.White else LeoColors.primary,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            file.fileName,
+            color = fg,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (isRemote) {
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                Icons.AutoMirrored.Rounded.OpenInNew,
+                contentDescription = null,
+                tint = fg.copy(alpha = 0.7f),
+                modifier = Modifier.size(15.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SystemEventPill(text: String) {
+    if (text.isBlank()) return
+    val palette = LocalLeoPalette.current
+    Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = palette.textSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(palette.surfaceSubtle)
+                .border(1.dp, palette.borderSubtle, RoundedCornerShape(16.dp))
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun CallEventPill(bubble: ChatBubbleUi, call: ChatBubbleBody.Call) {
+    val palette = LocalLeoPalette.current
+    Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(palette.surfaceElevated)
+                .border(1.dp, palette.border, RoundedCornerShape(20.dp))
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+        ) {
+            CallEventPillContent(call)
+            if (bubble.time.isNotBlank()) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    bubble.time,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = palette.textMuted,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CallEventPillContent(call: ChatBubbleBody.Call) {
+    val palette = LocalLeoPalette.current
+    val accent = if (call.isMissed) LeoColors.destructive else LeoColors.success
+    val icon = when {
+        call.isMissed -> Icons.Rounded.CallMissed
+        call.isVideo -> Icons.Rounded.Videocam
+        else -> Icons.Rounded.Call
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(26.dp)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = 0.16f)),
+        ) {
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(14.dp))
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            call.label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = palette.textPrimary,
         )
     }
 }

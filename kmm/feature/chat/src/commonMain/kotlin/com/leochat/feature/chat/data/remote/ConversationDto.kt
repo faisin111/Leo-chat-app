@@ -3,12 +3,14 @@ package com.leochat.feature.chat.data.remote
 import com.leochat.core.network.objects
 import com.leochat.core.common.util.parseInstant
 import com.leochat.core.network.array
+import com.leochat.core.network.bool
 import com.leochat.core.network.firstString
 import com.leochat.core.network.int
 import com.leochat.core.network.long
 import com.leochat.core.network.string
 import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.domain.model.ConversationMember
+import com.leochat.feature.chat.domain.model.Message
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -97,6 +99,11 @@ data class ConversationDto(
             val target = nestedTarget ?: nestedMember
             fun t(vararg keys: String) = target?.firstString(*keys)
             val lastMessage = json["lastMessage"] as? JsonObject
+            val lastMessageType = lastMessage?.string("type")
+            val lastMessageContent = lastMessage?.string("content")
+            val lastMessageDeleted = lastMessage?.bool("deleted") == true
+            val lastMessageSenderId = lastMessage?.string("senderId")
+            val lastMessageCreatedAt = lastMessage?.string("createdAt")
             val type = json.string("type") ?: "DIRECT"
             val directKey = json.string("directKey")
             val createdBy = json.string("createdBy")
@@ -108,6 +115,10 @@ data class ConversationDto(
                 ?: if (type.equals("DIRECT", ignoreCase = true)) {
                     Conversation.extractOtherUserFromDirectKey(directKey, selfId)
                         ?: createdBy?.takeIf { selfId != null && !it.equals(selfId, ignoreCase = true) }
+                        ?: lastMessageSenderId?.takeIf {
+                            selfId != null && !it.equals(selfId, ignoreCase = true) &&
+                                !lastMessageType.equals("SYSTEM", ignoreCase = true)
+                        }
                 } else null
             val targetAvatarUrl = json.firstString("targetAvatarUrl")
                 ?: t("avatarUrl", "avatar", "profileImageUrl", "profileImage", "imageUrl", "photoUrl")
@@ -122,6 +133,9 @@ data class ConversationDto(
                 else -> t("displayName", "name", "username").orEmpty()
             }
 
+            val resolvedLastMessageSnippet = json.firstString("lastMessageSnippet", "snippet")
+                ?: lastMessage?.let { Message.previewSnippet(lastMessageType, lastMessageContent, lastMessageDeleted) }
+
             return ConversationDto(
                 id = json.string("id").orEmpty(),
                 type = type,
@@ -129,8 +143,8 @@ data class ConversationDto(
                 avatarUrl = json.firstString("avatarUrl", "avatar", "imageUrl", "profileImageUrl", "profileImage"),
                 directKey = directKey,
                 createdBy = createdBy,
-                lastSeq = json.long("lastSeq") ?: 0,
-                lastMessageAt = json.string("lastMessageAt"),
+                lastSeq = json.long("lastSeq") ?: lastMessage?.long("seq") ?: 0,
+                lastMessageAt = json.string("lastMessageAt") ?: lastMessageCreatedAt,
                 createdAt = json.string("createdAt"),
                 status = json.string("status") ?: "ACTIVE",
                 targetUserId = targetUserId,
@@ -138,7 +152,7 @@ data class ConversationDto(
                 targetDisplayName = targetDisplayName,
                 targetAvatarUrl = targetAvatarUrl,
                 unreadCount = json.int("unreadCount") ?: 0,
-                lastMessageSnippet = json.firstString("lastMessageSnippet", "snippet") ?: lastMessage?.firstString("content"),
+                lastMessageSnippet = resolvedLastMessageSnippet,
                 isPinned = json.string("pinnedAt") != null,
                 isMuted = json.string("mutedUntil") != null,
             )

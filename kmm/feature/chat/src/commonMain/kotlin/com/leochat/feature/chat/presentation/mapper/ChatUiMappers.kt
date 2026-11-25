@@ -42,8 +42,14 @@ fun MessageSendStatus.toUi(): BubbleSendStatus = when (this) {
 
 fun Message.toBubbleBody(): ChatBubbleBody = when {
     deleted -> ChatBubbleBody.Deleted
+    isSystem -> ChatBubbleBody.System(content.orEmpty().trim())
+    isCall -> callSummary().let { ChatBubbleBody.Call(it.label, it.isVideo, it.isMissed) }
     isVoice -> ChatBubbleBody.Voice
     isImage -> ChatBubbleBody.Image(content.orEmpty().trim())
+    isFile -> ChatBubbleBody.File(
+        url = content.orEmpty().trim(),
+        fileName = SharedMediaRules.fileName(content.orEmpty().trim()).ifBlank { AppStrings.attachmentFallback },
+    )
     else -> ChatBubbleBody.Text(content.orEmpty())
 }
 

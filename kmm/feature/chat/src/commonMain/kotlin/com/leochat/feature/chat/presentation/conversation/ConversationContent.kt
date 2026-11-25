@@ -256,7 +256,7 @@ private fun MessageList(
                     message = message,
                     fallbackSenderName = fallbackSenderName,
                     onRetry = { onRetry(message) },
-                    onLongClick = { onMessageLongClick(message) },
+                    onLongClick = if (message.isSystem || message.isCall) null else { { onMessageLongClick(message) } },
                     onReactionClick = { emoji -> onReactionClick(message.id, emoji) },
                 )
             }

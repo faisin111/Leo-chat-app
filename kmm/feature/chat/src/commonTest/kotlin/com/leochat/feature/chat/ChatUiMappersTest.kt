@@ -72,9 +72,37 @@ class ChatUiMappersTest {
     }
 
     @Test
-    fun bubbleBodyDetectsVoiceAndImage() {
+    fun bubbleBodyDetectsVoiceImageFileCallAndSystem() {
         assertEquals(ChatBubbleBody.Voice, Message("v", "c", type = "VOICE", content = "u").toBubbleUi().body)
         assertEquals(ChatBubbleBody.Image("http://x/a.png"), Message("i", "c", type = "IMAGE", content = " http://x/a.png ").toBubbleUi().body)
+        assertEquals(
+            ChatBubbleBody.File("https://cdn/doc/spec.pdf", "spec.pdf"),
+            Message("f", "c", type = "FILE", content = "https://cdn/doc/spec.pdf").toBubbleUi().body,
+        )
+        assertEquals(
+            ChatBubbleBody.Call("Video call", isVideo = true, isMissed = false),
+            Message("k1", "c", type = "CALL", content = "Video call").toBubbleUi().body,
+        )
+        assertEquals(
+            ChatBubbleBody.Call("Missed voice call", isVideo = false, isMissed = true),
+            Message("k2", "c", type = "CALL", content = "Missed voice call").toBubbleUi().body,
+        )
+        assertEquals(
+            ChatBubbleBody.System("Maya joined"),
+            Message("s1", "c", type = "SYSTEM", content = "Maya joined").toBubbleUi().body,
+        )
+    }
+
+    @Test
+    fun previewSnippetFormatsAllMessageTypesAndDeleted() {
+        assertEquals(AppStrings.messageDeleted, Message.previewSnippet("TEXT", null, deleted = true))
+        assertEquals("Hello", Message.previewSnippet("TEXT", "Hello", deleted = false))
+        assertEquals(AppStrings.photoPreview, Message.previewSnippet("IMAGE", "https://cdn/img.png", deleted = false))
+        assertEquals(AppStrings.voicePreview, Message.previewSnippet("VOICE", "https://cdn/v.m4a", deleted = false))
+        assertEquals("📎 report.pdf", Message.previewSnippet("FILE", "https://cdn/report.pdf", deleted = false))
+        assertEquals("📞 Voice call", Message.previewSnippet("CALL", "Voice call", deleted = false))
+        assertEquals("📹 Video call", Message.previewSnippet("CALL", "Video call", deleted = false))
+        assertEquals("Alex joined", Message.previewSnippet("SYSTEM", "Alex joined", deleted = false))
     }
 
     @Test

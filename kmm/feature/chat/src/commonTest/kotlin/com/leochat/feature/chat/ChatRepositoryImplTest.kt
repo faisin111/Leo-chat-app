@@ -111,4 +111,28 @@ class ChatRepositoryImplTest {
         val dtoFromDirectKey = ConversationDto.fromJson(withDirectKey, currentUserId = meId)
         assertEquals(peerId, dtoFromDirectKey.targetUserId)
     }
+
+    @Test
+    fun conversationDtoParsesBackendLastMessageShapeAndDeletedState() {
+        val deletedObj = LeoJson.parseToJsonElement(
+            """{"id":"c1","type":"DIRECT","lastMessage":{"id":"m1","senderId":"u2","type":"TEXT","content":null,"createdAt":"2026-11-25T10:00:00Z","deleted":true}}""",
+        ) as JsonObject
+        val deletedDto = ConversationDto.fromJson(deletedObj, currentUserId = "u1")
+        assertEquals("This message was deleted", deletedDto.lastMessageSnippet)
+        assertEquals("2026-11-25T10:00:00Z", deletedDto.lastMessageAt)
+        assertEquals("u2", deletedDto.targetUserId)
+
+        val callObj = LeoJson.parseToJsonElement(
+            """{"id":"c2","type":"DIRECT","lastMessage":{"id":"m2","senderId":"u2","type":"CALL","content":"Video call","createdAt":"2026-11-25T10:05:00Z","deleted":false}}""",
+        ) as JsonObject
+        val callDto = ConversationDto.fromJson(callObj, currentUserId = "u1")
+        assertEquals("📹 Video call", callDto.lastMessageSnippet)
+        assertEquals("2026-11-25T10:05:00Z", callDto.lastMessageAt)
+
+        val fileObj = LeoJson.parseToJsonElement(
+            """{"id":"c3","type":"DIRECT","lastMessage":{"id":"m3","senderId":"u2","type":"FILE","content":"https://cdn/spec.pdf","createdAt":"2026-11-25T10:06:00Z","deleted":false}}""",
+        ) as JsonObject
+        val fileDto = ConversationDto.fromJson(fileObj, currentUserId = "u1")
+        assertEquals("📎 spec.pdf", fileDto.lastMessageSnippet)
+    }
 }

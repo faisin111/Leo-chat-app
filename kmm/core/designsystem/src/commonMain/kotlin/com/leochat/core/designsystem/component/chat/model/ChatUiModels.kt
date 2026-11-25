@@ -8,6 +8,9 @@ sealed interface ChatBubbleBody {
     data object Deleted : ChatBubbleBody
     data object Voice : ChatBubbleBody
     data class Image(val url: String) : ChatBubbleBody
+    data class File(val url: String, val fileName: String) : ChatBubbleBody
+    data class Call(val label: String, val isVideo: Boolean, val isMissed: Boolean) : ChatBubbleBody
+    data class System(val text: String) : ChatBubbleBody
     data class Text(val text: String) : ChatBubbleBody
 }
 

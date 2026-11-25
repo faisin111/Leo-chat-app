@@ -2,6 +2,7 @@ package com.leochat.feature.chat.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.common.result.AppResult
 import com.leochat.core.common.util.ClientIds
 import com.leochat.feature.auth.domain.usecase.GetCurrentUserUseCase
@@ -449,7 +450,12 @@ class ChatViewModel(
                     } else s
                 }
                 useCases.saveMessages(conv.id, list)
-                updateConversationPreview(conv.id, persisted.content ?: content, persisted.seq, persisted.createdAt)
+                updateConversationPreview(
+                    conv.id,
+                    persisted.previewSnippet() ?: persisted.content ?: content,
+                    persisted.seq,
+                    persisted.createdAt,
+                )
             },
         )
     }
@@ -536,7 +542,12 @@ class ChatViewModel(
     fun deleteMessage(messageId: String) {
         viewModelScope.launch {
             useCases.deleteMessage(messageId).onRight {
-                replaceAndCache { if (it.id == messageId) it.copy(deleted = true, content = "Message deleted") else it }
+                val target = state.value.messages.firstOrNull { it.id == messageId }
+                replaceAndCache { if (it.id == messageId) it.copy(deleted = true, content = null) else it }
+                val conv = state.value.selectedConversation
+                if (conv != null && target != null && target.seq >= conv.lastSeq) {
+                    updateConversationPreview(conv.id, AppStrings.messageDeleted, target.seq, target.createdAt)
+                }
             }
         }
     }
@@ -568,7 +579,12 @@ class ChatViewModel(
             useCases.saveMessages(incoming.conversationId, state.value.messages)
             if (!incoming.isOwn) markRead(incoming.conversationId, incoming.seq)
         }
-        updateConversationPreview(incoming.conversationId, incoming.content ?: "Sent an attachment", incoming.seq, incoming.createdAt)
+        updateConversationPreview(
+            incoming.conversationId,
+            incoming.previewSnippet() ?: AppStrings.attachmentFallback,
+            incoming.seq,
+            incoming.createdAt,
+        )
     }
 
     private fun onAck(ack: MessageAck) {
@@ -627,7 +643,11 @@ class ChatViewModel(
 
     private suspend fun updateConversationPreview(conversationId: String, snippet: String, lastSeq: Long, time: kotlinx.datetime.Instant?) {
         val updated = state.value.conversations.map {
-            if (it.id == conversationId) it.copy(lastMessageSnippet = snippet, lastSeq = lastSeq, lastMessageAt = time ?: Clock.System.now()) else it
+            if (it.id == conversationId && (lastSeq >= it.lastSeq || it.lastSeq == 0L)) {
+                it.copy(lastMessageSnippet = snippet, lastSeq = lastSeq, lastMessageAt = time ?: it.lastMessageAt ?: Clock.System.now())
+            } else {
+                it
+            }
         }
         mutableState.update { it.copy(conversations = updated) }
         useCases.saveConversations(updated)

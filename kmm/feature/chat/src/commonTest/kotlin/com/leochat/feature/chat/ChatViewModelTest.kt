@@ -224,6 +224,28 @@ class ChatControllerTest {
     }
 
     @Test
+    fun realtimeCallAndOutOfOrderMessagesRespectSequenceForPreview() = runTest {
+        val c = controller()
+        advanceUntilIdle()
+
+        // Persistent CALL message arrives and updates conversation preview
+        realtime.messageFlow.emit(
+            Message("call-msg-1", "c1", senderId = "u2", type = "CALL", content = "Voice call", seq = 5),
+        )
+        advanceUntilIdle()
+        assertEquals("📞 Voice call", c.state.value.conversations.first { it.id == "c1" }.lastMessageSnippet)
+        assertEquals(5L, c.state.value.conversations.first { it.id == "c1" }.lastSeq)
+
+        // Older seq message must not overwrite newer preview snippet or lastSeq
+        realtime.messageFlow.emit(
+            Message("old-msg", "c1", senderId = "u2", type = "TEXT", content = "older text", seq = 2),
+        )
+        advanceUntilIdle()
+        assertEquals("📞 Voice call", c.state.value.conversations.first { it.id == "c1" }.lastMessageSnippet)
+        assertEquals(5L, c.state.value.conversations.first { it.id == "c1" }.lastSeq)
+    }
+
+    @Test
     fun signOutDisconnectsAndLogsOut() = runTest {
         val c = controller()
         advanceUntilIdle()
