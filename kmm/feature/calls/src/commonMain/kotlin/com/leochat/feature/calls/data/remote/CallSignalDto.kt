@@ -81,6 +81,7 @@ object CallSignalDto {
             targetUserId = json.string("targetUserId"),
             fromUserId = json.string("fromUserId"),
             fromUsername = json.string("fromUsername"),
+            fromAvatarUrl = json.string("fromAvatarUrl") ?: json.string("callerAvatarUrl"),
             action = action,
             callType = callType,
             payload = payload,

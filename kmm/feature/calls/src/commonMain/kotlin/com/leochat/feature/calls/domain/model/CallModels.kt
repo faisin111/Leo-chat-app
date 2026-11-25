@@ -38,6 +38,7 @@ data class CallSignal(
     val targetUserId: String? = null,
     val fromUserId: String? = null,
     val fromUsername: String? = null,
+    val fromAvatarUrl: String? = null,
     val action: String,
     val callType: CallType? = null,
     val payload: String? = null,

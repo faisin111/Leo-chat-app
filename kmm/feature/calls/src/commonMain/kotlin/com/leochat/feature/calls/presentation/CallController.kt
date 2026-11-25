@@ -16,9 +16,11 @@ import com.leochat.feature.calls.domain.usecase.ObserveCallSignalsUseCase
 import com.leochat.feature.calls.domain.usecase.SendCallSignalUseCase
 import com.leochat.feature.calls.presentation.CallUiState
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -62,6 +64,7 @@ class CallController(
     private var timerJob: Job? = null
     private var outgoingTimeoutJob: Job? = null
     private var pendingOffer: Pair<String, String>? = null // callId -> SDP
+    private var pendingOfferWaiter: Pair<String, CompletableDeferred<String>>? = null
     private val pendingCandidates = mutableListOf<Pair<String, String>>() // callId -> candidate
 
     init {
@@ -87,7 +90,7 @@ class CallController(
             targetAvatarUrl = targetAvatarUrl,
         )
         mutableState.update { it.copy(activeCall = session, hasLocalVideo = false, hasRemoteVideo = false) }
-        soundPlayer.startOutgoingRing()
+        soundPlayer.startOutgoingTick()
 
         outgoingTimeoutJob?.cancel()
         outgoingTimeoutJob = scope.launch {
@@ -123,8 +126,14 @@ class CallController(
         mutableState.value = CallUiState(activeCall = active)
         startTimer()
         scope.launch {
-            val offer = pendingOffer?.takeIf { it.first == incoming.callId }?.second
+            var offer = pendingOffer?.takeIf { it.first == incoming.callId }?.second
             pendingOffer = null
+            if (offer == null) {
+                // When woken from a background push before STOMP delivers the SDP OFFER, wait briefly for it.
+                val waiter = CompletableDeferred<String>().also { pendingOfferWaiter = incoming.callId to it }
+                offer = withTimeoutOrNull(4_500L) { waiter.await() }
+                if (pendingOfferWaiter?.first == incoming.callId) pendingOfferWaiter = null
+            }
             val answer = withEngine(active) { media -> offer?.let { media.acceptOffer(it) } }
             sendSignal(signalFor(active, CallSignalAction.Answer, callType = active.callType, payload = answer))
             flushPendingCandidates(active.callId)
@@ -179,6 +188,7 @@ class CallController(
                 val active = current.activeCall ?: return
                 if (signal.callId.isNotEmpty() && active.callId != signal.callId) return
                 if (active.status == CallStatus.OUTGOING) {
+                    soundPlayer.startOutgoingRing()
                     mutableState.update { it.copy(activeCall = active.copy(status = CallStatus.RINGING)) }
                 }
             }
@@ -243,10 +253,11 @@ class CallController(
         if (active != null || existingIncoming != null) {
             val busyCallId = active?.callId ?: existingIncoming?.callId
             if (busyCallId == signal.callId) {
-                // Follow-up OFFER for the same callId (caller sends INVITE then OFFER): keep SDP if not yet stored.
+                // Follow-up OFFER for the same callId (caller sends INVITE then OFFER or push wakeup): store SDP & wake waiter.
                 val sdpPayload = signal.payload
-                if (pendingOffer == null && !sdpPayload.isNullOrBlank()) {
-                    pendingOffer = signal.callId to sdpPayload
+                if (!sdpPayload.isNullOrBlank()) {
+                    if (pendingOffer == null) pendingOffer = signal.callId to sdpPayload
+                    pendingOfferWaiter?.takeIf { it.first == signal.callId }?.second?.complete(sdpPayload)
                 }
                 if (existingIncoming != null && signal.callType == CallType.VIDEO && existingIncoming.callType != CallType.VIDEO) {
                     mutableState.update { it.copy(incomingCall = existingIncoming.copy(callType = CallType.VIDEO)) }
@@ -270,6 +281,7 @@ class CallController(
                 callType = signal.callType ?: CallType.AUDIO,
                 status = CallStatus.INCOMING,
                 isCaller = false,
+                targetAvatarUrl = signal.fromAvatarUrl,
             ),
         )
     }
@@ -357,6 +369,8 @@ class CallController(
         videoStateJob?.cancel()
         videoStateJob = null
         pendingOffer = null
+        pendingOfferWaiter?.second?.cancel()
+        pendingOfferWaiter = null
         activeEngineFlow.value = null
         mutableState.value = CallUiState()
         scope.launch {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "610530748082",
+    "project_id": "transittrack-admin",
+    "storage_bucket": "transittrack-admin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:610530748082:android:61fdb0ae47f9a7cfbecbab",
+        "android_client_info": {
+          "package_name": "com.leochat.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZ1EZeczGtt19hoLwy5Iz4VrG4siPa4jA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

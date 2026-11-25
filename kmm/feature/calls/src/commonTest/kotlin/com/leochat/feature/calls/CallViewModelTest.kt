@@ -51,10 +51,12 @@ private class FakeSignaling : CallSignalingRepository {
 }
 
 private class FakeSoundPlayer : CallSoundPlayer {
+    var tickCount = 0
     var outgoingCount = 0
     var incomingCount = 0
     var stopCount = 0
     var endCount = 0
+    override fun startOutgoingTick() { tickCount++ }
     override fun startOutgoingRing() { outgoingCount++ }
     override fun startIncomingRing() { incomingCount++ }
     override fun stopRing() { stopCount++ }
@@ -283,12 +285,14 @@ class CallControllerTest {
         controller.startCall("c1", "u1", "Ada", CallType.AUDIO)
         runCurrent()
         assertEquals(CallStatus.OUTGOING, controller.state.value.activeCall?.status)
-        assertEquals(1, sound.outgoingCount)
+        assertEquals(1, sound.tickCount)
+        assertEquals(0, sound.outgoingCount)
 
         val callId = signaling.sent.first().callId
         signaling.incoming.emit(CallSignal(callId, "c1", action = "DELIVERED"))
         runCurrent()
         assertEquals(CallStatus.RINGING, controller.state.value.activeCall?.status)
+        assertEquals(1, sound.outgoingCount)
 
         signaling.incoming.emit(CallSignal(callId, "c1", action = "ANSWER", payload = "sdp-answer"))
         runCurrent()
@@ -361,6 +365,37 @@ class CallControllerTest {
         controller.acceptIncomingCall()
         runCurrent()
         assertEquals("sdp-from-offer", engine.acceptedOffer)
+    }
+
+    @Test
+    fun pushWakeupAcceptWaitsForDelayedStompOfferSdp() = runTest {
+        val signaling = FakeSignaling()
+        val engine = FakeEngine()
+        val controller = controller(signaling, engine)
+        controller.handleSignal(
+            CallSignal(
+                callId = "call-push-1",
+                conversationId = "c1",
+                fromUserId = "u1",
+                fromUsername = "Ada",
+                fromAvatarUrl = "https://img/ada.png",
+                action = "INVITE",
+                callType = CallType.VIDEO,
+                payload = null,
+            ),
+        )
+        assertEquals("https://img/ada.png", controller.state.value.incomingCall?.targetAvatarUrl)
+
+        controller.acceptIncomingCall()
+        runCurrent()
+        assertNull(engine.acceptedOffer)
+
+        controller.handleSignal(
+            CallSignal("call-push-1", "c1", fromUserId = "u1", action = "OFFER", callType = CallType.VIDEO, payload = "delayed-stomp-sdp"),
+        )
+        runCurrent()
+        assertEquals("delayed-stomp-sdp", engine.acceptedOffer)
+        assertEquals("sdp-answer", signaling.sent.single { it.action == "ANSWER" }.payload)
     }
 }
 

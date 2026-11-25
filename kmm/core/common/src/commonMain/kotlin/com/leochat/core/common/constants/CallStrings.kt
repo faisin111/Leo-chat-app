@@ -46,4 +46,8 @@ object CallStrings {
 
     // Permissions
     const val microphonePermissionRequired = "Microphone permission required for calls."
+
+    // Background push notification
+    const val incomingCallChannelName = "Incoming Calls"
+    const val incomingCallChannelDescription = "High-priority alerts for incoming voice and video calls"
 }

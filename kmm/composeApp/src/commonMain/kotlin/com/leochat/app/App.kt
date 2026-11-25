@@ -70,6 +70,23 @@ fun LeoChatApp() {
         }
     }
 
+    val callState by callController.state.collectAsStateWithLifecycle()
+    val hasActiveCall = callState.activeCall != null
+    LaunchedEffect(hasActiveCall) {
+        if (hasActiveCall) {
+            val currentRoute = navController.currentBackStackEntry?.destination?.route.orEmpty()
+            if (currentRoute.contains("Splash") || currentRoute.contains("Login") || currentRoute.contains("Onboarding")) {
+                navController.navigate(AppRoutes.Home) {
+                    popUpTo<AppRoutes.Splash> { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+            if (!currentRoute.contains("Call")) {
+                navController.navigate(AppRoutes.Call) { launchSingleTop = true }
+            }
+        }
+    }
+
     LeoTheme(mode = themeMode) {
         val palette = LeoThemeTokens.palette
         CompositionLocalProvider(LocalLeoSnackBar provides snackBar) {

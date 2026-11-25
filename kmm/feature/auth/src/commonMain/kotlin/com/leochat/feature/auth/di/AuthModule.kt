@@ -30,7 +30,7 @@ import org.koin.dsl.module
 val authModule = module {
     singleOf(::AuthRemoteDataSourceImpl) bind AuthRemoteDataSource::class
     singleOf(::AuthLocalDataSource)
-    singleOf(::AuthRepositoryImpl) bind AuthRepository::class
+    single<AuthRepository> { AuthRepositoryImpl(get(), get(), get(), getOrNull()) }
 
     factoryOf(::LoginUseCase)
     factoryOf(::RegisterUseCase)

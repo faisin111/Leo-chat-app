@@ -27,15 +27,29 @@ class AndroidCallSoundPlayer(private val context: Context) : CallSoundPlayer {
     private var ringtone: Ringtone? = null
     private var toneGenerator: ToneGenerator? = null
 
-    override fun startOutgoingRing() {
+    override fun startOutgoingTick() = startVoiceToneLoop(
+        volume = 28,
+        tone = ToneGenerator.TONE_SUP_PIP,
+        toneDurationMs = 45,
+        intervalMs = 1_000L,
+    )
+
+    override fun startOutgoingRing() = startVoiceToneLoop(
+        volume = 55,
+        tone = ToneGenerator.TONE_SUP_RINGTONE,
+        toneDurationMs = 1_500,
+        intervalMs = 4_000L,
+    )
+
+    private fun startVoiceToneLoop(volume: Int, tone: Int, toneDurationMs: Int, intervalMs: Long) {
         stopRing()
         synchronized(lock) {
             ringJob = scope.launch {
-                val gen = runCatching { ToneGenerator(AudioManager.STREAM_VOICE_CALL, 55) }.getOrNull()
+                val gen = runCatching { ToneGenerator(AudioManager.STREAM_VOICE_CALL, volume) }.getOrNull()
                 synchronized(lock) { toneGenerator = gen }
                 while (isActive) {
-                    runCatching { gen?.startTone(ToneGenerator.TONE_SUP_RINGTONE, 1_500) }
-                    delay(4_000L)
+                    runCatching { gen?.startTone(tone, toneDurationMs) }
+                    delay(intervalMs)
                 }
             }
         }
