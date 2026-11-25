@@ -3,6 +3,7 @@ package com.leochat.feature.calls.domain.repository
 import com.leochat.feature.calls.domain.model.CallIceConfig
 import com.leochat.feature.calls.domain.model.CallSignal
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /** Call signaling over STOMP: `/user/queue/calls` in, `/app/call.signal` out. */
 interface CallSignalingRepository {
@@ -20,6 +21,12 @@ interface CallMediaEngine {
     /** Local ICE candidates, buffered until collected. */
     val localIceCandidates: Flow<String>
 
+    /** True while local camera video track is active and enabled. */
+    val hasLocalVideo: StateFlow<Boolean>
+
+    /** True once a remote video track has been received from the peer. */
+    val hasRemoteVideo: StateFlow<Boolean>
+
     /** Captures local media (microphone, plus camera for video when supported). */
     suspend fun start(video: Boolean)
 
@@ -36,6 +43,8 @@ interface CallMediaEngine {
     fun setMuted(muted: Boolean)
 
     fun setSpeakerOn(enabled: Boolean)
+
+    fun setCameraEnabled(enabled: Boolean)
 
     fun switchCamera()
 

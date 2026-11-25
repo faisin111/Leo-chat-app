@@ -49,12 +49,31 @@ fun IncomingCallDialog(
                 call = call.toIncomingCallUi(),
                 onDecline = controller::rejectIncomingCall,
                 onAccept = {
-                    permissions.request(setOf(MediaPermission.Microphone)) { granted ->
-                        if (granted) {
-                            controller.acceptIncomingCall()
-                            onAccepted()
-                        } else {
-                            onPermissionDenied()
+                    if (call.isVideo) {
+                        permissions.request(setOf(MediaPermission.Microphone, MediaPermission.Camera)) { bothGranted ->
+                            if (bothGranted) {
+                                controller.acceptIncomingCall()
+                                onAccepted()
+                            } else {
+                                // Match Web: if camera is denied, allow accepting with microphone only instead of blocking/crashing.
+                                permissions.request(setOf(MediaPermission.Microphone)) { micGranted ->
+                                    if (micGranted) {
+                                        controller.acceptIncomingCall()
+                                        onAccepted()
+                                    } else {
+                                        onPermissionDenied()
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        permissions.request(setOf(MediaPermission.Microphone)) { granted ->
+                            if (granted) {
+                                controller.acceptIncomingCall()
+                                onAccepted()
+                            } else {
+                                onPermissionDenied()
+                            }
                         }
                     }
                 },

@@ -55,6 +55,7 @@ data class CallSession(
     val isMuted: Boolean = false,
     val isSpeakerOn: Boolean = false,
     val isCameraFront: Boolean = true,
+    val isCameraOff: Boolean = false,
     val connectedSeconds: Int = 0,
 ) {
     val isConnected: Boolean get() = status == CallStatus.CONNECTED

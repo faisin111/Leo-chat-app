@@ -23,6 +23,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.toList
@@ -66,16 +68,26 @@ private class FakeEngine : CallMediaEngine {
     var acceptedOffer: String? = null
     var mutedFlag = false
     var speaker = false
+    var cameraEnabledFlag = true
     var closed = false
     var startedVideo: Boolean? = null
     override val localIceCandidates: Flow<String> = local.receiveAsFlow()
-    override suspend fun start(video: Boolean) { startedVideo = video }
+    override val hasLocalVideo = MutableStateFlow(false)
+    override val hasRemoteVideo = MutableStateFlow(false)
+    override suspend fun start(video: Boolean) {
+        startedVideo = video
+        hasLocalVideo.value = video
+    }
     override suspend fun createOffer(): String = "sdp-offer"
     override suspend fun acceptOffer(offer: String): String { acceptedOffer = offer; return "sdp-answer" }
     override suspend fun applyAnswer(answer: String) { appliedAnswer = answer }
     override suspend fun addRemoteIceCandidate(candidate: String) { remoteCandidates += candidate }
     override fun setMuted(muted: Boolean) { mutedFlag = muted }
     override fun setSpeakerOn(enabled: Boolean) { speaker = enabled }
+    override fun setCameraEnabled(enabled: Boolean) {
+        cameraEnabledFlag = enabled
+        hasLocalVideo.value = enabled
+    }
     override fun switchCamera() = Unit
     override fun close() { closed = true }
 }
@@ -99,19 +111,29 @@ class CallControllerTest {
     }
 
     @Test
-    fun startCallSendsOfferWithSdpAndForwardsLocalIce() = runTest {
+    fun startCallSendsInviteAndOfferWithUuidAndForwardsLocalIce() = runTest {
         val signaling = FakeSignaling()
         val engine = FakeEngine()
         val controller = controller(signaling, engine)
         controller.startCall("conversation", "user", "Alex", CallType.VIDEO)
         runCurrent()
         assertEquals(CallStatus.OUTGOING, controller.state.value.activeCall?.status)
-        val offer = signaling.sent.single()
-        assertEquals("OFFER", offer.action)
+        assertTrue(controller.state.value.hasLocalVideo)
+        assertEquals(listOf("INVITE", "OFFER"), signaling.sent.map { it.action })
+        val invite = signaling.sent[0]
+        val offer = signaling.sent[1]
+        assertEquals(invite.callId, offer.callId)
+        val uuidRegex = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+        assertTrue(uuidRegex.matches(offer.callId), "Expected UUID v4 callId, got ${offer.callId}")
         assertEquals(CallType.VIDEO, offer.callType)
         assertEquals("sdp-offer", offer.payload)
+        assertEquals("sdp-offer", invite.payload)
         assertEquals("user", offer.targetUserId)
         assertEquals(true, engine.startedVideo)
+
+        engine.hasRemoteVideo.value = true
+        runCurrent()
+        assertTrue(controller.state.value.hasRemoteVideo)
 
         engine.local.send("candidate-1")
         runCurrent()
@@ -229,12 +251,17 @@ class CallControllerTest {
         controller.toggleMute()
         controller.toggleSpeaker()
         controller.flipCamera()
+        controller.toggleCamera()
+        runCurrent()
         val call = controller.state.value.activeCall!!
         assertTrue(call.isMuted)
         assertTrue(call.isSpeakerOn)
         assertEquals(false, call.isCameraFront)
+        assertTrue(call.isCameraOff)
+        assertEquals(false, controller.state.value.hasLocalVideo)
         assertTrue(engine.mutedFlag)
         assertTrue(engine.speaker)
+        assertEquals(false, engine.cameraEnabledFlag)
     }
 
     @Test
@@ -245,7 +272,7 @@ class CallControllerTest {
         controller.startCall("c2", "u2", "B", CallType.AUDIO)
         runCurrent()
         assertEquals("c1", controller.state.value.activeCall?.conversationId)
-        assertEquals(1, signaling.sent.size)
+        assertEquals(listOf("INVITE", "OFFER"), signaling.sent.map { it.action })
     }
 
     @Test
@@ -258,7 +285,7 @@ class CallControllerTest {
         assertEquals(CallStatus.OUTGOING, controller.state.value.activeCall?.status)
         assertEquals(1, sound.outgoingCount)
 
-        val callId = signaling.sent.single().callId
+        val callId = signaling.sent.first().callId
         signaling.incoming.emit(CallSignal(callId, "c1", action = "DELIVERED"))
         runCurrent()
         assertEquals(CallStatus.RINGING, controller.state.value.activeCall?.status)
@@ -317,6 +344,24 @@ class CallControllerTest {
         assertEquals("BUSY", signaling.sent.last().action)
         assertEquals("u2", signaling.sent.last().targetUserId)
     }
+
+    @Test
+    fun followUpOfferForSameCallIdSuppliesMissingSdpWithoutBusy() = runTest {
+        val signaling = FakeSignaling()
+        val engine = FakeEngine()
+        val controller = controller(signaling, engine)
+        controller.handleSignal(CallSignal("call-1", "c1", fromUserId = "u1", fromUsername = "Ada", action = "INVITE"))
+        controller.handleSignal(
+            CallSignal("call-1", "c1", fromUserId = "u1", action = "OFFER", callType = CallType.VIDEO, payload = "sdp-from-offer"),
+        )
+        runCurrent()
+        assertEquals(CallType.VIDEO, controller.state.value.incomingCall?.callType)
+        assertTrue(signaling.sent.none { it.action == "BUSY" })
+
+        controller.acceptIncomingCall()
+        runCurrent()
+        assertEquals("sdp-from-offer", engine.acceptedOffer)
+    }
 }
 
 private class FakeDataSource : CallSignalingDataSource {
@@ -361,13 +406,20 @@ class CallSignalingRepositoryTest {
         val source = FakeDataSource()
         val sdpJson = SdpPayload("offer", "v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\n").encode()
         CallSignalingRepositoryImpl(source).send(
+            CallSignal("c1", "conv", targetUserId = "u2", action = "INVITE", callType = CallType.VIDEO, payload = sdpJson),
+        )
+        CallSignalingRepositoryImpl(source).send(
             CallSignal("c1", "conv", targetUserId = "u2", action = "OFFER", callType = CallType.AUDIO, payload = sdpJson),
         )
         CallSignalingRepositoryImpl(source).send(
             CallSignal("c1", "conv", targetUserId = "u2", action = "ICE_CANDIDATE", payload = IceCandidatePayload("cand:1", "audio", 0).encode()),
         )
 
-        val offerJson = source.sent[0]
+        val inviteJson = source.sent[0]
+        assertTrue(inviteJson.contains("\"action\":\"INVITE\""))
+        assertTrue(inviteJson.contains("\"sdp\":\"v=0"))
+
+        val offerJson = source.sent[1]
         assertTrue(offerJson.contains("\"callId\":\"c1\""))
         assertTrue(offerJson.contains("\"conversationId\":\"conv\""))
         assertTrue(offerJson.contains("\"targetUserId\":\"u2\""))
@@ -376,7 +428,7 @@ class CallSignalingRepositoryTest {
         assertTrue(!offerJson.contains("\"payload\""))
         assertEquals("v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\n", SdpPayload.decode(CallSignalDto.fromJson(offerJson)?.payload!!)?.sdp)
 
-        val iceJson = source.sent[1]
+        val iceJson = source.sent[2]
         assertTrue(iceJson.contains("\"candidate\":\"cand:1\""))
         assertTrue(iceJson.contains("\"sdpMid\":\"audio\""))
         assertTrue(iceJson.contains("\"sdpMLineIndex\":0"))

@@ -23,9 +23,12 @@ object CallSignalDto {
         signal.targetUserId?.let { put("targetUserId", it) }
         put("action", signal.action)
         when (signal.action.uppercase()) {
-            CallSignalAction.Offer, CallSignalAction.Answer -> {
+            CallSignalAction.Invite, CallSignalAction.Offer, CallSignalAction.Answer -> {
                 val rawSdp = signal.payload?.let { SdpPayload.decode(it)?.sdp ?: it }
                 rawSdp?.let { put("sdp", it) }
+                if (rawSdp == null && signal.callType != null) {
+                    put("callType", signal.callType.wireName)
+                }
             }
             CallSignalAction.IceCandidate -> {
                 val ice = signal.payload?.let(IceCandidatePayload::decode)

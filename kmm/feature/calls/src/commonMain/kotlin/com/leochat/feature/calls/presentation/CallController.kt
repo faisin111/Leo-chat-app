@@ -56,7 +56,9 @@ class CallController(
 
     private val engineLock = Mutex()
     private var engine: CallMediaEngine? = null
+    private val activeEngineFlow = MutableStateFlow<CallMediaEngine?>(null)
     private var iceJob: Job? = null
+    private var videoStateJob: Job? = null
     private var timerJob: Job? = null
     private var outgoingTimeoutJob: Job? = null
     private var pendingOffer: Pair<String, String>? = null // callId -> SDP
@@ -75,7 +77,7 @@ class CallController(
     ) {
         if (mutableState.value.activeCall != null || mutableState.value.incomingCall != null) return
         val session = CallSession(
-            callId = ClientIds.next("call"),
+            callId = ClientIds.uuid(),
             conversationId = conversationId,
             targetUserId = targetUserId,
             targetUserName = targetUserName,
@@ -84,7 +86,7 @@ class CallController(
             isCaller = true,
             targetAvatarUrl = targetAvatarUrl,
         )
-        mutableState.update { it.copy(activeCall = session) }
+        mutableState.update { it.copy(activeCall = session, hasLocalVideo = false, hasRemoteVideo = false) }
         soundPlayer.startOutgoingRing()
 
         outgoingTimeoutJob?.cancel()
@@ -100,8 +102,10 @@ class CallController(
         scope.launch {
             val offer = withEngine(session) { it.createOffer() }
             if (mutableState.value.activeCall?.callId != session.callId) return@launch
-            val sent = sendSignal(signalFor(session, CallSignalAction.Offer, callType = callType, payload = offer))
-            if (!sent) {
+            // Send INVITE (triggers backend idempotent CALL message & push/ring) and OFFER (WebRTC SDP), matching Web.
+            val invited = sendSignal(signalFor(session, CallSignalAction.Invite, callType = callType, payload = offer))
+            val offered = sendSignal(signalFor(session, CallSignalAction.Offer, callType = callType, payload = offer))
+            if (!invited && !offered) {
                 if (mutableState.value.activeCall?.callId == session.callId) {
                     mutableNotices.tryEmit(CallNotice(CallStrings.connectionUnavailable, isError = true))
                     resetCall()
@@ -159,6 +163,13 @@ class CallController(
         updateActive { it.copy(isCameraFront = !it.isCameraFront) } ?: return
         engine?.switchCamera()
     }
+
+    fun toggleCamera() {
+        val next = updateActive { it.copy(isCameraOff = !it.isCameraOff) } ?: return
+        engine?.setCameraEnabled(!next.isCameraOff)
+    }
+
+    internal val mediaEngineState: StateFlow<CallMediaEngine?> get() = activeEngineFlow
 
     fun handleSignal(signal: CallSignal) {
         val current = mutableState.value
@@ -231,11 +242,20 @@ class CallController(
         val existingIncoming = current.incomingCall
         if (active != null || existingIncoming != null) {
             val busyCallId = active?.callId ?: existingIncoming?.callId
-            // Already on a call or ringing: tell the second caller we are busy.
-            if (busyCallId != signal.callId) {
-                scope.launch {
-                    sendSignal(CallSignal(signal.callId, signal.conversationId, signal.fromUserId, action = CallSignalAction.Busy))
+            if (busyCallId == signal.callId) {
+                // Follow-up OFFER for the same callId (caller sends INVITE then OFFER): keep SDP if not yet stored.
+                val sdpPayload = signal.payload
+                if (pendingOffer == null && !sdpPayload.isNullOrBlank()) {
+                    pendingOffer = signal.callId to sdpPayload
                 }
+                if (existingIncoming != null && signal.callType == CallType.VIDEO && existingIncoming.callType != CallType.VIDEO) {
+                    mutableState.update { it.copy(incomingCall = existingIncoming.copy(callType = CallType.VIDEO)) }
+                }
+                return
+            }
+            // Already on a different call or ringing: tell the second caller we are busy.
+            scope.launch {
+                sendSignal(CallSignal(signal.callId, signal.conversationId, signal.fromUserId, action = CallSignalAction.Busy))
             }
             return
         }
@@ -257,11 +277,16 @@ class CallController(
     /** Creates the engine for [session] if needed and runs [block]; media failures never block signaling. */
     private suspend fun <T> withEngine(session: CallSession, block: suspend (CallMediaEngine) -> T?): T? = engineLock.withLock {
         try {
-            val media = engine ?: mediaFactory.create(iceConfig).also {
-                engine = it
-                it.start(session.isVideo)
-                it.setMuted(session.isMuted)
-                it.setSpeakerOn(session.isSpeakerOn)
+            val media = engine ?: mediaFactory.create(iceConfig).also { created ->
+                engine = created
+                activeEngineFlow.value = created
+                created.start(session.isVideo)
+                created.setMuted(session.isMuted)
+                created.setSpeakerOn(session.isSpeakerOn)
+                if (session.isVideo) {
+                    created.setCameraEnabled(!session.isCameraOff)
+                }
+                observeVideoAvailability(session.callId, created)
             }
             if (mutableState.value.activeCall?.callId != session.callId) return@withLock null
             block(media)
@@ -269,6 +294,26 @@ class CallController(
             throw e
         } catch (_: Throwable) {
             null
+        }
+    }
+
+    private fun observeVideoAvailability(callId: String, media: CallMediaEngine) {
+        videoStateJob?.cancel()
+        videoStateJob = scope.launch {
+            launch {
+                media.hasLocalVideo.collect { local ->
+                    if (mutableState.value.activeCall?.callId == callId) {
+                        mutableState.update { it.copy(hasLocalVideo = local) }
+                    }
+                }
+            }
+            launch {
+                media.hasRemoteVideo.collect { remote ->
+                    if (mutableState.value.activeCall?.callId == callId) {
+                        mutableState.update { it.copy(hasRemoteVideo = remote) }
+                    }
+                }
+            }
         }
     }
 
@@ -309,7 +354,10 @@ class CallController(
         timerJob = null
         iceJob?.cancel()
         iceJob = null
+        videoStateJob?.cancel()
+        videoStateJob = null
         pendingOffer = null
+        activeEngineFlow.value = null
         mutableState.value = CallUiState()
         scope.launch {
             engineLock.withLock {

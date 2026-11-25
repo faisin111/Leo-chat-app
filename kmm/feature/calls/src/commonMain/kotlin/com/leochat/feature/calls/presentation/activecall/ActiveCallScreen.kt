@@ -31,6 +31,15 @@ fun ActiveCallScreen(onEnded: () -> Unit, controller: CallController = koinInjec
         onToggleMute = controller::toggleMute,
         onToggleSpeaker = controller::toggleSpeaker,
         onFlipCamera = controller::flipCamera,
+        onToggleCamera = controller::toggleCamera,
         onEnd = { controller.endCall() },
+        videoSlot = { isLocal, isMirror, mod ->
+            CallVideoSurface(
+                controller = controller,
+                isLocal = isLocal,
+                isMirror = isMirror,
+                modifier = mod,
+            )
+        },
     )
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -135,10 +136,10 @@ fun ConversationHeader(
                 Icon(Icons.Rounded.DeleteOutline, AppStrings.clearConversation, tint = secondaryText, modifier = Modifier.size(22.dp))
             }
         } else {
-            HeaderIcon(Icons.Outlined.Phone, primaryText, 22, CallStrings.voiceCall) { onCall(false) }
-            Spacer(Modifier.width(16.dp))
-            HeaderIcon(Icons.Outlined.Videocam, primaryText, 24, CallStrings.videoCall) { onCall(true) }
-            Spacer(Modifier.width(6.dp))
+            HeaderIcon(Icons.Outlined.Phone, primaryText, 20, CallStrings.voiceCall) { onCall(false) }
+            Spacer(Modifier.width(10.dp))
+            HeaderIcon(Icons.Outlined.Videocam, primaryText, 22, CallStrings.videoCall) { onCall(true) }
+            Spacer(Modifier.width(4.dp))
             Box {
                 IconButton(onClick = { menuOpen = true }) { Icon(Icons.Rounded.MoreVert, null, tint = secondaryText) }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -250,11 +251,22 @@ fun ConversationHeader(
 
 @Composable
 private fun HeaderIcon(icon: ImageVector, tint: Color, size: Int, contentDescription: String? = null, onClick: () -> Unit) {
+    val palette = LocalLeoPalette.current
     val interaction = remember { MutableInteractionSource() }
-    Icon(
-        icon,
-        contentDescription = contentDescription,
-        tint = tint,
-        modifier = Modifier.leoPressable(interaction).clickable(interactionSource = interaction, indication = null, onClick = onClick).size(size.dp),
-    )
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .leoPressable(interaction)
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(palette.input.copy(alpha = 0.65f))
+            .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), onClick = onClick),
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(size.dp),
+        )
+    }
 }

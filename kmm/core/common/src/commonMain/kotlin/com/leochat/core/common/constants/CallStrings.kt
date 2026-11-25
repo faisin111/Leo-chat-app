@@ -17,6 +17,10 @@ object CallStrings {
     const val unmute = "Unmute"
     const val speaker = "Speaker"
     const val flip = "Flip"
+    const val camera = "Camera"
+    const val cameraOff = "Camera off"
+    const val youLabel = "You"
+    const val waitingForVideo = "Waiting for video..."
     const val endCall = "End call"
 
     // Call feedback
@@ -32,6 +36,7 @@ object CallStrings {
     // Incoming call banner
     const val incomingVideoCall = "Incoming Video Call"
     const val incomingVoiceCall = "Incoming Voice Call"
+    const val encrypted = "End-to-End Encrypted"
     const val accept = "Accept"
     const val decline = "Decline"
 
