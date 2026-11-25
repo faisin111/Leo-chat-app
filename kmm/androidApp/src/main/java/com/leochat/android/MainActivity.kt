@@ -1,11 +1,14 @@
 package com.leochat.android
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -15,9 +18,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.leochat.android.push.ChatPushNotificationHelper
 import com.leochat.android.push.IncomingCallNotificationHelper
+import com.leochat.android.push.IncomingCallOverlayController
 import com.leochat.android.push.PushEvent
 import com.leochat.android.push.PushNotificationPayload
 import com.leochat.app.LeoChatApp
+import com.leochat.core.common.constants.CallStrings
 import com.leochat.core.navigation.AppDeepLink
 import com.leochat.core.navigation.DeepLinkBus
 import com.leochat.core.network.auth.TokenStore
@@ -33,9 +38,12 @@ class MainActivity : ComponentActivity() {
     private val callController by inject<CallController>()
     private val stompClient by inject<StompClient>()
     private var requestedNotificationPermission = false
+    private var overlayDialog: AlertDialog? = null
 
     private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ -> }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) requestFloatingOverlayIfEligible()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Transparent bars that automatically adapt icons for light and dark themes.
@@ -58,6 +66,12 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         pushTokenRegistry.syncInBackground()
         requestPostNotificationsIfAuthenticated()
+    }
+
+    override fun onDestroy() {
+        overlayDialog?.dismiss()
+        overlayDialog = null
+        super.onDestroy()
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -130,10 +144,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestPostNotificationsIfAuthenticated() {
-        if (requestedNotificationPermission || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        ) {
+            requestFloatingOverlayIfEligible()
             return
         }
+        if (requestedNotificationPermission) return
         lifecycleScope.launch {
             if (tokenStore.accessToken() != null && !requestedNotificationPermission) {
                 requestedNotificationPermission = true
@@ -142,7 +159,36 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun requestFloatingOverlayIfEligible() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || IncomingCallOverlayController.canDrawOverlays(this)) return
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_ASKED_OVERLAY, false)) return
+
+        lifecycleScope.launch {
+            if (tokenStore.accessToken() == null || isFinishing || isDestroyed) return@launch
+            if (prefs.getBoolean(KEY_ASKED_OVERLAY, false) || overlayDialog?.isShowing == true) return@launch
+            prefs.edit().putBoolean(KEY_ASKED_OVERLAY, true).apply()
+            overlayDialog = AlertDialog.Builder(this@MainActivity)
+                .setTitle(CallStrings.overlayPermissionTitle)
+                .setMessage(CallStrings.overlayPermissionMessage)
+                .setPositiveButton(CallStrings.allow) { _, _ ->
+                    runCatching {
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:$packageName"),
+                            ),
+                        )
+                    }
+                }
+                .setNegativeButton(CallStrings.notNow, null)
+                .show()
+        }
+    }
+
     companion object {
+        private const val PREFS_NAME = "leochat_android_prefs"
+        private const val KEY_ASKED_OVERLAY = "asked_overlay_permission"
         const val EXTRA_OPEN_ACTIVE_CALL = "extra_open_active_call"
         const val EXTRA_OPEN_CONVERSATION_ID = "extra_open_conversation_id"
         const val EXTRA_OPEN_MESSAGE_ID = "extra_open_message_id"

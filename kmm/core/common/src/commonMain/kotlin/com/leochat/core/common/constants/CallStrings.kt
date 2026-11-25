@@ -50,4 +50,12 @@ object CallStrings {
     // Background push notification
     const val incomingCallChannelName = "Incoming Calls"
     const val incomingCallChannelDescription = "High-priority alerts for incoming voice and video calls"
+    const val ongoingCallChannelName = "Incoming Call Controls"
+    const val ongoingCallChannelDescription = "Call notification controls shown while floating popup is active"
+
+    // Floating overlay permission prompt
+    const val overlayPermissionTitle = "Enable Floating Call Popup"
+    const val overlayPermissionMessage = "Allow LeoChat to display the modern incoming call popup over other apps when your phone is unlocked."
+    const val allow = "Allow"
+    const val notNow = "Not now"
 }

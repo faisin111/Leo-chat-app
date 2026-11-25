@@ -10,6 +10,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leochat.android.push.IncomingCallNotificationHelper
@@ -46,6 +57,9 @@ import com.leochat.feature.calls.presentation.CallController
 import com.leochat.feature.calls.presentation.mapper.toIncomingCallUi
 import com.leochat.feature.media.presentation.permission.MediaPermission
 import com.leochat.feature.media.presentation.permission.rememberMediaPermissionRequester
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import java.lang.ref.WeakReference
 
@@ -64,6 +78,7 @@ class IncomingCallActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        applyFadeTransition(opening = true)
         activeInstance = WeakReference(this)
         handleCallIntent(intent)
 
@@ -133,6 +148,56 @@ class IncomingCallActivity : ComponentActivity() {
             }
 
             val auraColor = if (incomingUi.isVideo) CallTokens.videoAura else LeoColors.success
+            var cardVisible by remember { mutableStateOf(true) }
+            val entranceProgress = remember { Animatable(0f) }
+            val entranceOffsetY = remember { Animatable(-80f) }
+
+            LaunchedEffect(cardVisible) {
+                if (cardVisible) {
+                    coroutineScope {
+                        launch {
+                            entranceProgress.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                            )
+                        }
+                        launch {
+                            entranceOffsetY.animateTo(
+                                targetValue = 0f,
+                                animationSpec = spring(
+                                    dampingRatio = 0.78f,
+                                    stiffness = Spring.StiffnessMediumLow,
+                                ),
+                            )
+                        }
+                    }
+                } else {
+                    coroutineScope {
+                        launch {
+                            entranceProgress.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(durationMillis = 180, easing = FastOutLinearInEasing),
+                            )
+                        }
+                        launch {
+                            entranceOffsetY.animateTo(
+                                targetValue = -60f,
+                                animationSpec = tween(durationMillis = 180, easing = FastOutLinearInEasing),
+                            )
+                        }
+                    }
+                }
+            }
+
+            val auraPulse by rememberInfiniteTransition(label = "callAuraBreath").animateFloat(
+                initialValue = 0.20f,
+                targetValue = 0.34f,
+                animationSpec = infiniteRepeatable(tween(2_200, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "callAuraAlpha",
+            )
+            val progress = entranceProgress.value.coerceIn(0f, 1f)
+            val cardScale = 0.93f + (0.07f * progress)
+
             LeoTheme(mode = LeoThemeMode.Dark) {
                 CompositionLocalProvider(LocalLeoSnackBar provides snackBar) {
                     Scaffold(
@@ -145,8 +210,8 @@ class IncomingCallActivity : ComponentActivity() {
                                 .background(
                                     Brush.radialGradient(
                                         listOf(
-                                            auraColor.copy(alpha = 0.24f),
-                                            LeoColors.primary.copy(alpha = 0.08f),
+                                            auraColor.copy(alpha = auraPulse * progress),
+                                            LeoColors.primary.copy(alpha = 0.08f * progress),
                                             CallTokens.background,
                                         ),
                                     ),
@@ -158,12 +223,25 @@ class IncomingCallActivity : ComponentActivity() {
                             IncomingCallBanner(
                                 call = incomingUi,
                                 onDecline = {
-                                    IncomingCallNotificationHelper.dismiss(this@IncomingCallActivity)
+                                    if (!cardVisible) return@IncomingCallBanner
+                                    cardVisible = false
+                                    IncomingCallNotificationHelper.dismiss(this@IncomingCallActivity, animated = false)
                                     callController.rejectIncomingCall()
-                                    finish()
+                                    scope.launch {
+                                        delay(190L)
+                                        finish()
+                                        applyFadeTransition(opening = false)
+                                    }
                                 },
                                 onAccept = { acceptWithPermissions() },
-                                modifier = Modifier.align(Alignment.Center),
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .graphicsLayer {
+                                        alpha = progress
+                                        translationY = entranceOffsetY.value
+                                        scaleX = cardScale
+                                        scaleY = cardScale
+                                    },
                             )
                         }
                     }
@@ -197,6 +275,17 @@ class IncomingCallActivity : ComponentActivity() {
             },
         )
         finish()
+        applyFadeTransition(opening = false)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun applyFadeTransition(opening: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val type = if (opening) OVERRIDE_TRANSITION_OPEN else OVERRIDE_TRANSITION_CLOSE
+            overrideActivityTransition(type, android.R.anim.fade_in, android.R.anim.fade_out)
+        } else {
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
     }
 
     @Suppress("DEPRECATION")
