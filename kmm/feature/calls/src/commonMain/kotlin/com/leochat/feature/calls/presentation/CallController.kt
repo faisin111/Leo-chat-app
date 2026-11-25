@@ -129,9 +129,9 @@ class CallController(
             var offer = pendingOffer?.takeIf { it.first == incoming.callId }?.second
             pendingOffer = null
             if (offer == null) {
-                // When woken from a background push before STOMP delivers the SDP OFFER, wait briefly for it.
+                // When woken from a background push before STOMP delivers the drained SDP OFFER, wait briefly for it.
                 val waiter = CompletableDeferred<String>().also { pendingOfferWaiter = incoming.callId to it }
-                offer = withTimeoutOrNull(4_500L) { waiter.await() }
+                offer = withTimeoutOrNull(8_000L) { waiter.await() }
                 if (pendingOfferWaiter?.first == incoming.callId) pendingOfferWaiter = null
             }
             val answer = withEngine(active) { media -> offer?.let { media.acceptOffer(it) } }
@@ -184,7 +184,7 @@ class CallController(
         val current = mutableState.value
         when (signal.action.uppercase()) {
             CallSignalAction.Invite, CallSignalAction.Offer -> onOffer(signal, current)
-            CallSignalAction.Delivered -> {
+            CallSignalAction.Delivered, CallSignalAction.Ringing -> {
                 val active = current.activeCall ?: return
                 if (signal.callId.isNotEmpty() && active.callId != signal.callId) return
                 if (active.status == CallStatus.OUTGOING) {

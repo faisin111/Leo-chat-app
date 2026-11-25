@@ -294,10 +294,32 @@ class CallControllerTest {
         assertEquals(CallStatus.RINGING, controller.state.value.activeCall?.status)
         assertEquals(1, sound.outgoingCount)
 
+        // Repeated RINGING or DELIVERED does not restart ringtone
+        signaling.incoming.emit(CallSignal(callId, "c1", action = "RINGING"))
+        runCurrent()
+        assertEquals(1, sound.outgoingCount)
+
         signaling.incoming.emit(CallSignal(callId, "c1", action = "ANSWER", payload = "sdp-answer"))
         runCurrent()
         assertEquals(CallStatus.CONNECTED, controller.state.value.activeCall?.status)
         assertEquals(1, sound.stopCount)
+    }
+
+    @Test
+    fun ringingSignalOnOfflinePushTransitionsOutgoingToRingingAndStartsRingback() = runTest {
+        val signaling = FakeSignaling()
+        val sound = FakeSoundPlayer()
+        val controller = controller(signaling, soundPlayer = sound)
+        controller.startCall("c1", "u1", "Ada", CallType.VIDEO)
+        runCurrent()
+        assertEquals(CallStatus.OUTGOING, controller.state.value.activeCall?.status)
+        assertEquals(1, sound.tickCount)
+
+        val callId = signaling.sent.first().callId
+        signaling.incoming.emit(CallSignal(callId, "c1", action = "RINGING"))
+        runCurrent()
+        assertEquals(CallStatus.RINGING, controller.state.value.activeCall?.status)
+        assertEquals(1, sound.outgoingCount)
     }
 
     @Test

@@ -51,9 +51,9 @@ class LeoFirebaseMessagingService : FirebaseMessagingService() {
                 }
             }
             is PushEvent.IncomingCall -> {
-                // Immediately establish/restore STOMP so full WebRTC SDP OFFER and ICE arrive cleanly.
-                runCatching { koin.get<StompClient>().connect() }
+                // Initialize CallController first so /user/queue/calls is subscribed before STOMP connects & triggers drain.
                 runCatching { koin.get<CallController>().handleSignal(event.signal) }
+                runCatching { koin.get<StompClient>().connect() }
                 if (!AppForegroundTracker.isMainForeground) {
                     IncomingCallNotificationHelper.showIncomingCall(applicationContext, event.signal)
                 }

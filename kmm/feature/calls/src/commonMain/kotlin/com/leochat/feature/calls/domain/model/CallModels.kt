@@ -25,6 +25,7 @@ object CallSignalAction {
     const val Busy = "BUSY"
     const val End = "END"
     const val Delivered = "DELIVERED"
+    const val Ringing = "RINGING"
     const val Unavailable = "UNAVAILABLE"
 }
 

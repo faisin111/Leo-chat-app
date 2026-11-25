@@ -15,17 +15,23 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.leochat.android.push.ChatPushNotificationHelper
 import com.leochat.android.push.IncomingCallNotificationHelper
+import com.leochat.android.push.PushEvent
+import com.leochat.android.push.PushNotificationPayload
 import com.leochat.app.LeoChatApp
 import com.leochat.core.navigation.AppDeepLink
 import com.leochat.core.navigation.DeepLinkBus
 import com.leochat.core.network.auth.TokenStore
 import com.leochat.core.network.push.PushTokenRegistry
+import com.leochat.core.network.stomp.StompClient
+import com.leochat.feature.calls.presentation.CallController
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
     private val pushTokenRegistry by inject<PushTokenRegistry>()
     private val tokenStore by inject<TokenStore>()
+    private val callController by inject<CallController>()
+    private val stompClient by inject<StompClient>()
     private var requestedNotificationPermission = false
 
     private val notificationPermissionLauncher =
@@ -75,6 +81,51 @@ class MainActivity : ComponentActivity() {
             intent.removeExtra(EXTRA_OPEN_CONVERSATION_ID)
             intent.removeExtra(EXTRA_OPEN_MESSAGE_ID)
             intent.removeExtra(EXTRA_OPEN_CONVERSATION_TITLE)
+            return
+        }
+
+        // Handle OS system-tray FCM notification taps where Android places the backend `data` map in intent extras.
+        val bundle = intent.extras ?: return
+        val dataMap = buildMap<String, String> {
+            for (key in bundle.keySet()) {
+                @Suppress("DEPRECATION")
+                val v = bundle.get(key)
+                if (v is String) put(key, v)
+            }
+        }
+        when (val pushEvent = PushNotificationPayload.parse(dataMap)) {
+            is PushEvent.NewMessage -> {
+                ChatPushNotificationHelper.dismissConversation(this, pushEvent.conversationId)
+                DeepLinkBus.emit(
+                    AppDeepLink.OpenConversation(
+                        conversationId = pushEvent.conversationId,
+                        messageId = pushEvent.messageId.takeIf { it.isNotBlank() },
+                        title = pushEvent.displayTitle,
+                    ),
+                )
+                intent.removeExtra("type")
+                intent.removeExtra("conversationId")
+            }
+            is PushEvent.MessageReaction -> {
+                ChatPushNotificationHelper.dismissConversation(this, pushEvent.conversationId)
+                DeepLinkBus.emit(
+                    AppDeepLink.OpenConversation(
+                        conversationId = pushEvent.conversationId,
+                        messageId = pushEvent.messageId.takeIf { it.isNotBlank() },
+                        title = pushEvent.displayTitle,
+                    ),
+                )
+                intent.removeExtra("type")
+                intent.removeExtra("conversationId")
+            }
+            is PushEvent.IncomingCall -> {
+                IncomingCallNotificationHelper.dismiss(this)
+                callController.handleSignal(pushEvent.signal)
+                stompClient.connect()
+                intent.removeExtra("type")
+                intent.removeExtra("callId")
+            }
+            else -> Unit
         }
     }
 
