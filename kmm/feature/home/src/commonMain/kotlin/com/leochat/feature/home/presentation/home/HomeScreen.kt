@@ -15,6 +15,8 @@ import com.leochat.core.designsystem.component.feedback.LocalLeoSnackBar
 import com.leochat.core.designsystem.component.navigation.ShellTab
 import com.leochat.core.designsystem.responsive.LeoLayout
 import com.leochat.core.designsystem.responsive.LocalLeoLayout
+import com.leochat.core.navigation.AppDeepLink
+import com.leochat.core.navigation.DeepLinkBus
 import com.leochat.feature.ai.presentation.ai.AiScreen
 import com.leochat.feature.calls.domain.model.CallType
 import com.leochat.feature.calls.presentation.CallController
@@ -54,6 +56,22 @@ fun HomeScreen(controller: ChatViewModel, nav: ShellNavigator) {
     var tab by rememberSaveable { mutableStateOf(ShellTab.Chats) }
     val isMobile = LocalLeoLayout.current == LeoLayout.Mobile
     LaunchedEffect(state.signedOut) { if (state.signedOut) nav.onSignedOut() }
+
+    val pendingDeepLink by DeepLinkBus.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingDeepLink) {
+        if (pendingDeepLink is AppDeepLink.OpenConversation) {
+            val link = DeepLinkBus.consume() as? AppDeepLink.OpenConversation ?: return@LaunchedEffect
+            controller.openConversationById(link.conversationId, fallbackTitle = link.title)
+            tab = ShellTab.Chats
+            if (isMobile) nav.onOpenConversation()
+        }
+    }
+
+    LaunchedEffect(state.selectedConversationId, tab, isMobile) {
+        DeepLinkBus.setActiveConversation(
+            if (tab == ShellTab.Chats && !isMobile) state.selectedConversationId else null,
+        )
+    }
 
     val chatsList: @Composable (Modifier, (Conversation) -> Unit) -> Unit = { modifier, open ->
         ChatsListPane(

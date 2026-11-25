@@ -3,6 +3,7 @@ package com.leochat.android
 import android.app.Application
 import com.leochat.android.push.AndroidPushTokenProvider
 import com.leochat.android.push.AppForegroundTracker
+import com.leochat.android.push.ChatPushNotificationHelper
 import com.leochat.android.push.IncomingCallNotificationHelper
 import com.leochat.app.di.initKoin
 import com.leochat.core.network.push.PushTokenProvider
@@ -18,6 +19,7 @@ class LeoChatApplication : Application() {
         super.onCreate()
         registerActivityLifecycleCallbacks(AppForegroundTracker)
         IncomingCallNotificationHelper.ensureChannel(this)
+        ChatPushNotificationHelper.ensureChannel(this)
         initKoin {
             androidContext(this@LeoChatApplication)
             modules(androidPushModule)

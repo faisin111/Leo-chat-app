@@ -313,6 +313,16 @@ class ChatViewModel(
 
     // region Selection and messages
 
+    fun openConversationById(conversationId: String, fallbackTitle: String? = null) {
+        val existing = state.value.conversations.firstOrNull { it.id == conversationId }
+            ?: Conversation(
+                id = conversationId,
+                title = fallbackTitle?.takeIf { it.isNotBlank() } ?: AppStrings.chats,
+            )
+        selectConversation(existing)
+        refresh()
+    }
+
     fun selectConversation(conversation: Conversation) {
         val current = state.value
         if (current.selectedConversationId == conversation.id && current.messages.isNotEmpty()) return

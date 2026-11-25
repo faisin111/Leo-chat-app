@@ -23,6 +23,8 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import com.leochat.app.navigation.AppNavHost
+import com.leochat.core.navigation.AppDeepLink
+import com.leochat.core.navigation.DeepLinkBus
 import com.leochat.core.navigation.goTo
 import com.leochat.core.navigation.AppRoutes
 import com.leochat.core.common.constants.AppStrings
@@ -31,6 +33,7 @@ import com.leochat.core.designsystem.responsive.LeoLayout
 import com.leochat.core.designsystem.responsive.LocalLeoLayout
 import com.leochat.core.designsystem.responsive.ProvideLeoLayout
 import com.leochat.core.network.auth.SessionEvents
+import com.leochat.core.network.auth.TokenStore
 import com.leochat.core.designsystem.theme.LeoTheme
 import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.theme.ThemeModeStore
@@ -50,6 +53,7 @@ fun LeoChatApp() {
 
     val themeStore = koinInject<ThemeModeStore>()
     val sessionEvents = koinInject<SessionEvents>()
+    val tokenStore = koinInject<TokenStore>()
     val callController = koinInject<CallController>()
     val themeMode by themeStore.mode.collectAsStateWithLifecycle()
     val navController = rememberNavController()
@@ -83,6 +87,19 @@ fun LeoChatApp() {
             }
             if (!currentRoute.contains("Call")) {
                 navController.navigate(AppRoutes.Call) { launchSingleTop = true }
+            }
+        }
+    }
+
+    val pendingDeepLink by DeepLinkBus.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingDeepLink) {
+        if (pendingDeepLink is AppDeepLink.OpenConversation && tokenStore.accessToken() != null) {
+            val currentRoute = navController.currentBackStackEntry?.destination?.route.orEmpty()
+            if (currentRoute.contains("Splash")) {
+                navController.navigate(AppRoutes.Home) {
+                    popUpTo<AppRoutes.Splash> { inclusive = true }
+                    launchSingleTop = true
+                }
             }
         }
     }

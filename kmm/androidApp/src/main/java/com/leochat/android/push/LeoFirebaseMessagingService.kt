@@ -3,6 +3,7 @@ package com.leochat.android.push
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.leochat.android.IncomingCallActivity
+import com.leochat.core.navigation.DeepLinkBus
 import com.leochat.core.network.push.PushTokenRegistry
 import com.leochat.core.network.stomp.StompClient
 import com.leochat.feature.calls.domain.model.CallSignal
@@ -10,7 +11,12 @@ import com.leochat.feature.calls.domain.model.CallSignalAction
 import com.leochat.feature.calls.presentation.CallController
 import org.koin.core.context.GlobalContext
 
-/** Receives high-priority FCM `INCOMING_CALL` messages and FCM token refreshes. */
+/**
+ * Receives high-priority FCM notifications across all supported backend types:
+ * - `NEW_MESSAGE` (`TEXT`, `IMAGE`, `VOICE`, `FILE`, `CALL`, `SYSTEM`)
+ * - `MESSAGE_REACTION`
+ * - `INCOMING_CALL` (and call cancel events)
+ */
 class LeoFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
@@ -23,8 +29,28 @@ class LeoFirebaseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         val koin = GlobalContext.getOrNull() ?: return
 
-        when (val event = PushCallPayload.parse(message.data, message.notification?.title)) {
-            is PushCallEvent.Incoming -> {
+        when (
+            val event = PushNotificationPayload.parse(
+                data = message.data,
+                notificationTitle = message.notification?.title,
+                notificationBody = message.notification?.body,
+            )
+        ) {
+            is PushEvent.NewMessage -> {
+                val viewingSameChat = AppForegroundTracker.isMainForeground &&
+                    DeepLinkBus.activeConversationId.value == event.conversationId
+                if (!viewingSameChat) {
+                    ChatPushNotificationHelper.showMessage(applicationContext, event)
+                }
+            }
+            is PushEvent.MessageReaction -> {
+                val viewingSameChat = AppForegroundTracker.isMainForeground &&
+                    DeepLinkBus.activeConversationId.value == event.conversationId
+                if (!viewingSameChat) {
+                    ChatPushNotificationHelper.showReaction(applicationContext, event)
+                }
+            }
+            is PushEvent.IncomingCall -> {
                 // Immediately establish/restore STOMP so full WebRTC SDP OFFER and ICE arrive cleanly.
                 runCatching { koin.get<StompClient>().connect() }
                 runCatching { koin.get<CallController>().handleSignal(event.signal) }
@@ -32,7 +58,7 @@ class LeoFirebaseMessagingService : FirebaseMessagingService() {
                     IncomingCallNotificationHelper.showIncomingCall(applicationContext, event.signal)
                 }
             }
-            is PushCallEvent.Cancel -> {
+            is PushEvent.CancelCall -> {
                 IncomingCallNotificationHelper.dismiss(applicationContext)
                 IncomingCallActivity.finishIfActive()
                 runCatching {

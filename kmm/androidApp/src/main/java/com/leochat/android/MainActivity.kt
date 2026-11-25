@@ -13,8 +13,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.leochat.android.push.ChatPushNotificationHelper
 import com.leochat.android.push.IncomingCallNotificationHelper
 import com.leochat.app.LeoChatApp
+import com.leochat.core.navigation.AppDeepLink
+import com.leochat.core.navigation.DeepLinkBus
 import com.leochat.core.network.auth.TokenStore
 import com.leochat.core.network.push.PushTokenRegistry
 import kotlinx.coroutines.launch
@@ -35,24 +38,44 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
-        if (intent?.getBooleanExtra(EXTRA_OPEN_ACTIVE_CALL, false) == true) {
-            IncomingCallNotificationHelper.dismiss(this)
-        }
+        handleIntent(intent)
         setContent { LeoChatApp() }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.getBooleanExtra(EXTRA_OPEN_ACTIVE_CALL, false)) {
-            IncomingCallNotificationHelper.dismiss(this)
-        }
+        handleIntent(intent)
     }
 
     override fun onResume() {
         super.onResume()
         pushTokenRegistry.syncInBackground()
         requestPostNotificationsIfAuthenticated()
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+        if (intent.getBooleanExtra(EXTRA_OPEN_ACTIVE_CALL, false)) {
+            IncomingCallNotificationHelper.dismiss(this)
+            intent.removeExtra(EXTRA_OPEN_ACTIVE_CALL)
+        }
+        val conversationId = intent.getStringExtra(EXTRA_OPEN_CONVERSATION_ID)?.takeIf { it.isNotBlank() }
+        if (conversationId != null) {
+            val messageId = intent.getStringExtra(EXTRA_OPEN_MESSAGE_ID)?.takeIf { it.isNotBlank() }
+            val title = intent.getStringExtra(EXTRA_OPEN_CONVERSATION_TITLE)?.takeIf { it.isNotBlank() }
+            ChatPushNotificationHelper.dismissConversation(this, conversationId)
+            DeepLinkBus.emit(
+                AppDeepLink.OpenConversation(
+                    conversationId = conversationId,
+                    messageId = messageId,
+                    title = title,
+                ),
+            )
+            intent.removeExtra(EXTRA_OPEN_CONVERSATION_ID)
+            intent.removeExtra(EXTRA_OPEN_MESSAGE_ID)
+            intent.removeExtra(EXTRA_OPEN_CONVERSATION_TITLE)
+        }
     }
 
     private fun requestPostNotificationsIfAuthenticated() {
@@ -70,5 +93,8 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_OPEN_ACTIVE_CALL = "extra_open_active_call"
+        const val EXTRA_OPEN_CONVERSATION_ID = "extra_open_conversation_id"
+        const val EXTRA_OPEN_MESSAGE_ID = "extra_open_message_id"
+        const val EXTRA_OPEN_CONVERSATION_TITLE = "extra_open_conversation_title"
     }
 }
