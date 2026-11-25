@@ -4,6 +4,7 @@ import com.leochat.core.common.constants.MediaStrings
 import com.leochat.core.common.result.AppFailure
 import com.leochat.core.common.result.AppResult
 import com.leochat.core.common.result.failure
+import com.leochat.feature.media.domain.model.UploadedAttachment
 import com.leochat.feature.media.domain.model.VoiceMessageDraft
 import com.leochat.feature.media.domain.model.VoiceRecording
 import com.leochat.feature.media.domain.repository.MediaRepository
@@ -13,6 +14,17 @@ class UploadVoiceUseCase(private val repository: MediaRepository) {
         if (filePath.isBlank()) return failure(AppFailure.Validation(MediaStrings.fileNotFound))
         return repository.uploadVoice(filePath.trim())
     }
+}
+
+class UploadAttachmentUseCase(private val repository: MediaRepository) {
+    suspend operator fun invoke(uriOrPath: String, fileName: String, mimeType: String): AppResult<UploadedAttachment> {
+        if (uriOrPath.isBlank()) return failure(AppFailure.Validation(MediaStrings.fileNotFound))
+        return repository.uploadAttachment(uriOrPath.trim(), fileName, mimeType)
+    }
+}
+
+class GetMediaDownloadUrlUseCase(private val repository: MediaRepository) {
+    suspend operator fun invoke(storageKey: String): AppResult<String> = repository.getDownloadUrl(storageKey)
 }
 
 /**

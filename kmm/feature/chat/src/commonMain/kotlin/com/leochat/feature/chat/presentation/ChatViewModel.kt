@@ -11,19 +11,24 @@ import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.domain.model.CurrentIdentity
 import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.domain.model.MessageAck
+import com.leochat.feature.chat.domain.model.MessageAttachment
 import com.leochat.feature.chat.domain.model.MessageSendStatus
 import com.leochat.feature.chat.domain.model.TypingEvent
 import com.leochat.feature.chat.domain.model.mergeMessages
 import com.leochat.feature.chat.domain.repository.ChatRealtimeRepository
+import com.leochat.feature.chat.domain.repository.OutgoingAttachment
 import com.leochat.feature.chat.domain.usecase.AiPrompt
 import com.leochat.feature.chat.domain.usecase.ChatUseCaseBundle
 import com.leochat.feature.chat.domain.usecase.TypingRules
 import com.leochat.feature.chat.presentation.ChatFilter
 import com.leochat.feature.chat.presentation.ChatUiState
+import com.leochat.feature.media.domain.model.PickedAttachment
 import com.leochat.feature.media.domain.model.VoiceMessageType
 import com.leochat.feature.media.domain.model.VoiceMessageDraft
 import com.leochat.feature.media.domain.model.VoiceRecording
+import com.leochat.feature.media.domain.usecase.GetMediaDownloadUrlUseCase
 import com.leochat.feature.media.domain.usecase.SendVoiceMessageUseCase
+import com.leochat.feature.media.domain.usecase.UploadAttachmentUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +49,8 @@ class ChatViewModel(
     private val getCurrentUser: GetCurrentUserUseCase,
     private val logout: LogoutUseCase,
     private val sendVoiceMessage: SendVoiceMessageUseCase? = null,
+    private val uploadAttachment: UploadAttachmentUseCase? = null,
+    private val getMediaDownloadUrl: GetMediaDownloadUrlUseCase? = null,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = mutableState.asStateFlow()
@@ -350,6 +357,7 @@ class ChatViewModel(
                     s.copy(isLoadingMessages = cached.isEmpty(), messages = cached)
                 } else s
             }
+            resolveAttachmentUrls(cached)
             conversationJobs = listOf(
                 launch { realtime.messages(conversation.id, identity).collect(::onRealtimeMessage) },
                 launch { realtime.typing(conversation.id).collect(::onTyping) },
@@ -396,6 +404,7 @@ class ChatViewModel(
                     } else s
                 }
                 useCases.saveMessages(conversationId, merged)
+                resolveAttachmentUrls(merged)
                 merged.lastOrNull { !it.isOwn }?.let { markRead(conversationId, it.seq) }
             },
         )
@@ -445,10 +454,78 @@ class ChatViewModel(
         }
     }
 
+    fun sendAttachment(picked: PickedAttachment, caption: String? = null, replyToId: String? = null) {
+        val conv = state.value.selectedConversation ?: return
+        val uploader = uploadAttachment ?: return
+        val type = if (picked.isImage) "IMAGE" else "FILE"
+        val trimmedCaption = caption?.trim().orEmpty()
+        val clientMessageId = ClientIds.next("client")
+        val localKey = "local-$clientMessageId"
+        val optimisticAttachment = MessageAttachment(
+            id = clientMessageId,
+            storageKey = localKey,
+            fileName = picked.fileName,
+            mimeType = picked.mimeType,
+            sizeBytes = picked.sizeBytes,
+            localPreviewUrl = picked.uriOrPath,
+        )
+        insertOptimistic(conv, clientMessageId, trimmedCaption, type, replyToId, listOf(optimisticAttachment))
+        viewModelScope.launch {
+            uploader(picked.uriOrPath, picked.fileName, picked.mimeType).fold(
+                ifLeft = { failure -> markFailed(clientMessageId, failure.message) },
+                ifRight = { uploaded ->
+                    mutableState.update { s ->
+                        s.copy(
+                            resolvedMediaUrls = s.resolvedMediaUrls + (uploaded.storageKey to uploaded.url),
+                            messages = s.messages.map { m ->
+                                if (m.clientMessageId == clientMessageId) {
+                                    m.copy(
+                                        attachments = listOf(
+                                            MessageAttachment(
+                                                id = uploaded.storageKey,
+                                                storageKey = uploaded.storageKey,
+                                                fileName = uploaded.fileName,
+                                                mimeType = uploaded.mimeType,
+                                                sizeBytes = uploaded.sizeBytes,
+                                                localPreviewUrl = picked.uriOrPath,
+                                            ),
+                                        ),
+                                    )
+                                } else {
+                                    m
+                                }
+                            },
+                        )
+                    }
+                    deliver(
+                        conv = conv,
+                        clientMessageId = clientMessageId,
+                        content = trimmedCaption,
+                        type = type,
+                        replyToId = replyToId,
+                        attachment = OutgoingAttachment(
+                            storageKey = uploaded.storageKey,
+                            fileName = uploaded.fileName,
+                            mimeType = uploaded.mimeType,
+                            sizeBytes = uploaded.sizeBytes,
+                        ),
+                    )
+                },
+            )
+        }
+    }
+
     /** STOMP + REST with one clientMessageId, so the REST call is idempotent with the WebSocket send. */
-    private suspend fun deliver(conv: Conversation, clientMessageId: String, content: String, type: String, replyToId: String?) {
-        realtime.sendMessage(conv.id, clientMessageId, content, type, replyToId)
-        useCases.sendMessage(conv.id, clientMessageId, content, type, replyToId).fold(
+    private suspend fun deliver(
+        conv: Conversation,
+        clientMessageId: String,
+        content: String,
+        type: String,
+        replyToId: String?,
+        attachment: OutgoingAttachment? = null,
+    ) {
+        realtime.sendMessage(conv.id, clientMessageId, content, type, replyToId, attachment)
+        useCases.sendMessage(conv.id, clientMessageId, content, type, replyToId, attachment).fold(
             ifLeft = { failure -> markFailed(clientMessageId, failure.message) },
             ifRight = { persisted ->
                 val list = state.value.messages.map {
@@ -460,6 +537,7 @@ class ChatViewModel(
                     } else s
                 }
                 useCases.saveMessages(conv.id, list)
+                resolveAttachmentUrls(list)
                 updateConversationPreview(
                     conv.id,
                     persisted.previewSnippet() ?: persisted.content ?: content,
@@ -473,11 +551,41 @@ class ChatViewModel(
     /** Re-sends a failed message (same content, new client id), as the Flutter retry does. */
     fun retry(message: Message) {
         mutableState.update { s -> s.copy(messages = s.messages.filterNot { it.clientMessageId == message.clientMessageId }) }
-        if (message.type.uppercase() == VoiceMessageType || message.type.uppercase() == "AUDIO") {
-            val source = message.content.orEmpty()
-            sendVoiceFrom(source) { useCase -> useCase(source) }
-        } else {
-            sendMessage(message.content.orEmpty(), message.type, message.replyToId)
+        val att = message.primaryAttachment
+        val upperType = message.type.uppercase()
+        when {
+            upperType == VoiceMessageType || upperType == "AUDIO" -> {
+                val source = message.content.orEmpty()
+                sendVoiceFrom(source) { useCase -> useCase(source) }
+            }
+            att != null && !att.localPreviewUrl.isNullOrBlank() && att.storageKey.startsWith("local-") -> {
+                sendAttachment(
+                    PickedAttachment(
+                        uriOrPath = att.localPreviewUrl,
+                        fileName = att.fileName ?: AppStrings.attachmentFallback,
+                        mimeType = att.mimeType ?: if (message.isImage) "image/jpeg" else "application/octet-stream",
+                        sizeBytes = att.sizeBytes ?: 0L,
+                        isImage = message.isImage,
+                    ),
+                    caption = message.content,
+                    replyToId = message.replyToId,
+                )
+            }
+            att != null && !att.storageKey.startsWith("local-") -> {
+                val conv = state.value.selectedConversation ?: return
+                val clientMessageId = ClientIds.next("client")
+                val outgoing = OutgoingAttachment(
+                    storageKey = att.storageKey,
+                    fileName = att.fileName ?: AppStrings.attachmentFallback,
+                    mimeType = att.mimeType ?: "application/octet-stream",
+                    sizeBytes = att.sizeBytes ?: 0L,
+                )
+                insertOptimistic(conv, clientMessageId, message.content.orEmpty(), message.type, message.replyToId, listOf(att))
+                viewModelScope.launch {
+                    deliver(conv, clientMessageId, message.content.orEmpty(), message.type, message.replyToId, outgoing)
+                }
+            }
+            else -> sendMessage(message.content.orEmpty(), message.type, message.replyToId)
         }
     }
 
@@ -504,7 +612,14 @@ class ChatViewModel(
         }
     }
 
-    private fun insertOptimistic(conv: Conversation, clientMessageId: String, content: String, type: String, replyToId: String?) {
+    private fun insertOptimistic(
+        conv: Conversation,
+        clientMessageId: String,
+        content: String,
+        type: String,
+        replyToId: String?,
+        attachments: List<MessageAttachment> = emptyList(),
+    ) {
         if (state.value.selectedConversationId != conv.id) return
         val messages = state.value.messages
         val optimistic = Message(
@@ -516,6 +631,7 @@ class ChatViewModel(
             content = content,
             type = type,
             replyToId = replyToId,
+            attachments = attachments,
             createdAt = Clock.System.now(),
             isOwn = true,
             seq = (messages.lastOrNull()?.seq ?: conv.lastSeq) + 1,
@@ -525,6 +641,26 @@ class ChatViewModel(
             if (s.selectedConversationId == conv.id) {
                 s.copy(messages = messages + optimistic, errorMessage = null)
             } else s
+        }
+    }
+
+    private fun resolveAttachmentUrls(messages: List<Message>) {
+        val resolver = getMediaDownloadUrl ?: return
+        val existing = state.value.resolvedMediaUrls
+        val keys = messages
+            .flatMap { it.attachments }
+            .map { it.storageKey.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("local-") && !existing.containsKey(it) }
+            .distinct()
+        if (keys.isEmpty()) return
+        keys.forEach { key ->
+            viewModelScope.launch {
+                resolver(key).onRight { url ->
+                    mutableState.update { s ->
+                        if (s.resolvedMediaUrls[key] == url) s else s.copy(resolvedMediaUrls = s.resolvedMediaUrls + (key to url))
+                    }
+                }
+            }
         }
     }
 
@@ -587,6 +723,7 @@ class ChatViewModel(
                 } else s
             }
             useCases.saveMessages(incoming.conversationId, state.value.messages)
+            resolveAttachmentUrls(listOf(incoming))
             if (!incoming.isOwn) markRead(incoming.conversationId, incoming.seq)
         }
         updateConversationPreview(

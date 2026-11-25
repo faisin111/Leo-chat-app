@@ -18,6 +18,19 @@ object MediaStrings {
     // Upload
     const val presignIncomplete = "Media presign response is incomplete."
     const val confirmMissingUrl = "Media confirm response has no URL."
-    const val fileNotFound = "Voice recording file was not found."
+    const val downloadMissingUrl = "Media download URL is unavailable."
+    const val fileNotFound = "Selected file was not found."
     const val fileTooLarge = "Files must be 10 MB or smaller."
+
+    // Picker & viewer
+    const val attachTitle = "Share attachment"
+    const val photoFromGallery = "Photo from gallery"
+    const val documentOrFile = "Document or file"
+    const val previewAttachment = "Send attachment"
+    const val addCaptionHint = "Add a caption (optional)"
+    const val sendAttachment = "Send"
+    const val changeFile = "Choose another"
+    const val tapToDownload = "Tap to open"
+    const val uploading = "Uploading..."
+    const val loadingLink = "Loading..."
 }

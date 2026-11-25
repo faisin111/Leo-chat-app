@@ -8,7 +8,9 @@ import com.leochat.feature.media.data.remote.MediaRemoteDataSourceImpl
 import com.leochat.feature.media.data.remote.SystemMediaFileReader
 import com.leochat.feature.media.data.repository.MediaRepositoryImpl
 import com.leochat.feature.media.domain.repository.MediaRepository
+import com.leochat.feature.media.domain.usecase.GetMediaDownloadUrlUseCase
 import com.leochat.feature.media.domain.usecase.SendVoiceMessageUseCase
+import com.leochat.feature.media.domain.usecase.UploadAttachmentUseCase
 import com.leochat.feature.media.domain.usecase.UploadVoiceUseCase
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
@@ -34,10 +36,11 @@ fun createMediaUploadClient(engine: HttpClientEngine): HttpClient = HttpClient(e
 val mediaModule = module {
     single(MediaUploadClient) { createMediaUploadClient(get()) }
     single<MediaRemoteDataSource> { MediaRemoteDataSourceImpl(apiClient = get(), uploadClient = get(MediaUploadClient)) }
-    single<MediaFileReader> { SystemMediaFileReader() }
-    single<MediaRepository> { MediaRepositoryImpl(get(), get()) }
+    single<MediaRepository> { MediaRepositoryImpl(get(), getOrNull<MediaFileReader>() ?: SystemMediaFileReader()) }
     factoryOf(::UploadVoiceUseCase)
     factoryOf(::SendVoiceMessageUseCase)
+    factoryOf(::UploadAttachmentUseCase)
+    factoryOf(::GetMediaDownloadUrlUseCase)
 }
 
 /** Binds platform `VoiceRecorder` and `VoicePlayerFactory`. */

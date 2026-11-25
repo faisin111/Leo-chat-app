@@ -6,6 +6,8 @@ import com.leochat.feature.media.data.remote.PresignRequestDto
 import com.leochat.feature.media.data.remote.PresignResponseDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -26,6 +28,7 @@ interface MediaRemoteDataSource {
     suspend fun presign(mimeType: String, sizeInBytes: Long): PresignResponseDto
     suspend fun upload(uploadUrl: String, bytes: ByteArray, contentType: String)
     suspend fun confirm(storageKey: String): ConfirmResponseDto
+    suspend fun download(storageKey: String): DownloadResponseDto = DownloadResponseDto(storageKey = storageKey)
 }
 
 class MediaRemoteDataSourceImpl(
@@ -46,6 +49,11 @@ class MediaRemoteDataSourceImpl(
         apiClient.post("media/confirm") {
             contentType(ContentType.Application.Json)
             setBody(ConfirmRequestDto(storageKey))
+        }.body()
+
+    override suspend fun download(storageKey: String): DownloadResponseDto =
+        apiClient.get("media/download") {
+            parameter("storageKey", storageKey)
         }.body()
 }
 

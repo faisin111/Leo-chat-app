@@ -11,6 +11,7 @@ import com.leochat.core.network.obj
 import com.leochat.core.network.string
 import com.leochat.feature.chat.domain.model.CurrentIdentity
 import com.leochat.feature.chat.domain.model.Message
+import com.leochat.feature.chat.domain.model.MessageAttachment
 import com.leochat.feature.chat.domain.model.MessageReaction
 import com.leochat.feature.chat.domain.model.MessageReply
 import com.leochat.feature.chat.domain.model.MessageSendStatus
@@ -59,6 +60,44 @@ data class MessageReactionDto(val emoji: String, val count: Int, val users: List
     }
 }
 
+@Serializable
+data class MessageAttachmentDto(
+    val id: String = "",
+    val storageKey: String,
+    val fileName: String? = null,
+    val mimeType: String? = null,
+    val sizeBytes: Long? = null,
+) {
+    fun toDomain() = MessageAttachment(
+        id = id,
+        storageKey = storageKey,
+        fileName = fileName,
+        mimeType = mimeType,
+        sizeBytes = sizeBytes,
+    )
+
+    companion object {
+        fun fromJson(json: JsonObject): MessageAttachmentDto? {
+            val storageKey = json.string("storageKey")?.takeIf { it.isNotBlank() } ?: return null
+            return MessageAttachmentDto(
+                id = json.string("id").orEmpty(),
+                storageKey = storageKey,
+                fileName = json.string("fileName"),
+                mimeType = json.string("mimeType"),
+                sizeBytes = json.long("sizeBytes"),
+            )
+        }
+
+        fun fromDomain(a: MessageAttachment) = MessageAttachmentDto(
+            id = a.id,
+            storageKey = a.storageKey,
+            fileName = a.fileName,
+            mimeType = a.mimeType,
+            sizeBytes = a.sizeBytes,
+        )
+    }
+}
+
 /** Message wire + cache model. Mirrors Flutter `MessageDto`. */
 @Serializable
 data class MessageDto(
@@ -73,6 +112,7 @@ data class MessageDto(
     val content: String? = null,
     val replyToId: String? = null,
     val replyTo: MessageReplyDto? = null,
+    val attachments: List<MessageAttachmentDto> = emptyList(),
     val reactions: List<MessageReactionDto> = emptyList(),
     val createdAt: String? = null,
     val editedAt: String? = null,
@@ -98,6 +138,7 @@ data class MessageDto(
             content = content,
             replyToId = replyToId,
             replyTo = replyTo?.toDomain(),
+            attachments = attachments.map { it.toDomain() },
             reactions = reactions.map { it.toDomain() },
             createdAt = parseInstant(createdAt),
             editedAt = parseInstant(editedAt),
@@ -119,6 +160,20 @@ data class MessageDto(
                 senderUsername.equals("ai", ignoreCase = true) ||
                 senderUsername.equals("LeoChat AI", ignoreCase = true)
 
+            val parsedAttachments = json.array("attachments").objects().mapNotNull(MessageAttachmentDto::fromJson)
+                .ifEmpty {
+                    json.string("storageKey")?.takeIf { it.isNotBlank() }?.let { key ->
+                        listOf(
+                            MessageAttachmentDto(
+                                storageKey = key,
+                                fileName = json.string("fileName"),
+                                mimeType = json.string("mimeType"),
+                                sizeBytes = json.long("sizeBytes"),
+                            ),
+                        )
+                    }.orEmpty()
+                }
+
             return MessageDto(
                 id = json.string("id").orEmpty(),
                 conversationId = json.string("conversationId").orEmpty(),
@@ -131,6 +186,7 @@ data class MessageDto(
                 content = json.string("content"),
                 replyToId = json.string("replyToId"),
                 replyTo = json.obj("replyTo")?.let(MessageReplyDto::fromJson),
+                attachments = parsedAttachments,
                 reactions = json.array("reactions").objects().map(MessageReactionDto::fromJson),
                 createdAt = json.string("createdAt"),
                 editedAt = json.string("editedAt"),
@@ -161,6 +217,7 @@ data class MessageDto(
             content = m.content,
             replyToId = m.replyToId,
             replyTo = m.replyTo?.let { MessageReplyDto(it.id, it.senderId, it.senderUsername, it.senderDisplayName, it.content, it.deleted) },
+            attachments = m.attachments.map(MessageAttachmentDto::fromDomain),
             reactions = m.reactions.map { r -> MessageReactionDto(r.emoji, r.count, r.users.map { ReactionUserDto(it.id, it.username, it.displayName) }) },
             createdAt = m.createdAt?.toString(),
             editedAt = m.editedAt?.toString(),
@@ -179,4 +236,8 @@ data class SendMessageRequestDto(
     val content: String,
     val type: String = "TEXT",
     val replyToId: String? = null,
+    val storageKey: String? = null,
+    val fileName: String? = null,
+    val mimeType: String? = null,
+    val sizeBytes: Long? = null,
 )

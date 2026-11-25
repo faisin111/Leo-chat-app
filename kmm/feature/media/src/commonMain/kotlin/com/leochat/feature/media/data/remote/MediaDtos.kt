@@ -23,4 +23,16 @@ data class PresignResponseDto(
 data class ConfirmRequestDto(val storageKey: String)
 
 @Serializable
-data class ConfirmResponseDto(val url: String? = null)
+data class ConfirmResponseDto(
+    val url: String? = null,
+    val storageKey: String? = null,
+    val contentType: String? = null,
+    val sizeBytes: Long? = null,
+)
+
+@Serializable
+data class DownloadResponseDto(
+    val storageKey: String? = null,
+    val url: String? = null,
+    val expiresIn: Long = 900,
+)

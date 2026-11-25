@@ -18,6 +18,15 @@ data class ReactionUser(val id: String, val username: String, val displayName: S
 
 data class MessageReaction(val emoji: String, val count: Int, val users: List<ReactionUser> = emptyList())
 
+data class MessageAttachment(
+    val id: String = "",
+    val storageKey: String,
+    val fileName: String? = null,
+    val mimeType: String? = null,
+    val sizeBytes: Long? = null,
+    val localPreviewUrl: String? = null,
+)
+
 data class Message(
     val id: String,
     val conversationId: String,
@@ -30,6 +39,7 @@ data class Message(
     val content: String? = null,
     val replyToId: String? = null,
     val replyTo: MessageReply? = null,
+    val attachments: List<MessageAttachment> = emptyList(),
     val reactions: List<MessageReaction> = emptyList(),
     val createdAt: Instant? = null,
     val editedAt: Instant? = null,
@@ -43,16 +53,19 @@ data class Message(
     val effectiveSenderName: String
         get() = senderDisplayName?.takeIf { it.isNotEmpty() } ?: senderUsername.ifEmpty { "User" }
 
+    val primaryAttachment: MessageAttachment?
+        get() = attachments.firstOrNull()
+
     val isVoice: Boolean
         get() = type.trim().uppercase().let { it == "VOICE" || it == "AUDIO" }
 
     val isImage: Boolean
         get() = type.trim().uppercase().let { it == "IMAGE" || it == "PHOTO" || it == "IMAGE_MESSAGE" } &&
-            !content.isNullOrBlank()
+            (!content.isNullOrBlank() || attachments.isNotEmpty())
 
     val isFile: Boolean
         get() = type.trim().uppercase().let { it == "FILE" || it == "DOCUMENT" } &&
-            !content.isNullOrBlank()
+            (!content.isNullOrBlank() || attachments.isNotEmpty())
 
     val isCall: Boolean
         get() = type.trim().uppercase() == "CALL"

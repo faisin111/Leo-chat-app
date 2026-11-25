@@ -7,6 +7,7 @@ import com.leochat.feature.chat.domain.model.ConversationMember
 import com.leochat.feature.chat.domain.model.CurrentIdentity
 import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.domain.repository.ChatRepository
+import com.leochat.feature.chat.domain.repository.OutgoingAttachment
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration.Companion.days
@@ -49,7 +50,8 @@ class SendMessageUseCase(private val repository: ChatRepository) {
         content: String,
         type: String = "TEXT",
         replyToId: String? = null,
-    ): AppResult<Message> = repository.sendMessage(conversationId, clientMessageId, content.trim(), type, replyToId)
+        attachment: OutgoingAttachment? = null,
+    ): AppResult<Message> = repository.sendMessage(conversationId, clientMessageId, content.trim(), type, replyToId, attachment)
 }
 
 class SendAiPromptUseCase(private val repository: ChatRepository) {

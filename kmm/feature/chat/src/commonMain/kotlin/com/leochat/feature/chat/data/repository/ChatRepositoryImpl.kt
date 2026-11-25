@@ -14,6 +14,7 @@ import com.leochat.feature.chat.domain.model.ConversationMember
 import com.leochat.feature.chat.domain.model.CurrentIdentity
 import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.domain.repository.ChatRepository
+import com.leochat.feature.chat.domain.repository.OutgoingAttachment
 
 /**
  * Network-first with cache fallback for lists; cache writes after sends.
@@ -68,10 +69,23 @@ class ChatRepositoryImpl(
         content: String,
         type: String,
         replyToId: String?,
+        attachment: OutgoingAttachment?,
     ): AppResult<Message> {
         val identity = local.identity()
         return safeApiCall {
-            remote.sendMessage(SendMessageRequestDto(conversationId, clientMessageId, content, type, replyToId))
+            remote.sendMessage(
+                SendMessageRequestDto(
+                    conversationId = conversationId,
+                    clientMessageId = clientMessageId,
+                    content = content,
+                    type = type,
+                    replyToId = replyToId,
+                    storageKey = attachment?.storageKey,
+                    fileName = attachment?.fileName,
+                    mimeType = attachment?.mimeType,
+                    sizeBytes = attachment?.sizeBytes,
+                ),
+            )
         }.map { dto ->
             val cached = local.messages(identity.userId, conversationId)
             local.saveMessages(identity.userId, conversationId, cached.filterNot { it.clientMessageId == dto.clientMessageId || it.id == dto.id } + dto)

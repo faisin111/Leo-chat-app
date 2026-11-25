@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.SubcomposeAsyncImage
 import com.leochat.core.common.constants.AppStrings
+import com.leochat.core.common.constants.MediaStrings
 import com.leochat.core.designsystem.component.chat.model.BubbleSendStatus
 import com.leochat.core.designsystem.component.chat.model.ChatBubbleBody
 import com.leochat.core.designsystem.component.chat.model.ChatBubbleUi
@@ -81,6 +83,7 @@ fun ChatBubble(
     voiceContent: @Composable () -> Unit = {},
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
+    onImageClick: ((String) -> Unit)? = null,
 ) {
     val appear = remember(bubble.id) { Animatable(0f) }
     LaunchedEffect(bubble.id) { appear.animateTo(1f, tween(220, easing = EaseOutCubic)) }
@@ -97,9 +100,9 @@ fun ChatBubble(
             is ChatBubbleBody.System -> SystemEventPill(bubble.body.text)
             is ChatBubbleBody.Call -> CallEventPill(bubble, bubble.body)
             else -> if (bubble.isOwn) {
-                OutgoingBubble(bubble, onRetry, voiceContent, onLongClick, onReactionClick)
+                OutgoingBubble(bubble, onRetry, voiceContent, onLongClick, onReactionClick, onImageClick)
             } else {
-                IncomingBubble(bubble, voiceContent, onLongClick, onReactionClick)
+                IncomingBubble(bubble, voiceContent, onLongClick, onReactionClick, onImageClick)
             }
         }
     }
@@ -113,6 +116,7 @@ private fun OutgoingBubble(
     voiceContent: @Composable () -> Unit,
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
+    onImageClick: ((String) -> Unit)? = null,
 ) {
     val isFailed = bubble.sendStatus == BubbleSendStatus.Failed
     val isSending = bubble.sendStatus == BubbleSendStatus.Sending
@@ -130,7 +134,7 @@ private fun OutgoingBubble(
                 .padding(start = 18.dp, top = 14.dp, end = 18.dp, bottom = 12.dp),
         ) {
             bubble.replyTo?.let { ReplyQuote(it, isOwn = true) }
-            MessageBody(bubble.body, isOwn = true, voiceContent)
+            MessageBody(bubble.body, isOwn = true, voiceContent, onImageClick)
             Spacer(Modifier.height(5.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(bubble.time, color = White70, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
@@ -166,6 +170,7 @@ private fun IncomingBubble(
     voiceContent: @Composable () -> Unit,
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
+    onImageClick: ((String) -> Unit)? = null,
 ) {
     val palette = LocalLeoPalette.current
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalAlignment = Alignment.Start) {
@@ -200,7 +205,7 @@ private fun IncomingBubble(
                 .padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 12.dp),
         ) {
             bubble.replyTo?.let { ReplyQuote(it, isOwn = false) }
-            MessageBody(bubble.body, isOwn = false, voiceContent)
+            MessageBody(bubble.body, isOwn = false, voiceContent, onImageClick)
             Spacer(Modifier.height(5.dp))
             Text(
                 bubble.time,
@@ -215,7 +220,12 @@ private fun IncomingBubble(
 }
 
 @Composable
-private fun MessageBody(body: ChatBubbleBody, isOwn: Boolean, voiceContent: @Composable () -> Unit) {
+private fun MessageBody(
+    body: ChatBubbleBody,
+    isOwn: Boolean,
+    voiceContent: @Composable () -> Unit,
+    onImageClick: ((String) -> Unit)? = null,
+) {
     val palette = LocalLeoPalette.current
     when (body) {
         ChatBubbleBody.Deleted -> Row(verticalAlignment = Alignment.CenterVertically) {
@@ -225,7 +235,7 @@ private fun MessageBody(body: ChatBubbleBody, isOwn: Boolean, voiceContent: @Com
             Text(AppStrings.messageDeleted, fontStyle = FontStyle.Italic, fontSize = 14.sp, color = color)
         }
         ChatBubbleBody.Voice -> voiceContent()
-        is ChatBubbleBody.Image -> ImageContent(body.url)
+        is ChatBubbleBody.Image -> ImageContent(body, isOwn, onImageClick)
         is ChatBubbleBody.File -> FileContent(body, isOwn)
         is ChatBubbleBody.Call -> CallEventPillContent(body)
         is ChatBubbleBody.System -> Text(
@@ -248,51 +258,91 @@ private fun MessageBody(body: ChatBubbleBody, isOwn: Boolean, voiceContent: @Com
 private fun FileContent(file: ChatBubbleBody.File, isOwn: Boolean) {
     val palette = LocalLeoPalette.current
     val uriHandler = LocalUriHandler.current
-    val isRemote = file.url.startsWith("http://") || file.url.startsWith("https://")
+    val hasDownloadUrl = file.url.startsWith("http://") || file.url.startsWith("https://")
     val fg = if (isOwn) Color.White else palette.textPrimary
+    val subFg = if (isOwn) White70 else palette.textSecondary
     val bg = if (isOwn) Color.Black.copy(alpha = 0.16f) else palette.surfaceElevated
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(bg)
-            .clickable(enabled = isRemote) { runCatching { uriHandler.openUri(file.url) } }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
+    val subtitleText = when {
+        file.isLoading -> if (hasDownloadUrl) MediaStrings.uploading else MediaStrings.loadingLink
+        file.sizeBytes != null && file.sizeBytes > 0 -> "${formatFileSizeLabel(file.sizeBytes)} · ${MediaStrings.tapToDownload}"
+        else -> MediaStrings.tapToDownload
+    }
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .size(34.dp)
-                .clip(CircleShape)
-                .background(if (isOwn) Color.White.copy(alpha = 0.18f) else LeoColors.primary.copy(alpha = 0.14f)),
+                .clip(RoundedCornerShape(14.dp))
+                .background(bg)
+                .clickable(enabled = hasDownloadUrl) { runCatching { uriHandler.openUri(file.url) } }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
-            Icon(
-                Icons.Rounded.InsertDriveFile,
-                contentDescription = null,
-                tint = if (isOwn) Color.White else LeoColors.primary,
-                modifier = Modifier.size(18.dp),
-            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (isOwn) Color.White.copy(alpha = 0.18f) else LeoColors.primary.copy(alpha = 0.14f)),
+            ) {
+                if (file.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = if (isOwn) Color.White else LeoColors.primary,
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.InsertDriveFile,
+                        contentDescription = null,
+                        tint = if (isOwn) Color.White else LeoColors.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f, fill = false)) {
+                Text(
+                    file.fileName,
+                    color = fg,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    subtitleText,
+                    color = subFg,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (hasDownloadUrl && !file.isLoading) {
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    Icons.AutoMirrored.Rounded.OpenInNew,
+                    contentDescription = null,
+                    tint = fg.copy(alpha = 0.7f),
+                    modifier = Modifier.size(15.dp),
+                )
+            }
         }
-        Spacer(Modifier.width(10.dp))
-        Text(
-            file.fileName,
-            color = fg,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        if (isRemote) {
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                Icons.AutoMirrored.Rounded.OpenInNew,
-                contentDescription = null,
-                tint = fg.copy(alpha = 0.7f),
-                modifier = Modifier.size(15.dp),
+        if (!file.caption.isNullOrBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                file.caption,
+                color = if (isOwn) Color.White else palette.textPrimary,
+                fontSize = 14.sp,
+                lineHeight = 19.sp,
+                fontWeight = FontWeight.Medium,
             )
         }
     }
+}
+
+private fun formatFileSizeLabel(bytes: Long): String = when {
+    bytes < 1024L -> "$bytes B"
+    bytes < 1024L * 1024L -> "${(bytes / 1024.0).let { ((it * 10).toInt() / 10.0) }} KB"
+    else -> "${(bytes / (1024.0 * 1024.0)).let { ((it * 10).toInt() / 10.0) }} MB"
 }
 
 @Composable
@@ -372,20 +422,85 @@ private fun CallEventPillContent(call: ChatBubbleBody.Call) {
 }
 
 @Composable
-private fun ImageContent(url: String) {
+private fun ImageContent(
+    image: ChatBubbleBody.Image,
+    isOwn: Boolean,
+    onImageClick: ((String) -> Unit)? = null,
+) {
     val palette = LocalLeoPalette.current
-    SubcomposeAsyncImage(
-        model = url,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier.size(280.dp, 200.dp).clip(RoundedCornerShape(14.dp)),
-        loading = { Box(Modifier.size(280.dp, 200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(strokeWidth = 2.dp) } },
-        error = {
-            Box(Modifier.size(280.dp, 120.dp).background(palette.input), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.BrokenImage, null, tint = palette.textMuted, modifier = Modifier.size(32.dp))
+    Column {
+        when {
+            image.url.isNotBlank() -> {
+                Box(
+                    modifier = Modifier
+                        .widthIn(min = 160.dp, max = 260.dp)
+                        .heightIn(min = 120.dp, max = 260.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable(enabled = onImageClick != null) { onImageClick?.invoke(image.url) },
+                ) {
+                    SubcomposeAsyncImage(
+                        model = image.url,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 260.dp),
+                        loading = {
+                            Box(
+                                Modifier.size(220.dp, 180.dp).background(palette.input),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(strokeWidth = 2.dp)
+                            }
+                        },
+                        error = {
+                            Box(
+                                Modifier.size(220.dp, 120.dp).background(palette.input),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(Icons.Outlined.BrokenImage, null, tint = palette.textMuted, modifier = Modifier.size(32.dp))
+                            }
+                        },
+                    )
+                    if (image.isLoading) {
+                        Box(
+                            Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.35f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(strokeWidth = 2.5.dp, color = Color.White, modifier = Modifier.size(28.dp))
+                        }
+                    }
+                }
             }
-        },
-    )
+            image.isLoading -> {
+                Box(
+                    Modifier
+                        .size(220.dp, 160.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (isOwn) Color.Black.copy(alpha = 0.2f) else palette.surfaceElevated),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(strokeWidth = 2.dp, color = if (isOwn) Color.White else LeoColors.primary)
+                }
+            }
+            else -> {
+                Box(
+                    Modifier.size(220.dp, 120.dp).clip(RoundedCornerShape(14.dp)).background(palette.input),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Outlined.BrokenImage, null, tint = palette.textMuted, modifier = Modifier.size(32.dp))
+                }
+            }
+        }
+        if (!image.caption.isNullOrBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                image.caption,
+                color = if (isOwn) Color.White else palette.textPrimary,
+                fontSize = 14.sp,
+                lineHeight = 19.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
 }
 
 @Composable

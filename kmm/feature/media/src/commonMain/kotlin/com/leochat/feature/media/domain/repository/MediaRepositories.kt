@@ -1,12 +1,23 @@
 package com.leochat.feature.media.domain.repository
 
 import com.leochat.core.common.result.AppResult
+import com.leochat.feature.media.domain.model.UploadedAttachment
 import com.leochat.feature.media.domain.model.VoicePlaybackState
 import kotlinx.coroutines.flow.StateFlow
 
 interface MediaRepository {
     /** presign → PUT bytes (no Bearer) → confirm. Returns the public media URL. */
     suspend fun uploadVoice(filePath: String): AppResult<String>
+
+    /** presign → PUT bytes (no Bearer) → confirm for any image or document up to 10 MB. */
+    suspend fun uploadAttachment(
+        uriOrPath: String,
+        fileName: String,
+        mimeType: String,
+    ): AppResult<UploadedAttachment>
+
+    /** Resolves and caches an authorized download URL for an existing `storageKey`. */
+    suspend fun getDownloadUrl(storageKey: String): AppResult<String>
 }
 
 /** Platform microphone recorder. One recording at a time. */

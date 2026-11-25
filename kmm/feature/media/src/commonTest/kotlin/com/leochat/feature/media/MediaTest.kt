@@ -12,11 +12,14 @@ import com.leochat.core.platform.storage.InMemorySecureStorage
 import com.leochat.feature.media.data.remote.MediaFileReader
 import com.leochat.feature.media.data.remote.MediaRemoteDataSourceImpl
 import com.leochat.feature.media.data.repository.MediaRepositoryImpl
+import com.leochat.feature.media.domain.model.UploadedAttachment
 import com.leochat.feature.media.domain.model.VoiceRecording
 import com.leochat.feature.media.domain.model.mimeTypeForVoice
 import com.leochat.feature.media.domain.repository.MediaRepository
 import com.leochat.feature.media.domain.repository.VoiceRecorder
+import com.leochat.feature.media.domain.usecase.GetMediaDownloadUrlUseCase
 import com.leochat.feature.media.domain.usecase.SendVoiceMessageUseCase
+import com.leochat.feature.media.domain.usecase.UploadAttachmentUseCase
 import com.leochat.feature.media.domain.usecase.UploadVoiceUseCase
 import com.leochat.feature.media.presentation.VoiceRecordingViewModel
 import com.leochat.feature.media.di.createMediaUploadClient
@@ -52,9 +55,10 @@ class MediaRepositoryImplTest {
         files: MediaFileReader = MediaFileReader { ByteArray(256) { 1 } },
         presignBody: String = """{"uploadUrl":"https://storage.test/bucket/voice.m4a?sig=1","storageKey":"voice/k1","contentType":"audio/mp4"}""",
         confirmBody: String = """{"url":"https://cdn.test/voice/k1.m4a"}""",
+        downloadBody: String = """{"storageKey":"img/k2","url":"https://cdn.test/img/k2.png","expiresIn":900}""",
         failUpload: Boolean = false,
     ): MediaRepository {
-        val engine = MockEngine { request -> handle(request, presignBody, confirmBody, failUpload) }
+        val engine = MockEngine { request -> handle(request, presignBody, confirmBody, downloadBody, failUpload) }
         val secure = InMemorySecureStorage(mapOf(StorageKeys.accessToken to "secret-token"))
         val api = createHttpClient(engine, AppConfig("https://api.test/api/v1", "wss://api.test/ws"), TokenStore(secure), SessionEvents())
         return MediaRepositoryImpl(MediaRemoteDataSourceImpl(api, createMediaUploadClient(engine)), files)
@@ -64,6 +68,7 @@ class MediaRepositoryImplTest {
         request: HttpRequestData,
         presignBody: String,
         confirmBody: String,
+        downloadBody: String,
         failUpload: Boolean,
     ): HttpResponseData {
         requests += request
@@ -71,6 +76,7 @@ class MediaRepositoryImplTest {
         return when {
             path.endsWith("/media/presign") -> respond(presignBody, headers = json)
             path.endsWith("/media/confirm") -> respond(confirmBody, headers = json)
+            path.endsWith("/media/download") -> respond(downloadBody, headers = json)
             request.method == HttpMethod.Put && request.url.host == "storage.test" ->
                 if (failUpload) respondError(HttpStatusCode.Forbidden) else respond("", HttpStatusCode.OK)
             else -> respondError(HttpStatusCode.NotFound)
@@ -126,6 +132,29 @@ class MediaRepositoryImplTest {
     }
 
     @Test
+    fun uploadsImageAttachmentAndCachesDownloadUrl() = runTest {
+        val repo = repository(
+            presignBody = """{"uploadUrl":"https://storage.test/bucket/photo.jpg","storageKey":"img/k2","contentType":"image/jpeg"}""",
+            confirmBody = """{"storageKey":"img/k2","url":"https://cdn.test/img/k2.jpg","contentType":"image/jpeg"}""",
+        )
+        val uploaded = UploadAttachmentUseCase(repo)("content://media/photo/1", "vacation.jpg", "image/jpeg").getOrNull()!!
+        assertEquals("img/k2", uploaded.storageKey)
+        assertEquals("vacation.jpg", uploaded.fileName)
+        assertEquals("https://cdn.test/img/k2.jpg", uploaded.url)
+        assertEquals(256L, uploaded.sizeBytes)
+
+        // Subsequent download URL lookup reuses cached URL from confirm without hitting network
+        val cachedUrl = GetMediaDownloadUrlUseCase(repo)("img/k2").getOrNull()
+        assertEquals("https://cdn.test/img/k2.jpg", cachedUrl)
+        assertFalse(requests.any { it.url.encodedPath.endsWith("/media/download") })
+
+        // Uncached key calls GET /media/download?storageKey=... and caches it
+        val fetched = GetMediaDownloadUrlUseCase(repo)("img/other").getOrNull()
+        assertEquals("https://cdn.test/img/k2.png", fetched)
+        assertEquals(1, requests.count { it.url.encodedPath.endsWith("/media/download") })
+    }
+
+    @Test
     fun mimeTypeFollowsExtension() {
         assertEquals("audio/wav", mimeTypeForVoice("/x/clip.WAV"))
         assertEquals("audio/m4a", mimeTypeForVoice("/x/clip.m4a"))
@@ -140,6 +169,11 @@ private class FakeMediaRepository(private val result: AppResult<String>) : Media
         uploaded += filePath
         return result
     }
+
+    override suspend fun uploadAttachment(uriOrPath: String, fileName: String, mimeType: String): AppResult<UploadedAttachment> =
+        result.map { url -> UploadedAttachment("key-1", url, fileName, mimeType, 128L) }
+
+    override suspend fun getDownloadUrl(storageKey: String): AppResult<String> = result
 }
 
 class MediaUseCasesTest {

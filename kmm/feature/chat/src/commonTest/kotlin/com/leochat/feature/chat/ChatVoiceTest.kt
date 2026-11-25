@@ -9,6 +9,7 @@ import com.leochat.feature.auth.domain.usecase.LogoutUseCase
 import com.leochat.feature.chat.domain.model.MessageSendStatus
 import com.leochat.feature.chat.domain.usecase.ChatUseCaseBundle
 import com.leochat.feature.chat.presentation.ChatViewModel
+import com.leochat.feature.media.domain.model.UploadedAttachment
 import com.leochat.feature.media.domain.model.VoiceRecording
 import com.leochat.feature.media.domain.repository.MediaRepository
 import com.leochat.feature.media.domain.usecase.SendVoiceMessageUseCase
@@ -38,6 +39,11 @@ class ChatVoiceTest {
             uploads += filePath
             return uploadResult
         }
+
+        override suspend fun uploadAttachment(uriOrPath: String, fileName: String, mimeType: String): AppResult<UploadedAttachment> =
+            uploadResult.map { url -> UploadedAttachment("k-voice", url, fileName, mimeType, 128L) }
+
+        override suspend fun getDownloadUrl(storageKey: String): AppResult<String> = uploadResult
     }
 
     private fun TestScope.controller(): ChatViewModel {

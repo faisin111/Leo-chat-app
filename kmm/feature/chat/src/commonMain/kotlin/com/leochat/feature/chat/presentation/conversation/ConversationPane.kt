@@ -38,6 +38,7 @@ fun ConversationPane(
         onOpenDetails = { c -> if (c.isGroup) nav.onGroupDetails(c.id) else nav.onSharedMedia(c.id) },
         onCall = nav.onStartCall,
         onVoiceRecorded = controller::sendVoice,
+        onSendAttachment = { picked, caption, replyToId -> controller.sendAttachment(picked, caption, replyToId) },
         onTogglePin = controller::togglePin,
         onToggleMute = controller::toggleMute,
         onToggleArchive = controller::toggleArchive,

@@ -7,6 +7,7 @@ import com.leochat.core.designsystem.component.chat.model.MemberRoleUi
 import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.domain.model.ConversationMember
 import com.leochat.feature.chat.domain.model.Message
+import com.leochat.feature.chat.domain.model.MessageAttachment
 import com.leochat.feature.chat.domain.model.MessageReaction
 import com.leochat.feature.chat.domain.model.MessageReply
 import com.leochat.feature.chat.domain.model.MessageSendStatus
@@ -78,6 +79,31 @@ class ChatUiMappersTest {
         assertEquals(
             ChatBubbleBody.File("https://cdn/doc/spec.pdf", "spec.pdf"),
             Message("f", "c", type = "FILE", content = "https://cdn/doc/spec.pdf").toBubbleUi().body,
+        )
+        // Web-style image & file messages store caption (or empty) in `content` and metadata in `attachments`
+        val webImage = Message(
+            id = "wi",
+            conversationId = "c",
+            type = "IMAGE",
+            content = "",
+            attachments = listOf(MessageAttachment(id = "a1", storageKey = "img/p1", fileName = "p1.jpg", mimeType = "image/jpeg", sizeBytes = 4096L)),
+        )
+        assertTrue(webImage.isImage)
+        assertEquals(
+            ChatBubbleBody.Image("https://dl.test/p1.jpg", caption = null, isLoading = false),
+            webImage.toBubbleUi(resolvedMediaUrls = mapOf("img/p1" to "https://dl.test/p1.jpg")).body,
+        )
+        val webFile = Message(
+            id = "wf",
+            conversationId = "c",
+            type = "FILE",
+            content = "Quarterly report",
+            attachments = listOf(MessageAttachment(id = "a2", storageKey = "doc/q1", fileName = "q1.pdf", mimeType = "application/pdf", sizeBytes = 2048L)),
+        )
+        assertTrue(webFile.isFile)
+        assertEquals(
+            ChatBubbleBody.File("https://dl.test/q1.pdf", "q1.pdf", sizeBytes = 2048L, caption = "Quarterly report", isLoading = false),
+            webFile.toBubbleUi(resolvedMediaUrls = mapOf("doc/q1" to "https://dl.test/q1.pdf")).body,
         )
         assertEquals(
             ChatBubbleBody.Call("Video call", isVideo = true, isMissed = false),

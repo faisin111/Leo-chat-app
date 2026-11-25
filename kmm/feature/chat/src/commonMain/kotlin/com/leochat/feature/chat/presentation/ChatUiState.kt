@@ -18,6 +18,7 @@ data class ChatUiState(
     val selectedConversation: Conversation? = null,
     val isLoadingMessages: Boolean = false,
     val messages: List<Message> = emptyList(),
+    val resolvedMediaUrls: Map<String, String> = emptyMap(),
     val typingStatusText: String? = null,
     val realtimeStatus: RealtimeStatus = RealtimeStatus.Disconnected,
     val errorMessage: String? = null,

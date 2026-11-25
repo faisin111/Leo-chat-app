@@ -40,17 +40,49 @@ fun MessageSendStatus.toUi(): BubbleSendStatus = when (this) {
     MessageSendStatus.Failed -> BubbleSendStatus.Failed
 }
 
-fun Message.toBubbleBody(): ChatBubbleBody = when {
-    deleted -> ChatBubbleBody.Deleted
-    isSystem -> ChatBubbleBody.System(content.orEmpty().trim())
-    isCall -> callSummary().let { ChatBubbleBody.Call(it.label, it.isVideo, it.isMissed) }
-    isVoice -> ChatBubbleBody.Voice
-    isImage -> ChatBubbleBody.Image(content.orEmpty().trim())
-    isFile -> ChatBubbleBody.File(
-        url = content.orEmpty().trim(),
-        fileName = SharedMediaRules.fileName(content.orEmpty().trim()).ifBlank { AppStrings.attachmentFallback },
-    )
-    else -> ChatBubbleBody.Text(content.orEmpty())
+fun Message.voiceAudioUrl(resolvedMediaUrls: Map<String, String> = emptyMap()): String? {
+    val att = primaryAttachment
+    val resolvedFromAtt = att?.localPreviewUrl ?: att?.storageKey?.let { resolvedMediaUrls[it] }
+    if (!resolvedFromAtt.isNullOrBlank()) return resolvedFromAtt
+    return content?.trim()?.substringBefore('\n')?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+fun Message.toBubbleBody(resolvedMediaUrls: Map<String, String> = emptyMap()): ChatBubbleBody {
+    val att = primaryAttachment
+    val rawContent = content.orEmpty().trim()
+    val firstLine = rawContent.substringBefore('\n').trim()
+    val directUrl = firstLine.takeIf {
+        it.startsWith("http://") || it.startsWith("https://") || it.startsWith("content://") || it.startsWith("file://")
+    }
+    val resolvedUrl = att?.localPreviewUrl ?: att?.storageKey?.let { resolvedMediaUrls[it] } ?: directUrl.orEmpty()
+    val caption = when {
+        attachments.isNotEmpty() -> rawContent.takeIf { it.isNotEmpty() }
+        rawContent.contains('\n') -> rawContent.substringAfter('\n').trim().takeIf { it.isNotEmpty() }
+        directUrl == null -> rawContent.takeIf { it.isNotEmpty() }
+        else -> null
+    }
+    val isResolving = (att != null && resolvedUrl.isBlank()) || sendStatus == MessageSendStatus.Sending
+
+    return when {
+        deleted -> ChatBubbleBody.Deleted
+        isSystem -> ChatBubbleBody.System(rawContent)
+        isCall -> callSummary().let { ChatBubbleBody.Call(it.label, it.isVideo, it.isMissed) }
+        isVoice -> ChatBubbleBody.Voice
+        isImage -> ChatBubbleBody.Image(
+            url = resolvedUrl,
+            caption = caption,
+            isLoading = isResolving,
+        )
+        isFile -> ChatBubbleBody.File(
+            url = resolvedUrl,
+            fileName = att?.fileName?.takeIf { it.isNotBlank() }
+                ?: SharedMediaRules.fileName(directUrl ?: rawContent).ifBlank { AppStrings.attachmentFallback },
+            sizeBytes = att?.sizeBytes,
+            caption = caption,
+            isLoading = isResolving,
+        )
+        else -> ChatBubbleBody.Text(content.orEmpty())
+    }
 }
 
 fun MessageReply.toQuoteUi(): ReplyQuoteUi =
@@ -60,6 +92,7 @@ fun MessageReply.toQuoteUi(): ReplyQuoteUi =
 fun Message.toBubbleUi(
     zone: TimeZone = TimeZone.currentSystemDefault(),
     fallbackSenderName: String? = null,
+    resolvedMediaUrls: Map<String, String> = emptyMap(),
 ): ChatBubbleUi = ChatBubbleUi(
     id = id,
     isOwn = isOwn,
@@ -72,7 +105,7 @@ fun Message.toBubbleUi(
     },
     isAiGenerated = aiGenerated,
     time = TimeFormat.clock(createdAt, zone),
-    body = toBubbleBody(),
+    body = toBubbleBody(resolvedMediaUrls),
     replyTo = replyTo?.takeUnless { deleted }?.toQuoteUi(),
     reactions = if (deleted) emptyList() else reactions.map { ReactionUi(it.emoji, it.count) },
     sendStatus = sendStatus.toUi(),

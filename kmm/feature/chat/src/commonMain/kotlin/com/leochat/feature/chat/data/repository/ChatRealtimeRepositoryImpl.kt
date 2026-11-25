@@ -14,6 +14,7 @@ import com.leochat.feature.chat.domain.model.MessageAck
 import com.leochat.feature.chat.domain.model.RealtimeStatus
 import com.leochat.feature.chat.domain.model.TypingEvent
 import com.leochat.feature.chat.domain.repository.ChatRealtimeRepository
+import com.leochat.feature.chat.domain.repository.OutgoingAttachment
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -73,17 +74,29 @@ class ChatRealtimeRepositoryImpl(private val stomp: StompClient) : ChatRealtimeR
         stomp.unsubscribe(typingTopic(conversationId))
     }
 
-    override suspend fun sendMessage(conversationId: String, clientMessageId: String, content: String, type: String, replyToId: String?) =
-        stomp.send(
-            "/app/chat.send",
-            buildJsonObject {
-                put("conversationId", conversationId)
-                put("clientMessageId", clientMessageId)
-                put("content", content)
-                put("type", type)
-                replyToId?.let { put("replyToId", it) }
-            }.toString(),
-        )
+    override suspend fun sendMessage(
+        conversationId: String,
+        clientMessageId: String,
+        content: String,
+        type: String,
+        replyToId: String?,
+        attachment: OutgoingAttachment?,
+    ) = stomp.send(
+        "/app/chat.send",
+        buildJsonObject {
+            put("conversationId", conversationId)
+            put("clientMessageId", clientMessageId)
+            put("content", content)
+            put("type", type)
+            replyToId?.let { put("replyToId", it) }
+            attachment?.let {
+                put("storageKey", it.storageKey)
+                put("fileName", it.fileName)
+                put("mimeType", it.mimeType)
+                put("sizeBytes", it.sizeBytes)
+            }
+        }.toString(),
+    )
 
     override suspend fun sendAiChat(conversationId: String, prompt: String, clientMessageId: String) =
         stomp.send(

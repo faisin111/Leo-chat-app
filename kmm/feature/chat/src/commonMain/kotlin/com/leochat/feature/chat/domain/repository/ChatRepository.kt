@@ -10,6 +10,13 @@ import com.leochat.feature.chat.domain.model.RealtimeStatus
 import com.leochat.feature.chat.domain.model.TypingEvent
 import kotlinx.coroutines.flow.Flow
 
+data class OutgoingAttachment(
+    val storageKey: String,
+    val fileName: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+)
+
 /** REST + cache operations. Mirrors `ChatRepository` in Flutter. */
 interface ChatRepository {
     suspend fun currentIdentity(): CurrentIdentity
@@ -23,6 +30,7 @@ interface ChatRepository {
         content: String,
         type: String = "TEXT",
         replyToId: String? = null,
+        attachment: OutgoingAttachment? = null,
     ): AppResult<Message>
     suspend fun editMessage(messageId: String, content: String): AppResult<Message>
     suspend fun deleteMessage(messageId: String): AppResult<Unit>
@@ -63,7 +71,14 @@ interface ChatRealtimeRepository {
     fun typing(conversationId: String): Flow<TypingEvent>
     fun acks(): Flow<MessageAck>
     fun unsubscribe(conversationId: String)
-    suspend fun sendMessage(conversationId: String, clientMessageId: String, content: String, type: String = "TEXT", replyToId: String? = null): Boolean
+    suspend fun sendMessage(
+        conversationId: String,
+        clientMessageId: String,
+        content: String,
+        type: String = "TEXT",
+        replyToId: String? = null,
+        attachment: OutgoingAttachment? = null,
+    ): Boolean
     suspend fun sendAiChat(conversationId: String, prompt: String, clientMessageId: String): Boolean
     suspend fun sendTyping(conversationId: String, isTyping: Boolean): Boolean
     suspend fun sendRead(conversationId: String, upToSeq: Long): Boolean

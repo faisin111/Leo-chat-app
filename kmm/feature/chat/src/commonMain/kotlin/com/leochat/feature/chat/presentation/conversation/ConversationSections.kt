@@ -45,6 +45,7 @@ import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.domain.usecase.AiPrompt
 import com.leochat.feature.chat.presentation.mapper.toBubbleUi
 import com.leochat.feature.chat.presentation.mapper.toHeaderUi
+import com.leochat.feature.chat.presentation.mapper.voiceAudioUrl
 import com.leochat.feature.media.domain.model.VoiceRecording
 import com.leochat.feature.media.presentation.formatRecordingTime
 import com.leochat.feature.media.presentation.permission.MediaPermission
@@ -91,19 +92,24 @@ internal fun ConversationHeaderSection(
 internal fun MessageBubble(
     message: Message,
     fallbackSenderName: String? = null,
+    resolvedMediaUrls: Map<String, String> = emptyMap(),
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
+    onImageClick: ((String) -> Unit)? = null,
 ) {
-    val bubble = remember(message, fallbackSenderName) { message.toBubbleUi(fallbackSenderName = fallbackSenderName) }
+    val bubble = remember(message, fallbackSenderName, resolvedMediaUrls) {
+        message.toBubbleUi(fallbackSenderName = fallbackSenderName, resolvedMediaUrls = resolvedMediaUrls)
+    }
     ChatBubble(
         bubble = bubble,
         onRetry = onRetry,
         modifier = modifier,
-        voiceContent = { VoiceMessagePlayer(isOwn = message.isOwn, audioUrl = message.content?.trim()) },
+        voiceContent = { VoiceMessagePlayer(isOwn = message.isOwn, audioUrl = message.voiceAudioUrl(resolvedMediaUrls)) },
         onLongClick = onLongClick,
         onReactionClick = onReactionClick,
+        onImageClick = onImageClick,
     )
 }
 

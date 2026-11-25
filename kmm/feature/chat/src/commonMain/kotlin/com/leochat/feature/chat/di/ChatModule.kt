@@ -28,5 +28,5 @@ val chatModule = module {
     factoryOf(::StartDirectMessageUseCase)
     factoryOf(::CreateGroupUseCase)
 
-    viewModel { ChatViewModel(get(), get(), get(), get(), getOrNull()) }
+    viewModel { ChatViewModel(get(), get(), get(), get(), getOrNull(), getOrNull(), getOrNull()) }
 }

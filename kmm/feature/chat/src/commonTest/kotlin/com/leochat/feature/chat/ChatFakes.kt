@@ -12,6 +12,7 @@ import com.leochat.feature.chat.domain.model.RealtimeStatus
 import com.leochat.feature.chat.domain.model.TypingEvent
 import com.leochat.feature.chat.domain.repository.ChatRealtimeRepository
 import com.leochat.feature.chat.domain.repository.ChatRepository
+import com.leochat.feature.chat.domain.repository.OutgoingAttachment
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,7 @@ class FakeChatRepository : ChatRepository {
     var cachedConversations = listOf<Conversation>()
     val cachedMessages = mutableMapOf<String, List<Message>>()
     val sent = mutableListOf<String>()
+    val sentAttachments = mutableListOf<OutgoingAttachment>()
     val read = mutableListOf<Pair<String, Long>>()
 
     // Contacts / group overrides. Defaults keep the original fake behavior.
@@ -46,10 +48,18 @@ class FakeChatRepository : ChatRepository {
     override suspend fun getConversation(conversationId: String): AppResult<Conversation> =
         conversationResult?.invoke(conversationId) ?: Either.Right(Conversation(conversationId))
     override suspend fun getMessages(conversationId: String, beforeSeq: Long?, afterSeq: Long?, limit: Int) = messages
-    override suspend fun sendMessage(conversationId: String, clientMessageId: String, content: String, type: String, replyToId: String?): AppResult<Message> {
+    override suspend fun sendMessage(
+        conversationId: String,
+        clientMessageId: String,
+        content: String,
+        type: String,
+        replyToId: String?,
+        attachment: OutgoingAttachment?,
+    ): AppResult<Message> {
         sent += content
+        if (attachment != null) sentAttachments += attachment
         return sendResult?.invoke(clientMessageId)
-            ?: Either.Right(Message(id = "srv-${sent.size}", conversationId = conversationId, clientMessageId = clientMessageId, content = content, seq = 100L + sent.size, senderId = me.userId, isOwn = true))
+            ?: Either.Right(Message(id = "srv-${sent.size}", conversationId = conversationId, clientMessageId = clientMessageId, content = content, type = type, seq = 100L + sent.size, senderId = me.userId, isOwn = true))
     }
     override suspend fun editMessage(messageId: String, content: String): AppResult<Message> = Either.Right(Message(messageId, "c1", content = content))
     override suspend fun deleteMessage(messageId: String): AppResult<Unit> = Either.Right(Unit)
@@ -120,7 +130,14 @@ class FakeRealtime : ChatRealtimeRepository {
     override fun typing(conversationId: String): Flow<TypingEvent> = typingFlow
     override fun acks(): Flow<MessageAck> = ackFlow
     override fun unsubscribe(conversationId: String) = Unit
-    override suspend fun sendMessage(conversationId: String, clientMessageId: String, content: String, type: String, replyToId: String?) = acceptSends
+    override suspend fun sendMessage(
+        conversationId: String,
+        clientMessageId: String,
+        content: String,
+        type: String,
+        replyToId: String?,
+        attachment: OutgoingAttachment?,
+    ) = acceptSends
     override suspend fun sendAiChat(conversationId: String, prompt: String, clientMessageId: String) = acceptSends
     override suspend fun sendTyping(conversationId: String, isTyping: Boolean): Boolean {
         typingSent += isTyping

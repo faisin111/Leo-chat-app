@@ -1,19 +1,29 @@
 package com.leochat.feature.chat
 
 import com.leochat.core.common.result.AppFailure
+import com.leochat.core.common.result.AppResult
 import com.leochat.core.common.result.Either
+import com.leochat.core.common.serialization.LeoJson
 import com.leochat.feature.auth.FakeAuthRepository
 import com.leochat.feature.auth.domain.usecase.GetCurrentUserUseCase
 import com.leochat.feature.auth.domain.usecase.LogoutUseCase
+import com.leochat.feature.chat.data.remote.MessageDto
 import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.domain.model.ConversationMember
 import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.domain.model.MessageAck
+import com.leochat.feature.chat.domain.model.MessageAttachment
 import com.leochat.feature.chat.domain.model.MessageSendStatus
 import com.leochat.feature.chat.domain.model.TypingEvent
 import com.leochat.feature.chat.domain.usecase.ChatUseCaseBundle
 import com.leochat.feature.chat.presentation.ChatViewModel
 import com.leochat.feature.chat.presentation.ChatFilter
+import com.leochat.feature.media.domain.model.PickedAttachment
+import com.leochat.feature.media.domain.model.UploadedAttachment
+import com.leochat.feature.media.domain.repository.MediaRepository
+import com.leochat.feature.media.domain.usecase.GetMediaDownloadUrlUseCase
+import com.leochat.feature.media.domain.usecase.UploadAttachmentUseCase
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -254,5 +264,59 @@ class ChatControllerTest {
         assertFalse(realtime.connected)
         assertTrue(c.state.value.signedOut)
         assertTrue("logout" in auth.calls)
+    }
+
+    @Test
+    fun sendAttachmentUploadsResolvesAndParsesWebAttachments() = runTest {
+        val mediaRepo = object : MediaRepository {
+            override suspend fun uploadVoice(filePath: String): AppResult<String> = Either.Right("https://cdn.test/v.m4a")
+            override suspend fun uploadAttachment(uriOrPath: String, fileName: String, mimeType: String): AppResult<UploadedAttachment> =
+                Either.Right(UploadedAttachment("img/uploaded-1", "https://cdn.test/uploaded-1.jpg", fileName, mimeType, 1024L))
+            override suspend fun getDownloadUrl(storageKey: String): AppResult<String> =
+                Either.Right("https://cdn.test/$storageKey")
+        }
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val c = ChatViewModel(
+            useCases = ChatUseCaseBundle.from(repo),
+            realtime = realtime,
+            getCurrentUser = GetCurrentUserUseCase(auth),
+            logout = LogoutUseCase(auth),
+            uploadAttachment = UploadAttachmentUseCase(mediaRepo),
+            getMediaDownloadUrl = GetMediaDownloadUrlUseCase(mediaRepo),
+        )
+        advanceUntilIdle()
+
+        c.sendAttachment(PickedAttachment("content://gallery/1", "sunset.jpg", "image/jpeg", 1024L, isImage = true), "Sunset!")
+        val optimistic = c.state.value.messages.single()
+        assertEquals(MessageSendStatus.Sending, optimistic.sendStatus)
+        assertEquals("IMAGE", optimistic.type)
+        assertEquals("content://gallery/1", optimistic.primaryAttachment?.localPreviewUrl)
+
+        advanceUntilIdle()
+        assertEquals("img/uploaded-1", repo.sentAttachments.single().storageKey)
+        assertEquals("sunset.jpg", repo.sentAttachments.single().fileName)
+        assertEquals("https://cdn.test/uploaded-1.jpg", c.state.value.resolvedMediaUrls["img/uploaded-1"])
+
+        // Incoming Web image message with empty caption & storageKey attachment triggers download URL resolution
+        realtime.messageFlow.emit(
+            Message(
+                id = "web-img-1",
+                conversationId = "c1",
+                senderId = "u2",
+                type = "IMAGE",
+                content = "",
+                seq = 200L,
+                attachments = listOf(MessageAttachment("att-1", "img/remote-9", "photo.png", "image/png", 512L)),
+            ),
+        )
+        advanceUntilIdle()
+        assertEquals("https://cdn.test/img/remote-9", c.state.value.resolvedMediaUrls["img/remote-9"])
+
+        val json = LeoJson.parseToJsonElement(
+            """{"id":"m-att","conversationId":"c1","type":"IMAGE","content":"","attachments":[{"id":"a1","storageKey":"img/k9","fileName":"p.png","mimeType":"image/png","sizeBytes":2048}]}""",
+        ) as JsonObject
+        val dto = MessageDto.fromJson(json).toDomain(me)
+        assertTrue(dto.isImage)
+        assertEquals("img/k9", dto.primaryAttachment?.storageKey)
     }
 }

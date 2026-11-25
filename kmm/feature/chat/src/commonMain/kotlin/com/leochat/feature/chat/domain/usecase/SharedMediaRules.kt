@@ -20,6 +20,7 @@ object SharedMediaRules {
 
     fun isImage(message: Message): Boolean {
         if (message.type.uppercase() in imageTypes) return true
+        if (message.attachments.any { it.mimeType?.startsWith("image/", ignoreCase = true) == true }) return true
         val content = message.content.orEmpty().lowercase()
         return imageExtensions.any(content::endsWith)
     }
@@ -27,6 +28,7 @@ object SharedMediaRules {
     fun isFile(message: Message): Boolean {
         if (isImage(message)) return false
         if (message.type.uppercase() in fileTypes) return true
+        if (message.attachments.isNotEmpty()) return true
         val content = message.content.orEmpty().lowercase()
         return fileExtensions.any(content::endsWith)
     }
