@@ -127,7 +127,12 @@ fun ConversationHeader(
                     }
                 }
                 Spacer(Modifier.height(3.dp))
-                Text(header.subtitle, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = secondaryText)
+                val subtitleColor = when {
+                    header.isTyping -> LeoColors.primary
+                    header.isOnline && !header.isAi && !header.isGroup -> LeoColors.success
+                    else -> secondaryText
+                }
+                Text(header.subtitle, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = subtitleColor)
             }
         }
         Spacer(Modifier.width(8.dp))

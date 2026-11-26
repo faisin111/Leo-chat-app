@@ -7,6 +7,7 @@ import com.leochat.feature.auth.domain.model.AuthSession
 import com.leochat.feature.auth.domain.model.User
 import com.leochat.feature.auth.domain.repository.AuthRepository
 import com.leochat.feature.users.domain.model.ProfileUpdate
+import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserProfile
 import com.leochat.feature.users.domain.model.UserSearchItem
 import com.leochat.feature.users.domain.model.UserSessionItem
@@ -37,6 +38,7 @@ class SettingsFakeUsersRepository(
     override suspend fun getSessions(): AppResult<List<UserSessionItem>> = sessionsResult.also { calls += "sessions" }
     override suspend fun revokeSession(sessionId: String): AppResult<Unit> = revokeResult.also { calls += "revoke:$sessionId" }
     override suspend fun deactivateAccount(): AppResult<Unit> = deactivateResult.also { calls += "deactivate" }
+    override suspend fun getPresence(ids: List<String>): AppResult<List<UserPresence>> = Either.Right(emptyList())
 
     companion object {
         val sampleProfile = UserProfile(

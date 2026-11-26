@@ -2,6 +2,7 @@ package com.leochat.feature.users.domain.repository
 
 import com.leochat.core.common.result.AppResult
 import com.leochat.feature.users.domain.model.ProfileUpdate
+import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserProfile
 import com.leochat.feature.users.domain.model.UserSearchItem
 import com.leochat.feature.users.domain.model.UserSessionItem
@@ -14,4 +15,5 @@ interface UsersRepository {
     suspend fun getSessions(): AppResult<List<UserSessionItem>>
     suspend fun revokeSession(sessionId: String): AppResult<Unit>
     suspend fun deactivateAccount(): AppResult<Unit>
+    suspend fun getPresence(ids: List<String>): AppResult<List<UserPresence>>
 }

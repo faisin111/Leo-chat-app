@@ -19,7 +19,13 @@ sealed interface ChatBubbleBody {
         val caption: String? = null,
         val isLoading: Boolean = false,
     ) : ChatBubbleBody
-    data class Call(val label: String, val isVideo: Boolean, val isMissed: Boolean) : ChatBubbleBody
+    data class Call(
+        val label: String,
+        val subtitle: String,
+        val isVideo: Boolean,
+        val isMissed: Boolean,
+        val isOutgoing: Boolean = false,
+    ) : ChatBubbleBody
     data class System(val text: String) : ChatBubbleBody
     data class Text(val text: String) : ChatBubbleBody
 }
@@ -71,6 +77,7 @@ data class ConversationHeaderUi(
     val subtitle: String,
     val avatarUrl: String?,
     val isOnline: Boolean,
+    val isTyping: Boolean = false,
     val isAi: Boolean,
     val isGroup: Boolean,
     val isPinned: Boolean = false,

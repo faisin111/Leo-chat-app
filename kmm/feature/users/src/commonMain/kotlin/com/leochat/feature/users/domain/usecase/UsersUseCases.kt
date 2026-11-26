@@ -3,6 +3,7 @@ package com.leochat.feature.users.domain.usecase
 import com.leochat.core.common.result.AppResult
 import com.leochat.core.common.result.Either
 import com.leochat.feature.users.domain.model.ProfileUpdate
+import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserProfile
 import com.leochat.feature.users.domain.model.UserSearchItem
 import com.leochat.feature.users.domain.model.UserSessionItem
@@ -38,4 +39,11 @@ class RevokeSessionUseCase(private val repository: UsersRepository) {
 
 class DeactivateAccountUseCase(private val repository: UsersRepository) {
     suspend operator fun invoke(): AppResult<Unit> = repository.deactivateAccount()
+}
+
+class GetUsersPresenceUseCase(private val repository: UsersRepository) {
+    suspend operator fun invoke(ids: List<String>): AppResult<List<UserPresence>> {
+        val cleanIds = ids.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        return if (cleanIds.isEmpty()) Either.Right(emptyList()) else repository.getPresence(cleanIds)
+    }
 }

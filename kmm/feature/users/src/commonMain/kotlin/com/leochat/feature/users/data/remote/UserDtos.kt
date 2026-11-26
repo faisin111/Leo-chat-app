@@ -1,9 +1,11 @@
 package com.leochat.feature.users.data.remote
 
 import com.leochat.core.network.bool
+import com.leochat.core.network.firstString
 import com.leochat.core.network.int
 import com.leochat.core.network.string
 import com.leochat.core.common.util.parseInstant
+import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserProfile
 import com.leochat.feature.users.domain.model.UserSearchItem
 import com.leochat.feature.users.domain.model.UserSessionItem
@@ -49,5 +51,12 @@ object UserDtoMapper {
         platform = json.string("platform"),
         appVersion = json.string("appVersion"),
         active = json.bool("active") != false,
+    )
+
+    fun presence(json: JsonObject) = UserPresence(
+        userId = json.firstString("userId", "id").orEmpty(),
+        online = json.bool("online"),
+        status = json.string("status") ?: "ACTIVE",
+        lastSeenAt = parseInstant(json.string("lastSeenAt")),
     )
 }

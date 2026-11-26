@@ -133,8 +133,12 @@ data class ConversationDto(
                 else -> t("displayName", "name", "username").orEmpty()
             }
 
+            val isOwnLastMessage = selfId != null && lastMessageSenderId != null &&
+                lastMessageSenderId.equals(selfId, ignoreCase = true)
             val resolvedLastMessageSnippet = json.firstString("lastMessageSnippet", "snippet")
-                ?: lastMessage?.let { Message.previewSnippet(lastMessageType, lastMessageContent, lastMessageDeleted) }
+                ?: lastMessage?.let {
+                    Message.previewSnippet(lastMessageType, lastMessageContent, lastMessageDeleted, isOwn = isOwnLastMessage)
+                }
 
             return ConversationDto(
                 id = json.string("id").orEmpty(),

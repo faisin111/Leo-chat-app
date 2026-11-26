@@ -21,6 +21,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -49,6 +50,13 @@ class UsersRepositoryImplTest {
                     headers = json,
                 )
                 path.endsWith("/users/me/profile") -> respond("", HttpStatusCode.NoContent)
+                path.endsWith("/users/presence") -> respond(
+                    """[
+                      {"userId":"u-online","online":true,"lastSeenAt":"2026-11-26T07:00:00Z","status":"ACTIVE"},
+                      {"userId":"u-offline","online":false,"lastSeenAt":"2026-11-26T06:50:00Z","status":"ACTIVE"}
+                    ]""",
+                    headers = json,
+                )
                 path.endsWith("/users/missing") -> respondError(HttpStatusCode.NotFound)
                 else -> respondError(HttpStatusCode.NotFound)
             }
@@ -99,5 +107,19 @@ class UsersRepositoryImplTest {
         val result = SearchUsersUseCase(repo)("   ")
         assertEquals(emptyList(), result.getOrNull())
         assertTrue(requests.isEmpty())
+    }
+
+    @Test
+    fun presenceReadsOnlineBooleanAndFormatsLastSeen() = runTest {
+        val items = repo.getPresence(listOf("u-online", "u-offline")).getOrNull()!!
+        val now = Instant.parse("2026-11-26T07:05:00Z")
+
+        assertEquals(listOf("u-online", "u-offline"), items.map { it.userId })
+        assertTrue(items[0].isOnline(now))
+        assertEquals("Active now", items[0].statusLabel(now))
+
+        // Uses backend real-time `online=false` cleanly and formats last-seen relative text
+        assertFalse(items[1].isOnline(now))
+        assertEquals("Active 15m ago", items[1].statusLabel(now))
     }
 }

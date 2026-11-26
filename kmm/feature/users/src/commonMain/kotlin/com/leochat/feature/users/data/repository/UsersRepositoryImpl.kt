@@ -13,4 +13,5 @@ class UsersRepositoryImpl(private val remote: UsersRemoteDataSource) : UsersRepo
     override suspend fun getSessions() = safeApiCall { remote.getSessions() }
     override suspend fun revokeSession(sessionId: String) = safeApiCall { remote.revokeSession(sessionId) }
     override suspend fun deactivateAccount() = safeApiCall { remote.deactivateAccount() }
+    override suspend fun getPresence(ids: List<String>) = safeApiCall { remote.getPresence(ids) }
 }

@@ -73,32 +73,69 @@ data class Message(
     val isSystem: Boolean
         get() = type.trim().uppercase() == "SYSTEM"
 
-    fun callSummary(): CallSummary = parseCallSummary(content)
+    fun callSummary(): CallSummary = parseCallSummary(content, isOwn)
 
-    fun previewSnippet(): String? = previewSnippet(type, content, deleted)
+    fun previewSnippet(): String? = previewSnippet(type, content, deleted, isOwn)
 
     fun hasUserReacted(emoji: String): Boolean = reactions.any { r ->
         r.emoji == emoji && (r.users.any { it.id == senderId } || (isOwn && r.count > 0))
     }
 
-    data class CallSummary(val label: String, val isVideo: Boolean, val isMissed: Boolean)
+    data class CallSummary(
+        val label: String,
+        val subtitle: String,
+        val isVideo: Boolean,
+        val isMissed: Boolean,
+        val isOutgoing: Boolean = false,
+    )
 
     companion object {
-        fun parseCallSummary(content: String?): CallSummary {
+        fun parseCallSummary(content: String?, isOwn: Boolean = false): CallSummary {
             val raw = content?.trim().orEmpty()
             val lower = raw.lowercase()
             val isVideo = lower.contains("video")
             val isMissed = lower.contains("missed") || lower.contains("declined") ||
                 lower.contains("unavailable") || lower.contains("unanswered")
+
             val label = when {
-                raw.isBlank() || raw.startsWith("{") ->
-                    if (isVideo) AppStrings.videoCallLabel else AppStrings.voiceCallLabel
-                else -> raw
+                isMissed -> when {
+                    isOwn && isVideo -> AppStrings.outgoingVideoCallLabel
+                    isOwn -> AppStrings.outgoingCallLabel
+                    isVideo -> AppStrings.missedVideoCallLabel
+                    else -> AppStrings.missedCallLabel
+                }
+                isOwn && isVideo -> AppStrings.outgoingVideoCallLabel
+                isOwn -> AppStrings.outgoingCallLabel
+                isVideo -> AppStrings.incomingVideoCallLabel
+                else -> AppStrings.incomingCallLabel
             }
-            return CallSummary(label = label, isVideo = isVideo, isMissed = isMissed)
+
+            val subtitle = when {
+                isMissed && !isOwn -> AppStrings.tapToCallBack
+                raw.isNotBlank() &&
+                    !raw.equals("call", ignoreCase = true) &&
+                    !raw.equals("voice call", ignoreCase = true) &&
+                    !raw.equals("video call", ignoreCase = true) &&
+                    !raw.equals(label, ignoreCase = true) &&
+                    !raw.startsWith("{") -> raw
+                isVideo -> AppStrings.videoCallLabel
+                else -> AppStrings.voiceCallLabel
+            }
+            return CallSummary(
+                label = label,
+                subtitle = subtitle,
+                isVideo = isVideo,
+                isMissed = isMissed,
+                isOutgoing = isOwn,
+            )
         }
 
-        fun previewSnippet(type: String?, content: String?, deleted: Boolean): String? {
+        fun previewSnippet(
+            type: String?,
+            content: String?,
+            deleted: Boolean,
+            isOwn: Boolean = false,
+        ): String? {
             if (deleted) return AppStrings.messageDeleted
             val normalizedType = type?.trim()?.uppercase().orEmpty()
             val trimmed = content?.trim()?.takeIf { it.isNotEmpty() }
@@ -110,7 +147,7 @@ data class Message(
                     if (fileName != null && !fileName.startsWith("http")) "📎 $fileName" else AppStrings.filePreview
                 }
                 "CALL" -> {
-                    val summary = parseCallSummary(trimmed)
+                    val summary = parseCallSummary(trimmed, isOwn)
                     if (summary.isVideo) "📹 ${summary.label}" else "📞 ${summary.label}"
                 }
                 "SYSTEM" -> trimmed

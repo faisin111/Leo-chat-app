@@ -26,6 +26,7 @@ import com.leochat.feature.chat.domain.usecase.SharedMediaRules
 import com.leochat.feature.chat.presentation.ChatFilter
 import com.leochat.feature.chat.presentation.GroupDetailsUiState
 import com.leochat.feature.chat.presentation.SharedMediaFilter
+import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserSearchItem
 import kotlinx.datetime.TimeZone
 
@@ -66,7 +67,15 @@ fun Message.toBubbleBody(resolvedMediaUrls: Map<String, String> = emptyMap()): C
     return when {
         deleted -> ChatBubbleBody.Deleted
         isSystem -> ChatBubbleBody.System(rawContent)
-        isCall -> callSummary().let { ChatBubbleBody.Call(it.label, it.isVideo, it.isMissed) }
+        isCall -> callSummary().let {
+            ChatBubbleBody.Call(
+                label = it.label,
+                subtitle = it.subtitle,
+                isVideo = it.isVideo,
+                isMissed = it.isMissed,
+                isOutgoing = it.isOutgoing,
+            )
+        }
         isVoice -> ChatBubbleBody.Voice
         isImage -> ChatBubbleBody.Image(
             url = resolvedUrl,
@@ -143,22 +152,39 @@ fun Conversation.toTileUi(): ConversationTileUi {
     )
 }
 
-fun Conversation.toHeaderUi(): ConversationHeaderUi = ConversationHeaderUi(
-    title = if (isAi) AppStrings.leoAiAssistant else effectiveTitle,
-    subtitle = when {
+fun Conversation.toHeaderUi(
+    presence: UserPresence? = null,
+    typingText: String? = null,
+): ConversationHeaderUi {
+    val cleanHandle = targetUsername?.trim()?.takeIf { it.isNotEmpty() }
+    val onlineNow = !isGroup && !isAi && (presence?.isOnline() ?: isOnline)
+    val lastSeenLabel = presence?.statusLabel()
+    val typing = !isGroup && !isAi && !typingText.isNullOrBlank()
+
+    val subtitle = when {
         isAi -> AppStrings.aiSubtitleHeader
         isGroup -> AppStrings.groupConversation
-        isOnline -> AppStrings.online
+        typing -> typingText.orEmpty()
+        onlineNow -> cleanHandle?.let { "${AppStrings.activeNow} · @$it" } ?: AppStrings.activeNow
+        lastSeenLabel != null && lastSeenLabel != AppStrings.offline ->
+            cleanHandle?.let { "$lastSeenLabel · @$it" } ?: lastSeenLabel
+        cleanHandle != null -> "@$cleanHandle"
         else -> AppStrings.offline
-    },
-    avatarUrl = preferredAvatarUrl,
-    isOnline = isOnline,
-    isAi = isAi,
-    isGroup = isGroup,
-    isPinned = isPinned,
-    isMuted = isMuted,
-    isArchived = status.equals("ARCHIVED", ignoreCase = true),
-)
+    }
+
+    return ConversationHeaderUi(
+        title = if (isAi) AppStrings.leoAiAssistant else effectiveTitle,
+        subtitle = subtitle,
+        avatarUrl = preferredAvatarUrl,
+        isOnline = onlineNow,
+        isTyping = typing,
+        isAi = isAi,
+        isGroup = isGroup,
+        isPinned = isPinned,
+        isMuted = isMuted,
+        isArchived = status.equals("ARCHIVED", ignoreCase = true),
+    )
+}
 
 fun Conversation.toRecentContactUi(): RecentContactUi = RecentContactUi(
     id = id,

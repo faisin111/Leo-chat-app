@@ -25,9 +25,12 @@ import com.leochat.feature.chat.presentation.mapper.toSharedFileUi
 import com.leochat.feature.chat.presentation.mapper.toSharedLinkUi
 import com.leochat.feature.chat.presentation.mapper.toSharedThumbUi
 import com.leochat.feature.chat.presentation.mapper.toTileUi
+import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserSearchItem
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import kotlin.time.Duration.Companion.minutes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -106,12 +109,34 @@ class ChatUiMappersTest {
             webFile.toBubbleUi(resolvedMediaUrls = mapOf("doc/q1" to "https://dl.test/q1.pdf")).body,
         )
         assertEquals(
-            ChatBubbleBody.Call("Video call", isVideo = true, isMissed = false),
-            Message("k1", "c", type = "CALL", content = "Video call").toBubbleUi().body,
+            ChatBubbleBody.Call(
+                label = AppStrings.outgoingCallLabel,
+                subtitle = AppStrings.voiceCallLabel,
+                isVideo = false,
+                isMissed = false,
+                isOutgoing = true,
+            ),
+            Message("k0", "c", type = "CALL", content = "Call", isOwn = true).toBubbleUi().body,
         )
         assertEquals(
-            ChatBubbleBody.Call("Missed voice call", isVideo = false, isMissed = true),
-            Message("k2", "c", type = "CALL", content = "Missed voice call").toBubbleUi().body,
+            ChatBubbleBody.Call(
+                label = AppStrings.incomingVideoCallLabel,
+                subtitle = AppStrings.videoCallLabel,
+                isVideo = true,
+                isMissed = false,
+                isOutgoing = false,
+            ),
+            Message("k1", "c", type = "CALL", content = "Video call", isOwn = false).toBubbleUi().body,
+        )
+        assertEquals(
+            ChatBubbleBody.Call(
+                label = AppStrings.missedCallLabel,
+                subtitle = AppStrings.tapToCallBack,
+                isVideo = false,
+                isMissed = true,
+                isOutgoing = false,
+            ),
+            Message("k2", "c", type = "CALL", content = "Missed voice call", isOwn = false).toBubbleUi().body,
         )
         assertEquals(
             ChatBubbleBody.System("Maya joined"),
@@ -126,8 +151,9 @@ class ChatUiMappersTest {
         assertEquals(AppStrings.photoPreview, Message.previewSnippet("IMAGE", "https://cdn/img.png", deleted = false))
         assertEquals(AppStrings.voicePreview, Message.previewSnippet("VOICE", "https://cdn/v.m4a", deleted = false))
         assertEquals("📎 report.pdf", Message.previewSnippet("FILE", "https://cdn/report.pdf", deleted = false))
-        assertEquals("📞 Voice call", Message.previewSnippet("CALL", "Voice call", deleted = false))
-        assertEquals("📹 Video call", Message.previewSnippet("CALL", "Video call", deleted = false))
+        assertEquals("📞 ${AppStrings.outgoingCallLabel}", Message.previewSnippet("CALL", "Call", deleted = false, isOwn = true))
+        assertEquals("📞 ${AppStrings.incomingCallLabel}", Message.previewSnippet("CALL", "Call", deleted = false, isOwn = false))
+        assertEquals("📹 ${AppStrings.incomingVideoCallLabel}", Message.previewSnippet("CALL", "Video call", deleted = false, isOwn = false))
         assertEquals("Alex joined", Message.previewSnippet("SYSTEM", "Alex joined", deleted = false))
     }
 
@@ -167,12 +193,27 @@ class ChatUiMappersTest {
     }
 
     @Test
-    fun headerTitleAndSubtitleFollowConversationKind() {
+    fun headerTitleAndSubtitleFollowConversationKindAndPresence() {
         val ai = Conversation("a", type = "AI").toHeaderUi()
         assertEquals(AppStrings.leoAiAssistant, ai.title)
         assertEquals(AppStrings.aiSubtitleHeader, ai.subtitle)
         assertEquals(AppStrings.groupConversation, Conversation("g", title = "T", type = "GROUP").toHeaderUi().subtitle)
-        assertEquals(AppStrings.online, Conversation("d", isOnline = true).toHeaderUi().subtitle)
+
+        val online = Conversation("d", targetUsername = "maya", isOnline = true)
+            .toHeaderUi(presence = UserPresence("u2", online = true, status = "ACTIVE"))
+        assertEquals("${AppStrings.activeNow} · @maya", online.subtitle)
+        assertTrue(online.isOnline)
+
+        val recent = Conversation("d", targetUsername = "maya", isOnline = false)
+            .toHeaderUi(presence = UserPresence("u2", online = false, status = "ACTIVE", lastSeenAt = Clock.System.now() - 8.minutes))
+        assertTrue(recent.subtitle.endsWith("· @maya"))
+        assertFalse(recent.isOnline)
+
+        val typing = Conversation("d", targetUsername = "maya", isOnline = true)
+            .toHeaderUi(presence = UserPresence("u2", online = true), typingText = AppStrings.typingSuffix)
+        assertEquals(AppStrings.typingSuffix, typing.subtitle)
+        assertTrue(typing.isTyping)
+
         assertEquals(AppStrings.offline, Conversation("d").toHeaderUi().subtitle)
     }
 

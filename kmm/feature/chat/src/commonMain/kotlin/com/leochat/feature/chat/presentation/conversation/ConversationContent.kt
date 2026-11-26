@@ -142,6 +142,8 @@ fun ConversationContent(
     Column(modifier.fillMaxSize()) {
         ConversationHeaderSection(
             conversation = conversation,
+            presence = state.presenceFor(conversation),
+            typingStatusText = state.typingStatusText,
             showBackButton = showBackButton,
             onBack = onBack,
             onOpenDetails = { onOpenDetails(conversation) },
@@ -173,6 +175,9 @@ fun ConversationContent(
                         onMessageLongClick = { actionMessage = it },
                         onReactionClick = { messageId, emoji -> onToggleReaction(messageId, emoji) },
                         onImageClick = { url -> previewImageUrl = url },
+                        onCallAgain = if (!conversation.isGroup && !conversation.isAi) {
+                            { isVideo -> onCall(conversation, isVideo) }
+                        } else null,
                     )
                 }
             }
@@ -320,6 +325,7 @@ private fun MessageList(
     onMessageLongClick: (Message) -> Unit = {},
     onReactionClick: (messageId: String, emoji: String) -> Unit = { _, _ -> },
     onImageClick: ((String) -> Unit)? = null,
+    onCallAgain: ((isVideo: Boolean) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -358,6 +364,7 @@ private fun MessageList(
                     onLongClick = if (message.isSystem || message.isCall) null else { { onMessageLongClick(message) } },
                     onReactionClick = { emoji -> onReactionClick(message.id, emoji) },
                     onImageClick = onImageClick,
+                    onCallAgain = if (message.isCall) onCallAgain else null,
                 )
             }
             if (state.typingStatusText != null) {

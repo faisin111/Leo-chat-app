@@ -7,6 +7,7 @@ import com.leochat.feature.users.domain.usecase.DeactivateAccountUseCase
 import com.leochat.feature.users.domain.usecase.GetMyProfileUseCase
 import com.leochat.feature.users.domain.usecase.GetSessionsUseCase
 import com.leochat.feature.users.domain.usecase.GetUserProfileUseCase
+import com.leochat.feature.users.domain.usecase.GetUsersPresenceUseCase
 import com.leochat.feature.users.domain.usecase.RevokeSessionUseCase
 import com.leochat.feature.users.domain.usecase.SearchUsersUseCase
 import com.leochat.feature.users.domain.usecase.UpdateProfileUseCase
@@ -26,4 +27,5 @@ val usersModule = module {
     factoryOf(::GetSessionsUseCase)
     factoryOf(::RevokeSessionUseCase)
     factoryOf(::DeactivateAccountUseCase)
+    factoryOf(::GetUsersPresenceUseCase)
 }

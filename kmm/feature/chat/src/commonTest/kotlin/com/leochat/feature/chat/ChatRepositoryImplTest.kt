@@ -126,8 +126,14 @@ class ChatRepositoryImplTest {
             """{"id":"c2","type":"DIRECT","lastMessage":{"id":"m2","senderId":"u2","type":"CALL","content":"Video call","createdAt":"2026-11-25T10:05:00Z","deleted":false}}""",
         ) as JsonObject
         val callDto = ConversationDto.fromJson(callObj, currentUserId = "u1")
-        assertEquals("📹 Video call", callDto.lastMessageSnippet)
+        assertEquals("📹 Incoming video call", callDto.lastMessageSnippet)
         assertEquals("2026-11-25T10:05:00Z", callDto.lastMessageAt)
+
+        val outgoingCallObj = LeoJson.parseToJsonElement(
+            """{"id":"c2b","type":"DIRECT","lastMessage":{"id":"m2b","senderId":"u1","type":"CALL","content":"Video call","createdAt":"2026-11-25T10:05:30Z","deleted":false}}""",
+        ) as JsonObject
+        val outgoingCallDto = ConversationDto.fromJson(outgoingCallObj, currentUserId = "u1")
+        assertEquals("📹 Outgoing video call", outgoingCallDto.lastMessageSnippet)
 
         val fileObj = LeoJson.parseToJsonElement(
             """{"id":"c3","type":"DIRECT","lastMessage":{"id":"m3","senderId":"u2","type":"FILE","content":"https://cdn/spec.pdf","createdAt":"2026-11-25T10:06:00Z","deleted":false}}""",

@@ -23,6 +23,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.CallMade
+import androidx.compose.material.icons.automirrored.rounded.CallMissed
+import androidx.compose.material.icons.automirrored.rounded.CallReceived
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Done
@@ -30,7 +33,6 @@ import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.rounded.Call
-import androidx.compose.material.icons.rounded.CallMissed
 import androidx.compose.material.icons.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.CircularProgressIndicator
@@ -84,6 +86,7 @@ fun ChatBubble(
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
     onImageClick: ((String) -> Unit)? = null,
+    onCallAgain: ((isVideo: Boolean) -> Unit)? = null,
 ) {
     val appear = remember(bubble.id) { Animatable(0f) }
     LaunchedEffect(bubble.id) { appear.animateTo(1f, tween(220, easing = EaseOutCubic)) }
@@ -98,11 +101,10 @@ fun ChatBubble(
     ) {
         when (bubble.body) {
             is ChatBubbleBody.System -> SystemEventPill(bubble.body.text)
-            is ChatBubbleBody.Call -> CallEventPill(bubble, bubble.body)
             else -> if (bubble.isOwn) {
-                OutgoingBubble(bubble, onRetry, voiceContent, onLongClick, onReactionClick, onImageClick)
+                OutgoingBubble(bubble, onRetry, voiceContent, onLongClick, onReactionClick, onImageClick, onCallAgain)
             } else {
-                IncomingBubble(bubble, voiceContent, onLongClick, onReactionClick, onImageClick)
+                IncomingBubble(bubble, voiceContent, onLongClick, onReactionClick, onImageClick, onCallAgain)
             }
         }
     }
@@ -117,6 +119,7 @@ private fun OutgoingBubble(
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
     onImageClick: ((String) -> Unit)? = null,
+    onCallAgain: ((isVideo: Boolean) -> Unit)? = null,
 ) {
     val isFailed = bubble.sendStatus == BubbleSendStatus.Failed
     val isSending = bubble.sendStatus == BubbleSendStatus.Sending
@@ -134,7 +137,7 @@ private fun OutgoingBubble(
                 .padding(start = 18.dp, top = 14.dp, end = 18.dp, bottom = 12.dp),
         ) {
             bubble.replyTo?.let { ReplyQuote(it, isOwn = true) }
-            MessageBody(bubble.body, isOwn = true, voiceContent, onImageClick)
+            MessageBody(bubble.body, isOwn = true, voiceContent, onImageClick, onCallAgain)
             Spacer(Modifier.height(5.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(bubble.time, color = White70, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
@@ -171,6 +174,7 @@ private fun IncomingBubble(
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
     onImageClick: ((String) -> Unit)? = null,
+    onCallAgain: ((isVideo: Boolean) -> Unit)? = null,
 ) {
     val palette = LocalLeoPalette.current
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalAlignment = Alignment.Start) {
@@ -205,7 +209,7 @@ private fun IncomingBubble(
                 .padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 12.dp),
         ) {
             bubble.replyTo?.let { ReplyQuote(it, isOwn = false) }
-            MessageBody(bubble.body, isOwn = false, voiceContent, onImageClick)
+            MessageBody(bubble.body, isOwn = false, voiceContent, onImageClick, onCallAgain)
             Spacer(Modifier.height(5.dp))
             Text(
                 bubble.time,
@@ -225,6 +229,7 @@ private fun MessageBody(
     isOwn: Boolean,
     voiceContent: @Composable () -> Unit,
     onImageClick: ((String) -> Unit)? = null,
+    onCallAgain: ((isVideo: Boolean) -> Unit)? = null,
 ) {
     val palette = LocalLeoPalette.current
     when (body) {
@@ -237,7 +242,7 @@ private fun MessageBody(
         ChatBubbleBody.Voice -> voiceContent()
         is ChatBubbleBody.Image -> ImageContent(body, isOwn, onImageClick)
         is ChatBubbleBody.File -> FileContent(body, isOwn)
-        is ChatBubbleBody.Call -> CallEventPillContent(body)
+        is ChatBubbleBody.Call -> CallBubbleContent(body, isOwn, onCallAgain)
         is ChatBubbleBody.System -> Text(
             body.text,
             color = if (isOwn) Color.White else palette.textSecondary,
@@ -367,57 +372,85 @@ private fun SystemEventPill(text: String) {
 }
 
 @Composable
-private fun CallEventPill(bubble: ChatBubbleUi, call: ChatBubbleBody.Call) {
+private fun CallBubbleContent(
+    call: ChatBubbleBody.Call,
+    isOwn: Boolean,
+    onCallAgain: ((isVideo: Boolean) -> Unit)? = null,
+) {
     val palette = LocalLeoPalette.current
-    Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(palette.surfaceElevated)
-                .border(1.dp, palette.border, RoundedCornerShape(20.dp))
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-        ) {
-            CallEventPillContent(call)
-            if (bubble.time.isNotBlank()) {
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    bubble.time,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = palette.textMuted,
-                )
-            }
-        }
+    val directionIcon = when {
+        call.isMissed -> Icons.AutoMirrored.Rounded.CallMissed
+        call.isOutgoing -> Icons.AutoMirrored.Rounded.CallMade
+        else -> Icons.AutoMirrored.Rounded.CallReceived
     }
-}
+    val incomingAccent = when {
+        call.isMissed -> LeoColors.destructive
+        call.isOutgoing -> LeoColors.primary
+        else -> LeoColors.success
+    }
+    val badgeBackground = if (isOwn) Color.White.copy(alpha = 0.20f) else incomingAccent.copy(alpha = 0.14f)
+    val badgeTint = if (isOwn) Color.White else incomingAccent
+    val titleColor = if (isOwn) Color.White else palette.textPrimary
+    val subtitleColor = if (isOwn) White70 else palette.textSecondary
+    val actionBackground = if (isOwn) Color.White.copy(alpha = 0.22f) else LeoColors.primary.copy(alpha = 0.12f)
+    val actionTint = if (isOwn) Color.White else LeoColors.primary
+    val typeIcon = if (call.isVideo) Icons.Rounded.Videocam else Icons.Rounded.Call
 
-@Composable
-private fun CallEventPillContent(call: ChatBubbleBody.Call) {
-    val palette = LocalLeoPalette.current
-    val accent = if (call.isMissed) LeoColors.destructive else LeoColors.success
-    val icon = when {
-        call.isMissed -> Icons.Rounded.CallMissed
-        call.isVideo -> Icons.Rounded.Videocam
-        else -> Icons.Rounded.Call
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.widthIn(min = 210.dp, max = 320.dp),
+    ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(26.dp)
+                .size(40.dp)
                 .clip(CircleShape)
-                .background(accent.copy(alpha = 0.16f)),
+                .background(badgeBackground),
         ) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(14.dp))
+            Icon(directionIcon, contentDescription = null, tint = badgeTint, modifier = Modifier.size(19.dp))
         }
-        Spacer(Modifier.width(8.dp))
-        Text(
-            call.label,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = palette.textPrimary,
-        )
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = call.label,
+                fontSize = 14.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (!isOwn && call.isMissed) LeoColors.destructive else titleColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(typeIcon, contentDescription = null, tint = subtitleColor, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(5.dp))
+                Text(
+                    text = call.subtitle,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = subtitleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (onCallAgain != null) {
+            Spacer(Modifier.width(12.dp))
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(actionBackground)
+                    .clickable { onCallAgain(call.isVideo) },
+            ) {
+                Icon(
+                    imageVector = typeIcon,
+                    contentDescription = AppStrings.callAgain,
+                    tint = actionTint,
+                    modifier = Modifier.size(17.dp),
+                )
+            }
+        }
     }
 }
 

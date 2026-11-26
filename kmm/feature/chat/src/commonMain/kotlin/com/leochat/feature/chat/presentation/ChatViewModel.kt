@@ -29,6 +29,8 @@ import com.leochat.feature.media.domain.model.VoiceRecording
 import com.leochat.feature.media.domain.usecase.GetMediaDownloadUrlUseCase
 import com.leochat.feature.media.domain.usecase.SendVoiceMessageUseCase
 import com.leochat.feature.media.domain.usecase.UploadAttachmentUseCase
+import com.leochat.feature.users.domain.model.UserPresence
+import com.leochat.feature.users.domain.usecase.GetUsersPresenceUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +53,8 @@ class ChatViewModel(
     private val sendVoiceMessage: SendVoiceMessageUseCase? = null,
     private val uploadAttachment: UploadAttachmentUseCase? = null,
     private val getMediaDownloadUrl: GetMediaDownloadUrlUseCase? = null,
+    private val getUsersPresence: GetUsersPresenceUseCase? = null,
+    private val enablePresencePolling: Boolean = true,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = mutableState.asStateFlow()
@@ -60,6 +64,7 @@ class ChatViewModel(
     private var selectJob: Job? = null
     private var typingClearJob: Job? = null
     private var loadConversationsJob: Job? = null
+    private var presencePollingJob: Job? = null
     private var isLocalUserTyping = false
     private var lastLocalTypingAt = 0L
 
@@ -79,6 +84,14 @@ class ChatViewModel(
             }
             loadConversations()
             loadUnreadCount()
+            if (getUsersPresence != null && enablePresencePolling) {
+                presencePollingJob = launch {
+                    while (true) {
+                        delay(10_000L)
+                        refreshPresenceInternal()
+                    }
+                }
+            }
         }
     }
 
@@ -109,12 +122,16 @@ class ChatViewModel(
                 },
                 ifRight = { items ->
                     mutableState.update { s ->
-                        val refreshedSelection = s.selectedConversation?.let { sel -> items.firstOrNull { it.id == sel.id } ?: sel }
-                        s.copy(conversations = items, isLoadingConversations = false, selectedConversation = refreshedSelection)
+                        val withPresence = items.map { it.applyPresence(s.presenceByUserId) }
+                        val refreshedSelection = s.selectedConversation?.let { sel ->
+                            withPresence.firstOrNull { it.id == sel.id } ?: sel.applyPresence(s.presenceByUserId)
+                        }
+                        s.copy(conversations = withPresence, isLoadingConversations = false, selectedConversation = refreshedSelection)
                     }
-                    if (!isSearch) useCases.saveConversations(items)
+                    if (!isSearch) useCases.saveConversations(state.value.conversations)
                     // Flutter preselects the first chat so the split view never starts empty.
-                    if (state.value.selectedConversation == null && items.isNotEmpty()) selectConversation(items.first())
+                    if (state.value.selectedConversation == null && items.isNotEmpty()) selectConversation(state.value.conversations.first())
+                    refreshPresenceInternal()
                 },
             )
         }
@@ -808,6 +825,8 @@ class ChatViewModel(
         if (state.value.isSigningOut) return
         mutableState.update { it.copy(isSigningOut = true) }
         viewModelScope.launch {
+            presencePollingJob?.cancel()
+            presencePollingJob = null
             selectJob?.cancel()
             selectJob = null
             conversationJobs.forEach { it.cancel() }
@@ -819,12 +838,56 @@ class ChatViewModel(
     }
 
     override fun onCleared() {
+        presencePollingJob?.cancel()
+        presencePollingJob = null
         selectJob?.cancel()
         selectJob = null
         conversationJobs.forEach { it.cancel() }
         conversationJobs = emptyList()
         realtime.disconnect()
         super.onCleared()
+    }
+
+    fun refreshPresence(): Job = viewModelScope.launch { refreshPresenceInternal() }
+
+    private suspend fun refreshPresenceInternal() {
+        val useCase = getUsersPresence ?: return
+        val selfId = identity.userId.ifBlank { state.value.currentUser?.id.orEmpty() }.takeIf { it.isNotBlank() }
+        val peerIds = buildSet {
+            state.value.conversations.forEach { conv ->
+                conv.resolveDirectTargetUserId(selfId)?.let(::add)
+            }
+            state.value.selectedConversation?.resolveDirectTargetUserId(selfId)?.let(::add)
+        }.toList()
+        if (peerIds.isEmpty()) return
+
+        useCase(peerIds).onRight { items ->
+            if (items.isEmpty()) return@onRight
+            val incomingMap = items.filter { it.userId.isNotBlank() }.associateBy { it.userId }
+            mutableState.update { s ->
+                val mergedPresence = s.presenceByUserId + incomingMap
+                val updatedConversations = s.conversations.map { it.applyPresence(mergedPresence, selfId) }
+                val updatedSelection = s.selectedConversation?.let { sel ->
+                    updatedConversations.firstOrNull { it.id == sel.id } ?: sel.applyPresence(mergedPresence, selfId)
+                }
+                s.copy(
+                    presenceByUserId = mergedPresence,
+                    conversations = updatedConversations,
+                    selectedConversation = updatedSelection,
+                )
+            }
+        }
+    }
+
+    private fun Conversation.applyPresence(
+        presenceMap: Map<String, UserPresence>,
+        selfId: String? = identity.userId.ifBlank { state.value.currentUser?.id.orEmpty() }.takeIf { it.isNotBlank() },
+    ): Conversation {
+        if (isGroup || isAi) return this
+        val peerId = resolveDirectTargetUserId(selfId) ?: return this
+        val entry = presenceMap[peerId] ?: return this
+        val onlineNow = entry.isOnline()
+        return if (isOnline == onlineNow) this else copy(isOnline = onlineNow)
     }
 
     private fun nowMillis() = Clock.System.now().toEpochMilliseconds()

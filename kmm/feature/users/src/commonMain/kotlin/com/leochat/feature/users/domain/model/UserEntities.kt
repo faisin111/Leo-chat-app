@@ -1,6 +1,38 @@
 package com.leochat.feature.users.domain.model
 
+import com.leochat.core.common.constants.AppStrings
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlin.time.Duration.Companion.minutes
+
+/** Live user presence returned by `/api/v1/users/presence`. */
+data class UserPresence(
+    val userId: String,
+    val online: Boolean? = null,
+    val status: String = "ACTIVE",
+    val lastSeenAt: Instant? = null,
+) {
+    fun isOnline(now: Instant = Clock.System.now()): Boolean {
+        if (!status.equals("ACTIVE", ignoreCase = true)) return false
+        if (online != null) return online
+        val seen = lastSeenAt ?: return false
+        val diff = now - seen
+        return !diff.isNegative() && diff < 5.minutes
+    }
+
+    fun statusLabel(now: Instant = Clock.System.now()): String {
+        if (isOnline(now)) return AppStrings.activeNow
+        val seen = lastSeenAt ?: return AppStrings.offline
+        val diffMin = (now - seen).inWholeMinutes
+        if (diffMin < 0) return AppStrings.offline
+        return when {
+            diffMin < 1L -> AppStrings.activeJustNow
+            diffMin < 60L -> AppStrings.activeMinutesAgo(diffMin)
+            diffMin < 24L * 60L -> AppStrings.activeHoursAgo(diffMin / 60L)
+            else -> AppStrings.activeDaysAgo(diffMin / (24L * 60L))
+        }
+    }
+}
 
 data class UserProfile(
     val id: String,

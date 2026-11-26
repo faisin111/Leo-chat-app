@@ -23,6 +23,13 @@ import com.leochat.feature.media.domain.model.UploadedAttachment
 import com.leochat.feature.media.domain.repository.MediaRepository
 import com.leochat.feature.media.domain.usecase.GetMediaDownloadUrlUseCase
 import com.leochat.feature.media.domain.usecase.UploadAttachmentUseCase
+import com.leochat.feature.users.domain.model.ProfileUpdate
+import com.leochat.feature.users.domain.model.UserPresence
+import com.leochat.feature.users.domain.model.UserProfile
+import com.leochat.feature.users.domain.model.UserSearchItem
+import com.leochat.feature.users.domain.model.UserSessionItem
+import com.leochat.feature.users.domain.repository.UsersRepository
+import com.leochat.feature.users.domain.usecase.GetUsersPresenceUseCase
 import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -238,12 +245,12 @@ class ChatControllerTest {
         val c = controller()
         advanceUntilIdle()
 
-        // Persistent CALL message arrives and updates conversation preview
+        // Persistent CALL message arrives and updates conversation preview with Incoming/Outgoing context
         realtime.messageFlow.emit(
-            Message("call-msg-1", "c1", senderId = "u2", type = "CALL", content = "Voice call", seq = 5),
+            Message("call-msg-1", "c1", senderId = "u2", type = "CALL", content = "Voice call", isOwn = false, seq = 5),
         )
         advanceUntilIdle()
-        assertEquals("📞 Voice call", c.state.value.conversations.first { it.id == "c1" }.lastMessageSnippet)
+        assertEquals("📞 Incoming call", c.state.value.conversations.first { it.id == "c1" }.lastMessageSnippet)
         assertEquals(5L, c.state.value.conversations.first { it.id == "c1" }.lastSeq)
 
         // Older seq message must not overwrite newer preview snippet or lastSeq
@@ -251,7 +258,7 @@ class ChatControllerTest {
             Message("old-msg", "c1", senderId = "u2", type = "TEXT", content = "older text", seq = 2),
         )
         advanceUntilIdle()
-        assertEquals("📞 Voice call", c.state.value.conversations.first { it.id == "c1" }.lastMessageSnippet)
+        assertEquals("📞 Incoming call", c.state.value.conversations.first { it.id == "c1" }.lastMessageSnippet)
         assertEquals(5L, c.state.value.conversations.first { it.id == "c1" }.lastSeq)
     }
 
@@ -318,5 +325,38 @@ class ChatControllerTest {
         val dto = MessageDto.fromJson(json).toDomain(me)
         assertTrue(dto.isImage)
         assertEquals("img/k9", dto.primaryAttachment?.storageKey)
+    }
+
+    @Test
+    fun refreshPresenceUpdatesConversationOnlineBadgeAndStateMap() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        repo.conversations = Either.Right(listOf(Conversation("c1", targetUserId = "u2", targetUsername = "maya")))
+        val vm = ChatViewModel(
+            useCases = ChatUseCaseBundle.from(repo),
+            realtime = realtime,
+            getCurrentUser = GetCurrentUserUseCase(auth),
+            logout = LogoutUseCase(auth),
+            getUsersPresence = GetUsersPresenceUseCase(FakePresenceUsersRepo()),
+            enablePresencePolling = false,
+        )
+        advanceUntilIdle()
+
+        val conv = vm.state.value.conversations.first { it.id == "c1" }
+        assertTrue(conv.isOnline)
+        assertTrue(vm.state.value.selectedConversation?.isOnline == true)
+        assertEquals(true, vm.state.value.presenceByUserId["u2"]?.online)
+    }
+
+    private class FakePresenceUsersRepo : UsersRepository {
+        override suspend fun getPresence(ids: List<String>) = Either.Right(
+            ids.map { UserPresence(userId = it, online = true, status = "ACTIVE") },
+        )
+        override suspend fun getMe(): AppResult<UserProfile> = error("unused")
+        override suspend fun getUserById(id: String): AppResult<UserProfile> = error("unused")
+        override suspend fun searchUsers(query: String, page: Int, size: Int): AppResult<List<UserSearchItem>> = Either.Right(emptyList())
+        override suspend fun updateProfile(update: ProfileUpdate): AppResult<Unit> = Either.Right(Unit)
+        override suspend fun getSessions(): AppResult<List<UserSessionItem>> = Either.Right(emptyList())
+        override suspend fun revokeSession(sessionId: String): AppResult<Unit> = Either.Right(Unit)
+        override suspend fun deactivateAccount(): AppResult<Unit> = Either.Right(Unit)
     }
 }

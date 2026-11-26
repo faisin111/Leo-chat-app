@@ -2,6 +2,7 @@ package com.leochat.feature.users.data.remote
 
 import com.leochat.feature.users.data.remote.UserDtoMapper
 import com.leochat.feature.users.domain.model.ProfileUpdate
+import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserProfile
 import com.leochat.feature.users.domain.model.UserSearchItem
 import com.leochat.feature.users.domain.model.UserSessionItem
@@ -58,6 +59,14 @@ class UsersRemoteDataSource(private val http: HttpClient) {
 
     suspend fun deactivateAccount() {
         http.delete("users/me")
+    }
+
+    suspend fun getPresence(ids: List<String>): List<UserPresence> {
+        val cleanIds = ids.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (cleanIds.isEmpty()) return emptyList()
+        return http.get("users/presence") {
+            cleanIds.forEach { parameter("ids", it) }
+        }.body<JsonElement>().objects().map(UserDtoMapper::presence)
     }
 
     /** Accepts a bare array or a paged `{items|content}` envelope. */

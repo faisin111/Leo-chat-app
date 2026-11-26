@@ -3,6 +3,7 @@ package com.leochat.feature.chat
 import com.leochat.core.common.result.AppResult
 import com.leochat.core.common.result.Either
 import com.leochat.feature.users.domain.model.ProfileUpdate
+import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserProfile
 import com.leochat.feature.users.domain.model.UserSearchItem
 import com.leochat.feature.users.domain.model.UserSessionItem
@@ -27,4 +28,5 @@ class ContactsFakeUsersRepository : UsersRepository {
     override suspend fun getSessions(): AppResult<List<UserSessionItem>> = Either.Right(emptyList())
     override suspend fun revokeSession(sessionId: String): AppResult<Unit> = Either.Right(Unit)
     override suspend fun deactivateAccount(): AppResult<Unit> = Either.Right(Unit)
+    override suspend fun getPresence(ids: List<String>): AppResult<List<UserPresence>> = Either.Right(emptyList())
 }

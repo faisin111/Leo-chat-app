@@ -4,6 +4,7 @@ import com.leochat.feature.auth.domain.model.User
 import com.leochat.feature.chat.domain.model.Conversation
 import com.leochat.feature.chat.domain.model.Message
 import com.leochat.feature.chat.domain.model.RealtimeStatus
+import com.leochat.feature.users.domain.model.UserPresence
 
 enum class ChatFilter { All, Unread, Groups, Archived }
 
@@ -19,6 +20,7 @@ data class ChatUiState(
     val isLoadingMessages: Boolean = false,
     val messages: List<Message> = emptyList(),
     val resolvedMediaUrls: Map<String, String> = emptyMap(),
+    val presenceByUserId: Map<String, UserPresence> = emptyMap(),
     val typingStatusText: String? = null,
     val realtimeStatus: RealtimeStatus = RealtimeStatus.Disconnected,
     val errorMessage: String? = null,
@@ -28,6 +30,12 @@ data class ChatUiState(
     val selectedConversationId: String? get() = selectedConversation?.id
 
     val isReconnecting: Boolean get() = realtimeStatus == RealtimeStatus.Connecting
+
+    fun presenceFor(conversation: Conversation?): UserPresence? {
+        if (conversation == null || conversation.isGroup || conversation.isAi) return null
+        val peerId = conversation.resolveDirectTargetUserId(currentUser?.id) ?: return null
+        return presenceByUserId[peerId]
+    }
 
     /** List after the filter pill and the local search text. */
     val displayedConversations: List<Conversation>

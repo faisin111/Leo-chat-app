@@ -52,11 +52,14 @@ import com.leochat.feature.media.presentation.permission.MediaPermission
 import com.leochat.feature.media.presentation.permission.rememberMediaPermissionRequester
 import com.leochat.feature.media.presentation.voice.VoiceMessagePlayer
 import com.leochat.feature.media.presentation.voice.rememberVoiceRecordingController
+import com.leochat.feature.users.domain.model.UserPresence
 
 /** Conversation header; call buttons ask for the microphone first, then call [onCall]. */
 @Composable
 internal fun ConversationHeaderSection(
     conversation: Conversation,
+    presence: UserPresence?,
+    typingStatusText: String?,
     showBackButton: Boolean,
     onBack: () -> Unit,
     onOpenDetails: () -> Unit,
@@ -68,7 +71,9 @@ internal fun ConversationHeaderSection(
 ) {
     val permissions = rememberMediaPermissionRequester()
     val snackBar = LocalLeoSnackBar.current
-    val header = remember(conversation) { conversation.toHeaderUi() }
+    val header = remember(conversation, presence, typingStatusText) {
+        conversation.toHeaderUi(presence = presence, typingText = typingStatusText)
+    }
     ConversationHeader(
         header = header,
         showBackButton = showBackButton,
@@ -98,6 +103,7 @@ internal fun MessageBubble(
     onLongClick: (() -> Unit)? = null,
     onReactionClick: ((String) -> Unit)? = null,
     onImageClick: ((String) -> Unit)? = null,
+    onCallAgain: ((isVideo: Boolean) -> Unit)? = null,
 ) {
     val bubble = remember(message, fallbackSenderName, resolvedMediaUrls) {
         message.toBubbleUi(fallbackSenderName = fallbackSenderName, resolvedMediaUrls = resolvedMediaUrls)
@@ -110,6 +116,7 @@ internal fun MessageBubble(
         onLongClick = onLongClick,
         onReactionClick = onReactionClick,
         onImageClick = onImageClick,
+        onCallAgain = onCallAgain,
     )
 }
 
