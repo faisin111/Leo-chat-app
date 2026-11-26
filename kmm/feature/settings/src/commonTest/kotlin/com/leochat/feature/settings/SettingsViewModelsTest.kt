@@ -4,23 +4,30 @@ import com.leochat.core.common.constants.AppStrings
 import com.leochat.core.common.constants.SettingsStrings
 import com.leochat.core.common.result.Either
 import com.leochat.core.platform.storage.InMemoryKeyValueStorage
+import com.leochat.core.platform.system.NoopSystemSettingsHelper
 import com.leochat.core.designsystem.theme.LeoThemeMode
 import com.leochat.core.designsystem.theme.ThemeModeStore
 import com.leochat.feature.auth.domain.model.User
 import com.leochat.feature.auth.domain.usecase.ChangePasswordUseCase
 import com.leochat.feature.auth.domain.usecase.GetCurrentUserUseCase
 import com.leochat.feature.auth.domain.usecase.LogoutUseCase
+import com.leochat.feature.auth.domain.usecase.ResendVerificationUseCase
+import com.leochat.feature.media.domain.model.PickedAttachment
+import com.leochat.feature.media.domain.usecase.UploadAttachmentUseCase
 import com.leochat.feature.settings.data.local.SettingsLocalDataSource
 import com.leochat.feature.settings.data.repository.SettingsPreferencesRepositoryImpl
+import com.leochat.feature.settings.domain.usecase.GetBlockedUsersUseCase
 import com.leochat.feature.settings.domain.usecase.GetSettingsPreferencesUseCase
 import com.leochat.feature.settings.domain.usecase.SaveSettingsPreferencesUseCase
 import com.leochat.feature.settings.presentation.appearance.AppearanceViewModel
+import com.leochat.feature.settings.presentation.blocked.BlockedUsersViewModel
 import com.leochat.feature.settings.presentation.editprofile.EditProfileViewModel
 import com.leochat.feature.settings.presentation.security.SecurityViewModel
 import com.leochat.feature.settings.presentation.sessions.SessionsViewModel
 import com.leochat.feature.settings.presentation.settings.SettingsViewModel
 import com.leochat.feature.settings.presentation.settings.SettingsEffect
 import com.leochat.feature.users.domain.usecase.DeactivateAccountUseCase
+import com.leochat.feature.users.domain.usecase.DeleteProfilePictureUseCase
 import com.leochat.feature.users.domain.usecase.GetMyProfileUseCase
 import com.leochat.feature.users.domain.usecase.GetSessionsUseCase
 import com.leochat.feature.users.domain.usecase.RevokeSessionUseCase
@@ -51,6 +58,7 @@ class SettingsControllersTest {
         users: SettingsFakeUsersRepository = SettingsFakeUsersRepository(),
         auth: SettingsFakeAuthRepository = SettingsFakeAuthRepository(),
         storage: InMemoryKeyValueStorage = InMemoryKeyValueStorage(),
+        blocked: SettingsFakeBlockedUsersRepository = SettingsFakeBlockedUsersRepository(),
     ): SettingsViewModel {
         val prefs = SettingsPreferencesRepositoryImpl(SettingsLocalDataSource(storage))
         return SettingsViewModel(
@@ -58,18 +66,21 @@ class SettingsControllersTest {
             GetCurrentUserUseCase(auth),
             GetSettingsPreferencesUseCase(prefs),
             SaveSettingsPreferencesUseCase(prefs),
+            GetBlockedUsersUseCase(blocked),
             LogoutUseCase(auth),
+            NoopSystemSettingsHelper,
         )
     }
 
     // Settings home
 
     @Test
-    fun settingsShowsProfileNameUsernameAndAvatar() = runTest {
+    fun settingsShowsProfileNameUsernameAvatarAndBlockedCount() = runTest {
         val state = settingsController().state.value
         assertEquals("Alex Leo", state.displayName)
         assertEquals("alex", state.username)
         assertEquals("https://cdn/alex.png", state.avatarUrl)
+        assertEquals(2, state.blockedCount)
     }
 
     @Test
@@ -92,12 +103,38 @@ class SettingsControllersTest {
         first.toggleMessagePreviews(true)
         first.toggleCallNotifications(false)
         first.toggleOnlineStatus(false)
+        first.setProfileVisibility(SettingsStrings.profileVisibilityNobody)
 
-        val prefs = settingsController(storage = storage).state.value.preferences
+        val second = settingsController(storage = storage).state.value
+        val prefs = second.preferences
         assertFalse(prefs.messageNotifications)
         assertTrue(prefs.messagePreviews)
         assertFalse(prefs.callNotifications)
         assertFalse(prefs.onlineStatus)
+        assertEquals(SettingsStrings.profileVisibilityNobody, second.profileVisibility)
+    }
+
+    @Test
+    fun settingsSearchAndSheetsUpdateState() = runTest {
+        val controller = settingsController()
+        controller.toggleSearch()
+        controller.onSearchQueryChange("notif")
+        assertTrue(controller.state.value.isSearching)
+        assertEquals("notif", controller.state.value.searchQuery)
+        controller.toggleSearch()
+        assertFalse(controller.state.value.isSearching)
+        assertEquals("", controller.state.value.searchQuery)
+
+        controller.openVisibilitySheet()
+        assertTrue(controller.state.value.showVisibilitySheet)
+        controller.setProfileVisibility(SettingsStrings.profileVisibilityEveryone)
+        assertFalse(controller.state.value.showVisibilitySheet)
+        assertEquals(SettingsStrings.profileVisibilityEveryone, controller.state.value.profileVisibility)
+
+        controller.openHelpSheet()
+        assertTrue(controller.state.value.showHelpSheet)
+        controller.dismissHelpSheet()
+        assertFalse(controller.state.value.showHelpSheet)
     }
 
     @Test
@@ -123,8 +160,18 @@ class SettingsControllersTest {
 
     // Edit profile
 
-    private fun editController(users: SettingsFakeUsersRepository, auth: SettingsFakeAuthRepository = SettingsFakeAuthRepository()) =
-        EditProfileViewModel(GetMyProfileUseCase(users), GetCurrentUserUseCase(auth), UpdateProfileUseCase(users))
+    private fun editController(
+        users: SettingsFakeUsersRepository,
+        auth: SettingsFakeAuthRepository = SettingsFakeAuthRepository(),
+        media: SettingsFakeMediaRepository = SettingsFakeMediaRepository(),
+    ) = EditProfileViewModel(
+        GetMyProfileUseCase(users),
+        GetCurrentUserUseCase(auth),
+        UpdateProfileUseCase(users),
+        DeleteProfilePictureUseCase(users),
+        UploadAttachmentUseCase(media),
+        ResendVerificationUseCase(auth),
+    )
 
     @Test
     fun editProfilePrefillsFromProfile() = runTest {
@@ -154,17 +201,66 @@ class SettingsControllersTest {
     }
 
     @Test
-    fun editProfileSaveSendsTrimmedNameAndBioThenNavigatesBack() = runTest {
+    fun editProfileSaveSendsFieldsAndUploadedPhotoKeyThenNavigatesBack() = runTest {
         val users = SettingsFakeUsersRepository()
-        val controller = editController(users)
+        val media = SettingsFakeMediaRepository()
+        val controller = editController(users, media = media)
+        controller.onPhotoPicked(PickedAttachment("file:///tmp/p.jpg", "p.jpg", "image/jpeg", 256L))
+        assertEquals("https://cdn/uploaded.jpg", controller.state.value.avatarUrl)
+        assertEquals("avatars/uploaded.jpg", controller.state.value.uploadedStorageKey)
+
         controller.onDisplayNameChange("  New Name ")
+        controller.onPhoneNumberChange(" +15550199 ")
+        controller.onRegionChange(" Colombo ")
+        controller.onAgeChange("27")
         controller.onBioChange("   ")
         controller.save()
-        val effects = controller.effects.take(2).toList()
-        assertEquals(listOf(SettingsEffect.ShowSuccess(SettingsStrings.profileUpdated), SettingsEffect.NavigateBack), effects)
+        val effects = controller.effects.take(3).toList()
+        assertEquals(
+            listOf(
+                SettingsEffect.ShowSuccess(SettingsStrings.photoReady),
+                SettingsEffect.ShowSuccess(SettingsStrings.profileUpdated),
+                SettingsEffect.NavigateBack,
+            ),
+            effects,
+        )
         assertEquals("New Name", users.lastUpdate?.displayName)
+        assertEquals("avatars/uploaded.jpg", users.lastUpdate?.profilePictureStorageKey)
+        assertEquals("+15550199", users.lastUpdate?.phoneNumber)
+        assertEquals("Colombo", users.lastUpdate?.region)
+        assertEquals(27, users.lastUpdate?.age)
         assertNull(users.lastUpdate?.bio)
         assertFalse(controller.state.value.isSaving)
+    }
+
+    @Test
+    fun editProfileRejectsInvalidAgeBeforeNetworkCall() = runTest {
+        val users = SettingsFakeUsersRepository()
+        val controller = editController(users)
+        controller.onAgeChange("10")
+        controller.save()
+        assertEquals(SettingsEffect.ShowError(SettingsStrings.invalidAgeError), controller.effects.first())
+        assertNull(users.lastUpdate)
+    }
+
+    @Test
+    fun editProfileRemovePhotoCallsDeleteEndpointAndClearsAvatar() = runTest {
+        val users = SettingsFakeUsersRepository()
+        val controller = editController(users)
+        controller.removePhoto()
+        assertNull(controller.state.value.avatarUrl)
+        assertNull(controller.state.value.uploadedStorageKey)
+        assertTrue("deletePhoto" in users.calls)
+        assertEquals(SettingsEffect.ShowSuccess(SettingsStrings.photoRemoved), controller.effects.first())
+    }
+
+    @Test
+    fun editProfileResendVerificationCallsAuthUseCase() = runTest {
+        val auth = SettingsFakeAuthRepository()
+        val controller = editController(SettingsFakeUsersRepository(), auth = auth)
+        controller.resendVerificationEmail()
+        assertEquals(listOf("resend:alex@leo.chat"), auth.calls)
+        assertEquals(SettingsEffect.ShowSuccess(SettingsStrings.verificationSent), controller.effects.first())
     }
 
     @Test
@@ -176,10 +272,19 @@ class SettingsControllersTest {
     }
 
     @Test
-    fun changePhotoAcknowledgesLikeFlutter() = runTest {
-        val controller = editController(SettingsFakeUsersRepository())
-        controller.changePhoto()
-        assertEquals(SettingsEffect.ShowSuccess(SettingsStrings.photoReady), controller.effects.first())
+    fun blockedUsersViewModelLoadsSuccessEmptyAndErrorStates() = runTest {
+        val vm = BlockedUsersViewModel(GetBlockedUsersUseCase(SettingsFakeBlockedUsersRepository()))
+        assertFalse(vm.state.value.isLoading)
+        assertEquals(listOf("Mallory", "Eve"), vm.state.value.users.map { it.effectiveName })
+
+        val failedRepo = SettingsFakeBlockedUsersRepository(result = SettingsFakeUsersRepository.apiFailure)
+        val failedVm = BlockedUsersViewModel(GetBlockedUsersUseCase(failedRepo))
+        assertEquals("Server said no", failedVm.state.value.error)
+
+        failedRepo.result = Either.Right(emptyList())
+        failedVm.refresh()
+        assertNull(failedVm.state.value.error)
+        assertTrue(failedVm.state.value.users.isEmpty())
     }
 
     // Security

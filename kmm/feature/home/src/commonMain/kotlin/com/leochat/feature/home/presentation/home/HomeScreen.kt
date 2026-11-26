@@ -42,6 +42,7 @@ class ShellNavigator(
     val onSharedMedia: (conversationId: String) -> Unit,
     val onCall: () -> Unit,
     val onEditProfile: () -> Unit,
+    val onBlockedPeople: () -> Unit,
     val onSecurity: () -> Unit,
     val onSessions: () -> Unit,
     val onAppearance: () -> Unit,
@@ -126,6 +127,7 @@ fun HomeScreen(
             )
             else -> SettingsScreen(
                 onEditProfile = nav.onEditProfile,
+                onBlockedPeople = nav.onBlockedPeople,
                 onSecurity = nav.onSecurity,
                 onSessions = nav.onSessions,
                 onAppearance = nav.onAppearance,

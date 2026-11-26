@@ -8,6 +8,8 @@ import com.leochat.core.platform.storage.InMemoryKeyValueStorage
 import com.leochat.core.platform.storage.InMemorySecureStorage
 import com.leochat.core.platform.storage.KeyValueStorage
 import com.leochat.core.platform.storage.SecureStorage
+import com.leochat.core.platform.system.NoopSystemSettingsHelper
+import com.leochat.core.platform.system.SystemSettingsHelper
 import com.leochat.feature.ai.presentation.ai.AiViewModel
 import com.leochat.feature.auth.presentation.passwordrecovery.ForgotPasswordViewModel
 import com.leochat.feature.auth.presentation.login.LoginViewModel
@@ -24,6 +26,7 @@ import com.leochat.feature.media.domain.usecase.SendVoiceMessageUseCase
 import com.leochat.feature.media.di.mediaPlatformModule
 import com.leochat.feature.notifications.presentation.NotificationsViewModel
 import com.leochat.feature.settings.presentation.appearance.AppearanceViewModel
+import com.leochat.feature.settings.presentation.blocked.BlockedUsersViewModel
 import com.leochat.feature.settings.presentation.editprofile.EditProfileViewModel
 import com.leochat.feature.settings.presentation.security.SecurityViewModel
 import com.leochat.feature.settings.presentation.sessions.SessionsViewModel
@@ -57,6 +60,7 @@ class AppModulesTest {
     private val testPlatform = module {
         single<SecureStorage> { InMemorySecureStorage() }
         single<KeyValueStorage> { InMemoryKeyValueStorage() }
+        single<SystemSettingsHelper> { NoopSystemSettingsHelper }
         single<HttpClientEngine> { MockEngine { respondError(HttpStatusCode.ServiceUnavailable) } }
         single<CoroutineScope>(ApplicationScope) { CoroutineScope(Job().apply { cancel() }) }
     }
@@ -82,6 +86,7 @@ class AppModulesTest {
         koin.get<AiViewModel>()
         koin.get<SettingsViewModel>()
         koin.get<EditProfileViewModel>()
+        koin.get<BlockedUsersViewModel>()
         koin.get<SecurityViewModel>()
         koin.get<SessionsViewModel>()
         koin.get<AppearanceViewModel>()

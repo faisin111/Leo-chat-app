@@ -36,23 +36,33 @@ object ChatPushNotificationHelper {
         manager.createNotificationChannel(channel)
     }
 
-    fun showMessage(context: Context, event: PushEvent.NewMessage) {
+    fun showMessage(
+        context: Context,
+        event: PushEvent.NewMessage,
+        title: String = event.displayTitle,
+        body: String = event.displayBody,
+    ) {
         postConversationNotification(
             context = context,
             conversationId = event.conversationId,
             messageId = event.messageId,
-            title = event.displayTitle,
-            body = event.displayBody,
+            title = title,
+            body = body,
         )
     }
 
-    fun showReaction(context: Context, event: PushEvent.MessageReaction) {
+    fun showReaction(
+        context: Context,
+        event: PushEvent.MessageReaction,
+        title: String = event.displayTitle,
+        body: String = event.displayBody,
+    ) {
         postConversationNotification(
             context = context,
             conversationId = event.conversationId,
             messageId = event.messageId,
-            title = event.displayTitle,
-            body = event.displayBody,
+            title = title,
+            body = body,
         )
     }
 

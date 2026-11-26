@@ -12,6 +12,7 @@ interface UsersRepository {
     suspend fun getUserById(id: String): AppResult<UserProfile>
     suspend fun searchUsers(query: String, page: Int = 0, size: Int = 20): AppResult<List<UserSearchItem>>
     suspend fun updateProfile(update: ProfileUpdate): AppResult<Unit>
+    suspend fun deleteProfilePicture(): AppResult<Unit>
     suspend fun getSessions(): AppResult<List<UserSessionItem>>
     suspend fun revokeSession(sessionId: String): AppResult<Unit>
     suspend fun deactivateAccount(): AppResult<Unit>

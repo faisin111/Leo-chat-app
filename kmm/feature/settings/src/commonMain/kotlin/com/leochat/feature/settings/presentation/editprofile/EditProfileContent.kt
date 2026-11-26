@@ -1,7 +1,10 @@
 package com.leochat.feature.settings.presentation.editprofile
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,12 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AlternateEmail
+import androidx.compose.material.icons.rounded.Cake
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MailOutline
 import androidx.compose.material.icons.rounded.PersonOutline
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -52,12 +60,16 @@ fun EditProfileContent(
     onBack: () -> Unit,
     onSave: () -> Unit,
     onChangePhoto: () -> Unit,
+    onRemovePhoto: () -> Unit,
+    onResendVerification: () -> Unit,
     onDisplayNameChange: (String) -> Unit,
-    onUsernameChange: (String) -> Unit,
-    onEmailChange: (String) -> Unit,
+    onPhoneNumberChange: (String) -> Unit,
+    onRegionChange: (String) -> Unit,
+    onAgeChange: (String) -> Unit,
     onBioChange: (String) -> Unit,
 ) {
     val palette = LeoThemeTokens.palette
+    val photoBusy = state.isUploadingPhoto || state.isRemovingPhoto
 
     LeoScreen(background = palette.background) {
         SettingsTextScope {
@@ -79,7 +91,7 @@ fun EditProfileContent(
                             )
                         }
                     } else if (!state.isLoading) {
-                        IconButton(onClick = onSave) {
+                        IconButton(onClick = onSave, enabled = !photoBusy) {
                             Icon(
                                 Icons.Rounded.Check,
                                 contentDescription = SettingsStrings.save,
@@ -100,17 +112,42 @@ fun EditProfileContent(
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = 24.dp, vertical = 12.dp),
                     ) {
-                        EditableAvatar(name = state.avatarName, imageUrl = state.avatarUrl)
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            SettingsStrings.changePhoto,
-                            color = LeoColors.primary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.settingsPressable(onClick = onChangePhoto),
+                        EditableAvatar(
+                            name = state.avatarName,
+                            imageUrl = state.avatarUrl,
+                            onClick = onChangePhoto,
+                            isBusy = photoBusy,
                         )
-                        Spacer(Modifier.height(22.dp))
-                        PhotoStatusBanner()
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                when {
+                                    state.isUploadingPhoto -> SettingsStrings.uploadingPhoto
+                                    state.isRemovingPhoto -> SettingsStrings.removingPhoto
+                                    else -> SettingsStrings.changePhoto
+                                },
+                                color = LeoColors.primary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.settingsPressable(enabled = !photoBusy, onClick = onChangePhoto),
+                            )
+                            if (!state.avatarUrl.isNullOrBlank() && !photoBusy) {
+                                Text(
+                                    SettingsStrings.removePhoto,
+                                    color = palette.textSecondary,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.settingsPressable(onClick = onRemovePhoto),
+                                )
+                            }
+                        }
+                        if (!state.uploadedStorageKey.isNullOrBlank()) {
+                            Spacer(Modifier.height(18.dp))
+                            PhotoStatusBanner()
+                        }
                         Spacer(Modifier.height(22.dp))
 
                         ProfileTextField(
@@ -124,17 +161,73 @@ fun EditProfileContent(
                         ProfileTextField(
                             SettingsStrings.username,
                             state.username,
-                            onUsernameChange,
+                            onValueChange = {},
                             Icons.Rounded.AlternateEmail,
+                            enabled = false,
                         )
                         Spacer(Modifier.height(16.dp))
                         ProfileTextField(
                             SettingsStrings.emailAddress,
                             state.email,
-                            onEmailChange,
+                            onValueChange = {},
                             Icons.Rounded.MailOutline,
                             keyboardType = KeyboardType.Email,
+                            enabled = false,
+                            trailingBadge = {
+                                if (state.email.isNotBlank()) {
+                                    EmailStatusBadge(verified = state.isEmailVerified)
+                                }
+                            },
                         )
+                        if (!state.isEmailVerified && state.email.isNotBlank()) {
+                            Spacer(Modifier.height(6.dp))
+                            Row(Modifier.fillMaxWidth()) {
+                                Text(
+                                    SettingsStrings.resendVerification,
+                                    color = LeoColors.primary,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.settingsPressable(
+                                        enabled = !state.isResendingVerification,
+                                        onClick = onResendVerification,
+                                    ),
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        ProfileTextField(
+                            SettingsStrings.phoneNumber,
+                            state.phoneNumber,
+                            onPhoneNumberChange,
+                            Icons.Rounded.Phone,
+                            keyboardType = KeyboardType.Phone,
+                            placeholder = SettingsStrings.phoneNumberHint,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Box(Modifier.weight(1.3f)) {
+                                ProfileTextField(
+                                    SettingsStrings.region,
+                                    state.region,
+                                    onRegionChange,
+                                    Icons.Rounded.LocationOn,
+                                    placeholder = SettingsStrings.regionHint,
+                                )
+                            }
+                            Box(Modifier.weight(0.9f)) {
+                                ProfileTextField(
+                                    SettingsStrings.age,
+                                    state.age,
+                                    onAgeChange,
+                                    Icons.Rounded.Cake,
+                                    keyboardType = KeyboardType.Number,
+                                    placeholder = SettingsStrings.ageHint,
+                                )
+                            }
+                        }
                         Spacer(Modifier.height(16.dp))
                         ProfileBioField(state.bio, state.bioCounter, onBioChange)
                         Spacer(Modifier.height(16.dp))
@@ -152,6 +245,22 @@ fun EditProfileContent(
             }
         }
     }
+}
+
+@Composable
+private fun EmailStatusBadge(verified: Boolean) {
+    val palette = LeoThemeTokens.palette
+    val bg = if (verified) Color(0xFF10B981).copy(alpha = if (palette.isDark) 0.22f else 0.14f) else Color(0xFFF59E0B).copy(alpha = 0.16f)
+    val fg = if (verified) Color(0xFF059669) else Color(0xFFD97706)
+    Text(
+        text = if (verified) SettingsStrings.emailVerifiedBadge else SettingsStrings.emailUnverifiedBadge,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = fg,
+        modifier = Modifier
+            .background(bg, RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    )
 }
 
 @Composable

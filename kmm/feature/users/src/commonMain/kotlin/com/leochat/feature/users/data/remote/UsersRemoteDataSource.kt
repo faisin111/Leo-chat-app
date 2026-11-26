@@ -41,6 +41,7 @@ class UsersRemoteDataSource(private val http: HttpClient) {
                 buildJsonObject {
                     update.displayName?.let { put("displayName", it) }
                     update.profilePictureUrl?.let { put("profilePictureUrl", it) }
+                    update.profilePictureStorageKey?.let { put("profilePictureStorageKey", it) }
                     update.phoneNumber?.let { put("phoneNumber", it) }
                     update.bio?.let { put("bio", it) }
                     update.age?.let { put("age", it) }
@@ -48,6 +49,10 @@ class UsersRemoteDataSource(private val http: HttpClient) {
                 },
             )
         }
+    }
+
+    suspend fun deleteProfilePicture() {
+        http.delete("users/me/profile-picture")
     }
 
     suspend fun getSessions(): List<UserSessionItem> =

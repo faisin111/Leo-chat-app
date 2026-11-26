@@ -22,6 +22,7 @@ import com.leochat.feature.chat.presentation.sharedmedia.SharedMediaScreen
 import com.leochat.feature.home.presentation.home.ShellNavigator
 import com.leochat.feature.calls.presentation.activecall.ActiveCallScreen
 import com.leochat.feature.settings.presentation.appearance.AppearanceScreen
+import com.leochat.feature.settings.presentation.blocked.BlockedUsersScreen
 import com.leochat.feature.settings.presentation.editprofile.EditProfileScreen
 import com.leochat.feature.settings.presentation.security.SecurityScreen
 import com.leochat.feature.settings.presentation.sessions.SessionsScreen
@@ -130,6 +131,9 @@ fun AppNavHost(navController: NavHostController) {
         composable<AppRoutes.EditProfile> {
             EditProfileScreen(onBack = { navController.popBackStack() })
         }
+        composable<AppRoutes.BlockedUsers> {
+            BlockedUsersScreen(onBack = { navController.popBackStack() })
+        }
         composable<AppRoutes.Security> {
             SecurityScreen(onBack = { navController.popBackStack() }, onSignedOut = { navController.goTo(AppRoutes.Login) })
         }
@@ -151,6 +155,7 @@ private fun shellNavigator(navController: NavHostController) = ShellNavigator(
     onSharedMedia = { id -> navController.navigate(AppRoutes.SharedMedia(id)) },
     onCall = { navController.navigate(AppRoutes.Call) { launchSingleTop = true } },
     onEditProfile = { navController.navigate(AppRoutes.EditProfile) },
+    onBlockedPeople = { navController.navigate(AppRoutes.BlockedUsers) },
     onSecurity = { navController.navigate(AppRoutes.Security) },
     onSessions = { navController.navigate(AppRoutes.Sessions) },
     onAppearance = { navController.navigate(AppRoutes.Appearance) },

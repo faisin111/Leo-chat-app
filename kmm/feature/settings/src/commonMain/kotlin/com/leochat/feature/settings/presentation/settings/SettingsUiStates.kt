@@ -3,6 +3,7 @@ package com.leochat.feature.settings.presentation.settings
 import com.leochat.core.common.constants.SettingsStrings
 import com.leochat.core.designsystem.theme.LeoThemeMode
 import com.leochat.feature.auth.domain.model.User
+import com.leochat.feature.settings.domain.model.BlockedUserItem
 import com.leochat.feature.settings.domain.model.SettingsPreferences
 import com.leochat.feature.users.domain.model.UserProfile
 import com.leochat.feature.users.domain.model.UserSessionItem
@@ -15,15 +16,24 @@ sealed interface SettingsEffect {
     data object SignedOut : SettingsEffect
 }
 
-/** Settings home. Mirrors `SettingsUiState` plus the profile and auth user it reads. */
+/** Settings home. Mirrors `SettingsUiState` plus the profile, blocked count, and device permission state. */
 data class SettingsUiState(
     val profile: UserProfile? = null,
     val authUser: User? = null,
     val preferences: SettingsPreferences = SettingsPreferences(),
-    val profileVisibility: String = SettingsStrings.profileVisibilityContacts,
     val blockedCount: Int = 0,
     val isSigningOut: Boolean = false,
+    val isSearching: Boolean = false,
+    val searchQuery: String = "",
+    val showVisibilitySheet: Boolean = false,
+    val showHelpSheet: Boolean = false,
+    val supportsOverlayPermission: Boolean = false,
+    val overlayPermissionGranted: Boolean = true,
+    val osNotificationsEnabled: Boolean = true,
 ) {
+    val profileVisibility: String
+        get() = preferences.profileVisibility
+
     val displayName: String
         get() = profile?.effectiveName?.takeIf { it.isNotEmpty() }
             ?: authUser?.displayName?.takeIf { it.isNotEmpty() }
@@ -35,21 +45,34 @@ data class SettingsUiState(
 
     val avatarUrl: String?
         get() = profile?.profilePictureUrl ?: authUser?.avatarUrl
-
 }
 
 data class EditProfileUiState(
     val displayName: String = "",
     val username: String = "",
     val email: String = "",
+    val phoneNumber: String = "",
+    val region: String = "",
+    val age: String = "",
     val bio: String = "",
     val avatarUrl: String? = null,
+    val uploadedStorageKey: String? = null,
+    val isEmailVerified: Boolean = false,
+    val isUploadingPhoto: Boolean = false,
+    val isRemovingPhoto: Boolean = false,
+    val isResendingVerification: Boolean = false,
     val isSaving: Boolean = false,
     val isLoading: Boolean = false,
 ) {
     val avatarName: String get() = displayName.ifEmpty { SettingsStrings.userFallback }
     val bioCounter: String get() = "${bio.length} / ${SettingsStrings.bioMaxLength}"
 }
+
+data class BlockedUsersUiState(
+    val users: List<BlockedUserItem> = emptyList(),
+    val isLoading: Boolean = true,
+    val error: String? = null,
+)
 
 data class SecurityUiState(
     val currentPassword: String = "",

@@ -355,6 +355,7 @@ class ChatControllerTest {
         override suspend fun getUserById(id: String): AppResult<UserProfile> = error("unused")
         override suspend fun searchUsers(query: String, page: Int, size: Int): AppResult<List<UserSearchItem>> = Either.Right(emptyList())
         override suspend fun updateProfile(update: ProfileUpdate): AppResult<Unit> = Either.Right(Unit)
+        override suspend fun deleteProfilePicture(): AppResult<Unit> = Either.Right(Unit)
         override suspend fun getSessions(): AppResult<List<UserSessionItem>> = Either.Right(emptyList())
         override suspend fun revokeSession(sessionId: String): AppResult<Unit> = Either.Right(Unit)
         override suspend fun deactivateAccount(): AppResult<Unit> = Either.Right(Unit)

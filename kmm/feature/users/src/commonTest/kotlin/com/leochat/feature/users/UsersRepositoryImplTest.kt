@@ -50,6 +50,8 @@ class UsersRepositoryImplTest {
                     headers = json,
                 )
                 path.endsWith("/users/me/profile") -> respond("", HttpStatusCode.NoContent)
+                path.endsWith("/users/me/profile-picture") && request.method.value == "DELETE" ->
+                    respond("", HttpStatusCode.NoContent)
                 path.endsWith("/users/presence") -> respond(
                     """[
                       {"userId":"u-online","online":true,"lastSeenAt":"2026-11-26T07:00:00Z","status":"ACTIVE"},
@@ -91,10 +93,25 @@ class UsersRepositoryImplTest {
 
     @Test
     fun updateProfileSendsOnlyChangedFields() = runTest {
-        assertIs<Either.Right<Unit>>(repo.updateProfile(ProfileUpdate(displayName = "Alex", age = 31)))
+        assertIs<Either.Right<Unit>>(
+            repo.updateProfile(
+                ProfileUpdate(
+                    displayName = "Alex",
+                    profilePictureStorageKey = "avatars/alex.jpg",
+                    age = 31,
+                ),
+            ),
+        )
         val body = (requests.last().body as TextContent).text
-        assertEquals("""{"displayName":"Alex","age":31}""", body)
+        assertEquals("""{"displayName":"Alex","profilePictureStorageKey":"avatars/alex.jpg","age":31}""", body)
         assertEquals("PATCH", requests.last().method.value)
+    }
+
+    @Test
+    fun deleteProfilePictureCallsDeleteEndpoint() = runTest {
+        assertIs<Either.Right<Unit>>(repo.deleteProfilePicture())
+        assertEquals("DELETE", requests.last().method.value)
+        assertTrue(requests.last().url.encodedPath.endsWith("/users/me/profile-picture"))
     }
 
     @Test

@@ -6,6 +6,10 @@ import com.leochat.core.common.result.Either
 import com.leochat.feature.auth.domain.model.AuthSession
 import com.leochat.feature.auth.domain.model.User
 import com.leochat.feature.auth.domain.repository.AuthRepository
+import com.leochat.feature.media.domain.model.UploadedAttachment
+import com.leochat.feature.media.domain.repository.MediaRepository
+import com.leochat.feature.settings.domain.model.BlockedUserItem
+import com.leochat.feature.settings.domain.repository.BlockedUsersRepository
 import com.leochat.feature.users.domain.model.ProfileUpdate
 import com.leochat.feature.users.domain.model.UserPresence
 import com.leochat.feature.users.domain.model.UserProfile
@@ -17,6 +21,7 @@ import kotlinx.datetime.Instant
 class SettingsFakeUsersRepository(
     var meResult: AppResult<UserProfile> = Either.Right(sampleProfile),
     var updateResult: AppResult<Unit> = Either.Right(Unit),
+    var deletePhotoResult: AppResult<Unit> = Either.Right(Unit),
     var sessionsResult: AppResult<List<UserSessionItem>> = Either.Right(sampleSessions),
     var revokeResult: AppResult<Unit> = Either.Right(Unit),
     var deactivateResult: AppResult<Unit> = Either.Right(Unit),
@@ -33,6 +38,11 @@ class SettingsFakeUsersRepository(
         calls += "update"
         lastUpdate = update
         return updateResult
+    }
+
+    override suspend fun deleteProfilePicture(): AppResult<Unit> {
+        calls += "deletePhoto"
+        return deletePhotoResult
     }
 
     override suspend fun getSessions(): AppResult<List<UserSessionItem>> = sessionsResult.also { calls += "sessions" }
@@ -77,5 +87,40 @@ class SettingsFakeAuthRepository(
         changePasswordResult.also { calls += "change:$currentPassword:$newPassword" }
 
     override suspend fun verifyEmail(token: String): AppResult<Unit> = Either.Right(Unit)
-    override suspend fun resendVerification(email: String?): AppResult<Unit> = Either.Right(Unit)
+    override suspend fun resendVerification(email: String?): AppResult<Unit> = Either.Right(Unit).also { calls += "resend:$email" }
+}
+
+class SettingsFakeMediaRepository(
+    var uploadResult: AppResult<UploadedAttachment> = Either.Right(
+        UploadedAttachment(
+            storageKey = "avatars/uploaded.jpg",
+            url = "https://cdn/uploaded.jpg",
+            fileName = "avatar.jpg",
+            mimeType = "image/jpeg",
+            sizeBytes = 1024L,
+        ),
+    ),
+) : MediaRepository {
+    val uploadedFiles = mutableListOf<String>()
+
+    override suspend fun uploadVoice(filePath: String): AppResult<String> = error("unused")
+    override suspend fun uploadAttachment(uriOrPath: String, fileName: String, mimeType: String): AppResult<UploadedAttachment> {
+        uploadedFiles += "$uriOrPath:$fileName:$mimeType"
+        return uploadResult
+    }
+
+    override suspend fun getDownloadUrl(storageKey: String): AppResult<String> = Either.Right("https://cdn/$storageKey")
+}
+
+class SettingsFakeBlockedUsersRepository(
+    var result: AppResult<List<BlockedUserItem>> = Either.Right(sampleBlocked),
+) : BlockedUsersRepository {
+    override suspend fun getBlockedUsers(): AppResult<List<BlockedUserItem>> = result
+
+    companion object {
+        val sampleBlocked = listOf(
+            BlockedUserItem(userId = "b1", displayName = "Mallory", username = "mallory"),
+            BlockedUserItem(userId = "b2", displayName = "Eve", username = "eve"),
+        )
+    }
 }

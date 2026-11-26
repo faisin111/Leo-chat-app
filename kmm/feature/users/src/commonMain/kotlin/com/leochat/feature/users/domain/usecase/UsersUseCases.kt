@@ -29,6 +29,10 @@ class UpdateProfileUseCase(private val repository: UsersRepository) {
     suspend operator fun invoke(update: ProfileUpdate): AppResult<Unit> = repository.updateProfile(update)
 }
 
+class DeleteProfilePictureUseCase(private val repository: UsersRepository) {
+    suspend operator fun invoke(): AppResult<Unit> = repository.deleteProfilePicture()
+}
+
 class GetSessionsUseCase(private val repository: UsersRepository) {
     suspend operator fun invoke(): AppResult<List<UserSessionItem>> = repository.getSessions()
 }

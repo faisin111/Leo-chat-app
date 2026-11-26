@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CheckCircleOutline
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
@@ -42,12 +44,33 @@ import com.leochat.core.designsystem.theme.LeoThemeTokens
 import com.leochat.core.designsystem.theme.SettingsTokens
 import com.leochat.core.designsystem.component.branding.LeoAvatar
 
-/** 54dp-radius avatar with the brand camera badge. */
+/** 54dp-radius avatar with the brand camera badge and optional upload/remove spinner. */
 @Composable
-fun EditableAvatar(name: String, imageUrl: String?) {
+fun EditableAvatar(
+    name: String,
+    imageUrl: String?,
+    onClick: () -> Unit = {},
+    isBusy: Boolean = false,
+) {
     val palette = LeoThemeTokens.palette
-    Box {
+    Box(
+        modifier = Modifier.clickable(enabled = !isBusy, onClick = onClick),
+    ) {
         LeoAvatar(radius = 54.dp, name = name, imageUrl = imageUrl)
+        if (isBusy) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = 0.42f), CircleShape),
+            ) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.5.dp,
+                    color = Color.White,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -57,7 +80,7 @@ fun EditableAvatar(name: String, imageUrl: String?) {
                 .background(LeoColors.primary, CircleShape)
                 .border(2.5.dp, if (palette.isDark) palette.surface else Color.White, CircleShape),
         ) {
-            Icon(Icons.Rounded.CameraAlt, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Icon(Icons.Rounded.CameraAlt, contentDescription = SettingsStrings.changePhoto, tint = Color.White, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -137,7 +160,7 @@ private fun profileFieldStyle(weight: FontWeight, lineHeight: Float? = null): Te
         ),
     )
 
-/** Borderless single-line input with a trailing icon. */
+/** Borderless single-line input with optional read-only mode, badge, and trailing icon. */
 @Composable
 fun ProfileTextField(
     label: String,
@@ -146,20 +169,46 @@ fun ProfileTextField(
     icon: ImageVector,
     iconSize: Dp = 20.dp,
     keyboardType: KeyboardType = KeyboardType.Text,
+    enabled: Boolean = true,
+    placeholder: String? = null,
+    trailingBadge: (@Composable () -> Unit)? = null,
 ) {
     val palette = LeoThemeTokens.palette
+    val textColor = if (enabled) palette.textPrimary else palette.textSecondary
     ProfileFieldWrapper(label) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
+            enabled = enabled,
+            readOnly = !enabled,
             singleLine = true,
-            textStyle = profileFieldStyle(FontWeight.SemiBold),
+            textStyle = LocalTextStyle.current.merge(
+                TextStyle(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textColor,
+                ),
+            ),
             cursorBrush = SolidColor(LeoColors.primary),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                    Box(Modifier.weight(1f).padding(vertical = 14.dp)) { inner() }
+                    Box(Modifier.weight(1f).padding(vertical = 14.dp)) {
+                        if (value.isEmpty() && !placeholder.isNullOrBlank()) {
+                            Text(
+                                placeholder,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = palette.textMuted,
+                            )
+                        }
+                        inner()
+                    }
+                    if (trailingBadge != null) {
+                        trailingBadge()
+                        Spacer(Modifier.width(4.dp))
+                    }
                     Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                         Icon(icon, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(iconSize))
                     }

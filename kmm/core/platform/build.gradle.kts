@@ -9,6 +9,7 @@ kotlin {
             implementation(project(":core:common"))
         }
         androidMain.dependencies {
+            implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.security.crypto)
             implementation(libs.koin.android)
         }

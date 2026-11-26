@@ -25,6 +25,7 @@ class ContactsFakeUsersRepository : UsersRepository {
     override suspend fun getMe(): AppResult<UserProfile> = Either.Right(UserProfile("u1", "alex"))
     override suspend fun getUserById(id: String): AppResult<UserProfile> = Either.Right(UserProfile(id, id))
     override suspend fun updateProfile(update: ProfileUpdate): AppResult<Unit> = Either.Right(Unit)
+    override suspend fun deleteProfilePicture(): AppResult<Unit> = Either.Right(Unit)
     override suspend fun getSessions(): AppResult<List<UserSessionItem>> = Either.Right(emptyList())
     override suspend fun revokeSession(sessionId: String): AppResult<Unit> = Either.Right(Unit)
     override suspend fun deactivateAccount(): AppResult<Unit> = Either.Right(Unit)

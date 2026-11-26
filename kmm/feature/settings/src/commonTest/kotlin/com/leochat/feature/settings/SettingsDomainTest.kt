@@ -36,7 +36,13 @@ class SettingsDomainTest {
         val storage = InMemoryKeyValueStorage()
         val repo = SettingsPreferencesRepositoryImpl(SettingsLocalDataSource(storage))
         assertEquals(SettingsPreferences(), repo.load().getOrNull())
-        val changed = SettingsPreferences(messageNotifications = false, messagePreviews = true, callNotifications = false, onlineStatus = false)
+        val changed = SettingsPreferences(
+            messageNotifications = false,
+            messagePreviews = true,
+            callNotifications = false,
+            onlineStatus = false,
+            profileVisibility = SettingsStrings.profileVisibilityNobody,
+        )
         assertTrue(repo.save(changed).isRight)
         assertEquals(changed, repo.load().getOrNull())
     }

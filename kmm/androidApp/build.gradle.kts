@@ -66,6 +66,7 @@ dependencies {
     implementation(project(":core:navigation"))
     implementation(project(":feature:calls"))
     implementation(project(":feature:media"))
+    implementation(project(":feature:settings"))
     implementation(compose.runtime)
     implementation(compose.foundation)
     implementation(compose.material3)

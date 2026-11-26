@@ -18,6 +18,7 @@ object AppRoutes {
     @Serializable data class SharedMedia(val conversationId: String)  // /app/media/:id
     @Serializable data object Call            // /call
     @Serializable data object EditProfile     // /settings/profile
+    @Serializable data object BlockedUsers    // /settings/blocked
     @Serializable data object Security        // /settings/security
     @Serializable data object Sessions        // /settings/sessions
     @Serializable data object Appearance      // /settings/appearance

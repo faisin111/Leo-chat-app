@@ -84,6 +84,7 @@ data class UserSessionItem(
 data class ProfileUpdate(
     val displayName: String? = null,
     val profilePictureUrl: String? = null,
+    val profilePictureStorageKey: String? = null,
     val phoneNumber: String? = null,
     val bio: String? = null,
     val age: Int? = null,

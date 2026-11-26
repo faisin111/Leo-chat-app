@@ -9,6 +9,7 @@ import com.leochat.core.network.stomp.StompClient
 import com.leochat.feature.calls.domain.model.CallSignal
 import com.leochat.feature.calls.domain.model.CallSignalAction
 import com.leochat.feature.calls.presentation.CallController
+import com.leochat.feature.settings.domain.repository.SettingsPreferencesRepository
 import org.koin.core.context.GlobalContext
 
 /**
@@ -28,6 +29,9 @@ class LeoFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         val koin = GlobalContext.getOrNull() ?: return
+        val prefs = NotificationPreferencesSnapshot.fromSettings(
+            runCatching { koin.getOrNull<SettingsPreferencesRepository>()?.load()?.getOrNull() }.getOrNull(),
+        )
 
         when (
             val event = PushNotificationPayload.parse(
@@ -39,22 +43,36 @@ class LeoFirebaseMessagingService : FirebaseMessagingService() {
             is PushEvent.NewMessage -> {
                 val viewingSameChat = AppForegroundTracker.isMainForeground &&
                     DeepLinkBus.activeConversationId.value == event.conversationId
-                if (!viewingSameChat) {
-                    ChatPushNotificationHelper.showMessage(applicationContext, event)
+                when (val decision = PushNotificationPolicy.resolveMessage(event, viewingSameChat, prefs)) {
+                    MessageDispatchDecision.Suppress -> Unit
+                    is MessageDispatchDecision.Show ->
+                        ChatPushNotificationHelper.showMessage(
+                            context = applicationContext,
+                            event = event,
+                            title = decision.title,
+                            body = decision.body,
+                        )
                 }
             }
             is PushEvent.MessageReaction -> {
                 val viewingSameChat = AppForegroundTracker.isMainForeground &&
                     DeepLinkBus.activeConversationId.value == event.conversationId
-                if (!viewingSameChat) {
-                    ChatPushNotificationHelper.showReaction(applicationContext, event)
+                when (val decision = PushNotificationPolicy.resolveReaction(event, viewingSameChat, prefs)) {
+                    MessageDispatchDecision.Suppress -> Unit
+                    is MessageDispatchDecision.Show ->
+                        ChatPushNotificationHelper.showReaction(
+                            context = applicationContext,
+                            event = event,
+                            title = decision.title,
+                            body = decision.body,
+                        )
                 }
             }
             is PushEvent.IncomingCall -> {
                 // Initialize CallController first so /user/queue/calls is subscribed before STOMP connects & triggers drain.
                 runCatching { koin.get<CallController>().handleSignal(event.signal) }
                 runCatching { koin.get<StompClient>().connect() }
-                if (!AppForegroundTracker.isMainForeground) {
+                if (!AppForegroundTracker.isMainForeground && PushNotificationPolicy.shouldShowCallNotification(prefs)) {
                     IncomingCallNotificationHelper.showIncomingCall(applicationContext, event.signal)
                 }
             }

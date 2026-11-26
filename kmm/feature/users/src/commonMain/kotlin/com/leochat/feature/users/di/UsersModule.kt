@@ -4,6 +4,7 @@ import com.leochat.feature.users.data.remote.UsersRemoteDataSource
 import com.leochat.feature.users.data.repository.UsersRepositoryImpl
 import com.leochat.feature.users.domain.repository.UsersRepository
 import com.leochat.feature.users.domain.usecase.DeactivateAccountUseCase
+import com.leochat.feature.users.domain.usecase.DeleteProfilePictureUseCase
 import com.leochat.feature.users.domain.usecase.GetMyProfileUseCase
 import com.leochat.feature.users.domain.usecase.GetSessionsUseCase
 import com.leochat.feature.users.domain.usecase.GetUserProfileUseCase
@@ -24,6 +25,7 @@ val usersModule = module {
     factoryOf(::GetUserProfileUseCase)
     factoryOf(::SearchUsersUseCase)
     factoryOf(::UpdateProfileUseCase)
+    factoryOf(::DeleteProfilePictureUseCase)
     factoryOf(::GetSessionsUseCase)
     factoryOf(::RevokeSessionUseCase)
     factoryOf(::DeactivateAccountUseCase)
