@@ -37,6 +37,7 @@ fun HomeContent(
     chatsList: @Composable (Modifier) -> Unit,
     conversationPane: @Composable () -> Unit,
     otherTab: @Composable (ShellTab) -> Unit,
+    badges: Map<ShellTab, Int> = emptyMap(),
     overlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val palette = LeoThemeTokens.palette
@@ -48,12 +49,12 @@ fun HomeContent(
                     if (selectedTab == ShellTab.Chats) chatsList(Modifier) else otherTab(selectedTab)
                 }
                 if (!isImeVisible) {
-                    ShellBottomNav(selectedTab, onSelectTab)
+                    ShellBottomNav(selectedTab, onSelectTab, badges)
                 }
             }
         } else {
             Row(Modifier.fillMaxSize().background(palette.background).systemBarsPadding().imePadding()) {
-                ShellRail(selectedTab, onSelectTab)
+                ShellRail(selectedTab, onSelectTab, badges)
                 if (selectedTab == ShellTab.Chats) {
                     chatsList(Modifier.width(360.dp).fillMaxHeight().background(palette.background))
                     VerticalDivider(color = palette.border)

@@ -26,9 +26,12 @@ import com.leochat.feature.chat.presentation.chats.ChatsListPane
 import com.leochat.feature.chat.presentation.conversation.ConversationNavigator
 import com.leochat.feature.chat.presentation.conversation.ConversationPane
 import com.leochat.feature.chat.presentation.newconversation.NewConversationScreen
+import com.leochat.feature.notifications.presentation.NotificationsScreen
+import com.leochat.feature.notifications.presentation.NotificationsViewModel
 import com.leochat.feature.settings.presentation.settings.SettingsScreen
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 /** Routes the shell and its conversation pane can open. Wired in `AppNavHost`. */
 class ShellNavigator(
@@ -49,13 +52,21 @@ class ShellNavigator(
  * Tablet/desktop: rail + 360dp list + detail. Mirrors `ChatShellPage`.
  */
 @Composable
-fun HomeScreen(controller: ChatViewModel, nav: ShellNavigator) {
+fun HomeScreen(
+    controller: ChatViewModel,
+    nav: ShellNavigator,
+    notificationsController: NotificationsViewModel = koinViewModel(),
+) {
     val conversationNav = rememberConversationNavigator(nav, chatController = controller)
     val state by controller.state.collectAsStateWithLifecycle()
+    val notificationsState by notificationsController.state.collectAsStateWithLifecycle()
     val snackBar = LocalLeoSnackBar.current
     var tab by rememberSaveable { mutableStateOf(ShellTab.Chats) }
     val isMobile = LocalLeoLayout.current == LeoLayout.Mobile
     LaunchedEffect(state.signedOut) { if (state.signedOut) nav.onSignedOut() }
+    LaunchedEffect(tab) {
+        if (tab == ShellTab.Notifications) notificationsController.refresh(showSpinner = false)
+    }
 
     val pendingDeepLink by DeepLinkBus.pending.collectAsStateWithLifecycle()
     LaunchedEffect(pendingDeepLink) {
@@ -96,6 +107,11 @@ fun HomeScreen(controller: ChatViewModel, nav: ShellNavigator) {
         tab = ShellTab.Chats
         if (isMobile) nav.onOpenConversation()
     }
+    val openConversationByIdFromTab: (String) -> Unit = { conversationId ->
+        controller.openConversationById(conversationId)
+        tab = ShellTab.Chats
+        if (isMobile) nav.onOpenConversation()
+    }
     val otherTab: @Composable (ShellTab) -> Unit = { t ->
         when (t) {
             ShellTab.Ai -> AiScreen()
@@ -103,6 +119,10 @@ fun HomeScreen(controller: ChatViewModel, nav: ShellNavigator) {
                 onBack = null,
                 onConversationOpened = openFromContacts,
                 onNewGroup = nav.onNewGroup,
+            )
+            ShellTab.Notifications -> NotificationsScreen(
+                onOpenConversation = openConversationByIdFromTab,
+                controller = notificationsController,
             )
             else -> SettingsScreen(
                 onEditProfile = nav.onEditProfile,
@@ -113,11 +133,17 @@ fun HomeScreen(controller: ChatViewModel, nav: ShellNavigator) {
             )
         }
     }
+    val totalChatUnread = state.conversations.sumOf { it.unreadCount }
+    val tabBadges = buildMap {
+        if (totalChatUnread > 0) put(ShellTab.Chats, totalChatUnread)
+        if (notificationsState.unreadCount > 0) put(ShellTab.Notifications, notificationsState.unreadCount)
+    }
 
     HomeContent(
         selectedTab = tab,
         isMobile = isMobile,
         onSelectTab = { tab = it },
+        badges = tabBadges,
         chatsList = { modifier ->
             if (isMobile) {
                 chatsList(modifier) { conversation ->

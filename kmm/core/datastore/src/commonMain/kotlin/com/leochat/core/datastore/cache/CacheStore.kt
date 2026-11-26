@@ -12,6 +12,7 @@ object CacheKeys {
     fun conversations(userId: String) = "${userScope(userId)}conversations"
     fun messages(userId: String, conversationId: String) = "${userScope(userId)}messages:$conversationId"
     fun aiMessages(userId: String) = "${userScope(userId)}ai_messages"
+    fun notifications(userId: String) = "${userScope(userId)}notifications"
 }
 
 /**

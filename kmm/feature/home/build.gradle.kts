@@ -9,6 +9,7 @@ kotlin {
             implementation(project(":feature:chat"))
             implementation(project(":feature:ai"))
             implementation(project(":feature:calls"))
+            implementation(project(":feature:notifications"))
             implementation(project(":feature:settings"))
         }
     }

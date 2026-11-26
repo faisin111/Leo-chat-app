@@ -22,6 +22,7 @@ import com.leochat.feature.chat.presentation.newgroup.NewGroupViewModel
 import com.leochat.feature.chat.presentation.sharedmedia.SharedMediaViewModel
 import com.leochat.feature.media.domain.usecase.SendVoiceMessageUseCase
 import com.leochat.feature.media.di.mediaPlatformModule
+import com.leochat.feature.notifications.presentation.NotificationsViewModel
 import com.leochat.feature.settings.presentation.appearance.AppearanceViewModel
 import com.leochat.feature.settings.presentation.editprofile.EditProfileViewModel
 import com.leochat.feature.settings.presentation.security.SecurityViewModel
@@ -85,6 +86,7 @@ class AppModulesTest {
         koin.get<SessionsViewModel>()
         koin.get<AppearanceViewModel>()
         koin.get<CallController>()
+        koin.get<NotificationsViewModel>()
         koin.get<SendVoiceMessageUseCase>()
         koin.close()
     }

@@ -16,6 +16,7 @@ import com.leochat.feature.calls.di.callsPlatformModule
 import com.leochat.feature.chat.di.contactsModule
 import com.leochat.feature.media.di.mediaModule
 import com.leochat.feature.media.di.mediaPlatformModule
+import com.leochat.feature.notifications.di.notificationsModule
 import com.leochat.feature.settings.di.settingsModule
 import org.koin.core.context.startKoin
 import org.koin.dsl.KoinAppDeclaration
@@ -39,6 +40,7 @@ val appModules = listOf(
     mediaPlatformModule,
     callsModule,
     callsPlatformModule,
+    notificationsModule,
 )
 
 /** Starts DI once per process. Android passes `androidContext`; iOS passes nothing. */
